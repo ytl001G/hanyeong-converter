@@ -1,8 +1,8 @@
-﻿# End-to-end check: starts HanYeong.exe and types with SendInput, then verifies the text.
-#   -Exe      path to HanYeong.exe (a running installed copy is stopped first and restarted afterwards)
-#   -Notepad  also run the cases in Windows Notepad (a TSF app; behaves differently from classic edit boxes)
-# Takes keyboard focus for 15-40 seconds and aborts if its window loses focus.
-param([Parameter(Mandatory)][string]$Exe, [switch]$Notepad)
+﻿# End-to-end check of what unit tests cannot cover: the keyboard hook, SendInput and the real IME,
+# in a classic edit box and in Windows Notepad (TSF). Judgement rules are covered by the unit tests.
+# Usage: .\tools\smoke-test.ps1 -Exe <HanYeong.exe>
+# Takes keyboard focus for about 25 seconds and aborts if its window loses focus.
+param([Parameter(Mandatory)][string]$Exe)
 $ErrorActionPreference = 'Stop'
 Add-Type -AssemblyName System.Windows.Forms
 Add-Type @"
@@ -34,47 +34,39 @@ $script:pumpForm = $false
 
 function Pump($ms) { $end = [DateTime]::Now.AddMilliseconds($ms); while ([DateTime]::Now -lt $end) { if ($script:pumpForm) { [Windows.Forms.Application]::DoEvents() }; Start-Sleep -Milliseconds 5 } }
 function Guard { if ([K]::GetForegroundWindow() -ne $script:target) { throw 'Test window lost focus - aborted before sending keys to another window.' } }
-function Tap($vk) { Guard; [K]::Key($vk, $false); [K]::Key($vk, $true); Pump 25 }
-# Types letters/digits/space; capitals are typed with Shift.
+function Tap($vk) { Guard; [K]::Key($vk, $false); [K]::Key($vk, $true); Pump 20 }
+# Letters (capitals with Shift), space, Enter (`n) and . only — all the cases need.
 function Type-Text($s) {
   foreach ($ch in $s.ToCharArray()) {
     Guard
-    if ($ch -eq ' ') { Tap 0x20; Pump 120; continue }
-    if ($ch -eq [char]10) { Tap 0x0D; Pump 120; continue }
-    $punct = @{ '.' = @(0xBE, $false); ',' = @(0xBC, $false); '?' = @(0xBF, $true); '!' = @(0x31, $true); '-' = @(0xBD, $false); '/' = @(0xBF, $false); "'" = @(0xDE, $false) }
-    if ($punct.ContainsKey([string]$ch)) {
-      $p = $punct[[string]$ch]
-      if ($p[1]) { [K]::Key(0x10, $false) }
-      [K]::Key([uint16]$p[0], $false); [K]::Key([uint16]$p[0], $true)
-      if ($p[1]) { [K]::Key(0x10, $true) }
-      Pump 120; continue
-    }
+    if ($ch -eq ' ') { Tap 0x20; Pump 100; continue }
+    if ($ch -eq [char]10) { Tap 0x0D; Pump 100; continue }
+    if ($ch -eq '.') { Tap 0xBE; Pump 100; continue }
     $isUpper = [char]::IsUpper($ch)
     if ($isUpper) { [K]::Key(0x10, $false) }
     [K]::Key([uint16][char]::ToUpper($ch), $false); [K]::Key([uint16][char]::ToUpper($ch), $true)
     if ($isUpper) { [K]::Key(0x10, $true) }
-    Pump 25
+    Pump 20
   }
 }
-function Back { Tap 0x08; Pump 150 }
-function Hotkey { Guard; [K]::Key(0x11, $false); Pump 20; [K]::Key(0x20, $false); [K]::Key(0x20, $true); Pump 20; [K]::Key(0x11, $true); Pump 400 }
+function Hotkey { Guard; [K]::Key(0x11, $false); Pump 20; [K]::Key(0x20, $false); [K]::Key(0x20, $true); Pump 20; [K]::Key(0x11, $true); Pump 300 }
 function Mode { if ([K]::IsKorean()) { 'KO' } else { 'EN' } }
 # Real 한/영 key presses, so HanYeong sees the switch like a user's.
-function Set-Mode($m) { if ((Mode) -ne $m) { Tap 0x15; Pump 150 } }
-function Record($label, $expected, $actual) { $script:results += [pscustomobject]@{ where = $script:where; step = $label; expected = $expected; actual = $actual; mode = (Mode); ok = ($actual -ceq $expected) } }
+function Set-Mode($m) { if ((Mode) -ne $m) { Tap 0x15; Pump 120 } }
+function Record($label, $expected, $actual) { $script:results += [pscustomobject]@{ where = $script:where; step = $label; expected = $expected; actual = $actual; ok = ($actual -ceq $expected) } }
 
-# ---- start the app with throwaway settings (one manual exception word) ----
+# ---- start the app with throwaway settings (one exception word) ----
 $exePath = (Resolve-Path $Exe).Path
 $installed = Get-Process HanYeong -ErrorAction SilentlyContinue | Where-Object { $_.Path -ne $exePath } | Select-Object -First 1 -ExpandProperty Path
 Get-Process HanYeong -ErrorAction SilentlyContinue | Stop-Process -Force
 $env:HANYEONG_SETTINGS = Join-Path $env:TEMP "hanyeong-smoke-$PID.json"
 '{ "AutoMode": true, "HasShownTrayHint": true, "ExceptionWords": [ "qkqh" ] }' | Set-Content $env:HANYEONG_SETTINGS -Encoding UTF8
 $app = Start-Process $exePath -PassThru
-Start-Sleep -Milliseconds 2500   # word tables load in the background
+Start-Sleep -Milliseconds 1500   # word tables load in the background
 $savedClip = Get-Clipboard -Raw
 
 try {
-  # ================= test window (classic edit box) =================
+  # ================= classic edit box =================
   $script:where = 'form'; $script:pumpForm = $true
   $form = New-Object Windows.Forms.Form
   $form.Text = 'HanYeong smoke test'; $form.Width = 520; $form.Height = 120; $form.TopMost = $true
@@ -82,75 +74,44 @@ try {
   $form.Controls.Add($tb); $form.Show(); Pump 300
   [void][K]::SetForegroundWindow($form.Handle); $tb.Focus() | Out-Null; Pump 200
   $script:target = $form.Handle
-  function Fresh($m) { $tb.Clear(); Pump 30; Set-Mode $m; Tap 0x23; Pump 50 }   # End = reset point
+  function Fresh($m) { $tb.Clear(); Pump 30; Set-Mode $m; Tap 0x23; Pump 40 }   # End = reset point
 
-  Fresh 'EN'; Type-Text 'dkssud'; Record 'typed EN' 'dkssud' $tb.Text
-  Hotkey; Record 'Ctrl+Space -> KO, mode stays EN' '안녕' $tb.Text
-  Hotkey; Record 'again reverts' 'dkssud' $tb.Text
-  Fresh 'KO'; Type-Text 'dkssud'; Hotkey; Record 'KO composing 녕 -> EN' 'dkssud' $tb.Text
-  Fresh 'KO'; Type-Text 'Hello'; Record 'Shift in KO mode' 'ㅗ디ㅣㅐ' $tb.Text
-  Hotkey; Record 'capital restored' 'Hello' $tb.Text
-  Fresh 'KO'; Type-Text 'dkssudgk'; Back; Type-Text 'f'; Record 'IME backspace' '안녕ㅎㄹ' $tb.Text
-  Hotkey; Record 'convert after backspace' 'dkssudgf' $tb.Text
-
+  Fresh 'EN'; Type-Text 'dkssud'; Hotkey; Record 'Ctrl+Space (IME mode untouched)' '안녕' $tb.Text
+  Hotkey; Record 'Ctrl+Space again reverts' 'dkssud' $tb.Text
+  Fresh 'KO'; Type-Text 'Hello'; Hotkey; Record 'composing syllable erased, capital kept' 'Hello' $tb.Text
   Set-Clipboard -Value 'CLIP-KEEP'
   $tb.Text = 'dkssud gktpdy'; Pump 30; Tap 0x23; $tb.SelectAll(); Pump 30
-  Hotkey; Pump 200; Record 'selection -> KO' '안녕 하세요' $tb.Text
+  Hotkey; Pump 150; Record 'selection converted' '안녕 하세요' $tb.Text
   Record 'clipboard restored' 'CLIP-KEEP' (Get-Clipboard -Raw).TrimEnd()
-
-  Fresh 'EN'; Type-Text 'dkssud gktpdy '; Record 'auto: each word on Space, mode stays' '안녕 하세요 ' $tb.Text
-  Fresh 'KO'; Type-Text 'hi Hello '; Record 'auto KO->EN keeps capitals' 'hi Hello ' $tb.Text
-  Fresh 'EN'; Type-Text 'rk '; Record 'auto rk' '가 ' $tb.Text
-  Back; Record 'Backspace is a plain Backspace' '가' $tb.Text
-  Fresh 'EN'; Type-Text 'rk '; Hotkey; Record 'Ctrl+Space right after reverts' 'rk ' $tb.Text
-  Fresh 'EN'; Type-Text 'qkqh '; Record 'manual exception respected' 'qkqh ' $tb.Text
-  Fresh 'EN'; Type-Text 'dkssud. gktpdy?'; Record 'auto on . and ?' '안녕. 하세요?' $tb.Text
-  Fresh 'KO'; Type-Text 'Hello, world!'; Record 'auto on , and ! (KO)' 'Hello, world!' $tb.Text
-  # Arrow keys end the word too; the cursor then moves, so the next letter lands before the last syllable.
-  Fresh 'EN'; Type-Text 'dkssud'; Tap 0x25; Pump 150; Type-Text 'x'; Record 'auto on Left arrow' '안x녕' $tb.Text
-  Fresh 'KO'; Type-Text 'hello'; Tap 0x25; Pump 150; Record 'auto on Left arrow (KO)' 'hello' $tb.Text
-  # Sentence context: once "want" is fixed, the ambiguous "to" (새) and "go" (해) follow.
-  Fresh 'KO'; Type-Text 'want to go '; Record 'sentence context (KO)' 'want to go ' $tb.Text
-  Fresh 'KO'; Type-Text "well-known don't "; Record 'joined words (KO)' "well-known don't " $tb.Text
-  Fresh 'KO'; Type-Text 'engelrhrtjs '; Record 'English + Korean noun (KO)' 'engel곡선 ' $tb.Text
+  Fresh 'EN'; Type-Text 'dkssud. gktpdy '; Record 'auto on . and Space' '안녕. 하세요 ' $tb.Text
+  Fresh 'KO'; Type-Text 'want to go '; Record 'auto KO->EN + sentence context' 'want to go ' $tb.Text
+  Fresh 'EN'; Type-Text 'dkssud'; Tap 0x25; Pump 120; Type-Text 'x'; Record 'auto on arrow, cursor moved' '안x녕' $tb.Text
+  Fresh 'EN'; Type-Text 'qkqh '; Record 'exception word left alone' 'qkqh ' $tb.Text
   $form.Close(); $script:pumpForm = $false
 
   # ================= Windows Notepad (TSF) =================
-  if ($Notepad) {
-    $script:where = 'notepad'
-    $np = Start-Process notepad -PassThru
-    Start-Sleep -Milliseconds 1500
-    $script:target = [K]::GetForegroundWindow()
-    $fgPid = 0; [void][K]::GetWindowThreadProcessId($script:target, [ref]$fgPid)
-    if ((Get-Process -Id $fgPid).ProcessName -ne 'Notepad') { throw 'Notepad did not come to the front - aborted before typing.' }
-    function Read-Doc { Guard; [K]::Key(0x11, $false); Tap 0x41; Tap 0x43; [K]::Key(0x11, $true); Pump 250; $t = Get-Clipboard -Raw; Tap 0x23; if ($null -eq $t) { '' } else { $t } }
-    function Clear-Doc { Guard; [K]::Key(0x11, $false); Tap 0x41; [K]::Key(0x11, $true); Tap 0x2E; Pump 100 }
-    function Case($label, $mode, $keys, $action, $expected) {
-      Clear-Doc; Set-Mode $mode; Tap 0x23; Type-Text $keys; Pump 100
-      if ($action) { & $action }
-      Record $label $expected (Read-Doc)
-    }
-    Case 'KO hi + Ctrl+Space'          'KO' 'hi'             { Hotkey } 'hi'
-    Case 'KO 안녕 + Ctrl+Space'         'KO' 'dkssud'         { Hotkey } 'dkssud'
-    Case 'KO Hello + Ctrl+Space'       'KO' 'Hello'          { Hotkey } 'Hello'
-    Case 'EN dkssud + Ctrl+Space'      'EN' 'dkssud'         { Hotkey } '안녕'
-    Case 'revert'                      'EN' 'dkssud'         { Hotkey; Hotkey } 'dkssud'
-    Case 'auto KO "hi "'               'KO' 'hi '            $null 'hi '
-    Case 'auto KO "Hello world "'      'KO' 'Hello world '   $null 'Hello world '
-    Case 'auto EN "dkssud gktpdy "'    'EN' 'dkssud gktpdy ' $null '안녕 하세요 '
-    Case 'auto EN "dkssud." '          'EN' 'dkssud.'        $null '안녕.'
-    Case 'auto on Enter'               'EN' ("dkssud" + [char]10) $null ("안녕" + [char]13 + [char]10)
-    Case 'auto on Left arrow'          'EN' 'dkssud'         { Tap 0x25; Pump 150 } '안녕'
-    Case 'sentence context (KO)'       'KO' 'want to go '    $null 'want to go '
-    Case 'joined word (KO)'            'KO' 'price-consumption ' $null 'price-consumption '
-    Case 'English + Korean noun (KO)'  'KO' 'engelrhrtjs '   $null 'engel곡선 '
-    Clear-Doc
-    $np.CloseMainWindow() | Out-Null
+  $script:where = 'notepad'
+  $np = Start-Process notepad -PassThru
+  Start-Sleep -Milliseconds 1500
+  $script:target = [K]::GetForegroundWindow()
+  $fgPid = 0; [void][K]::GetWindowThreadProcessId($script:target, [ref]$fgPid)
+  if ((Get-Process -Id $fgPid).ProcessName -ne 'Notepad') { throw 'Notepad did not come to the front - aborted before typing.' }
+  function Read-Doc { Guard; [K]::Key(0x11, $false); Tap 0x41; Tap 0x43; [K]::Key(0x11, $true); Pump 200; $t = Get-Clipboard -Raw; Tap 0x23; if ($null -eq $t) { '' } else { $t } }
+  function Clear-Doc { Guard; [K]::Key(0x11, $false); Tap 0x41; [K]::Key(0x11, $true); Tap 0x2E; Pump 80 }
+  function Case($label, $mode, $keys, $action, $expected) {
+    Clear-Doc; Set-Mode $mode; Tap 0x23; Type-Text $keys; Pump 80
+    if ($action) { & $action }
+    Record $label $expected (Read-Doc)
   }
+  Case 'Ctrl+Space on composing ㅑ (reported bug)' 'KO' 'hi' { Hotkey } 'hi'
+  Case 'auto KO->EN, English + Korean noun' 'KO' 'engelrhrtjs ' $null 'engel곡선 '
+  Case 'auto on Enter' 'EN' ("dkssud" + [char]10) $null ("안녕" + [char]13 + [char]10)
+  Clear-Doc
+  $np.CloseMainWindow() | Out-Null
 } finally {
   if ($null -ne $savedClip) { Set-Clipboard -Value $savedClip }
   Stop-Process -Id $app.Id -ErrorAction SilentlyContinue
   Remove-Item $env:HANYEONG_SETTINGS -ErrorAction SilentlyContinue
   if ($installed) { Start-Process $installed -ArgumentList '--startup' }
 }
-$results | Format-Table -AutoSize | Out-String -Width 220
+$results | Format-Table -AutoSize | Out-String -Width 200

@@ -68,8 +68,8 @@
 ## 개발
 
 ```powershell
-dotnet test                                  # 변환 엔진·자동 판단 단위 테스트
-.\tools\smoke-test.ps1 -Exe <HanYeong.exe>   # 실제 키 입력 테스트 (약 10초간 키보드 사용 금지)
+dotnet test                                  # 단위 테스트 74개 (변환 엔진·자동 판단·단어 표), 약 1초
+.\tools\smoke-test.ps1 -Exe <HanYeong.exe>   # 실제 키 입력 테스트 12단계, 테스트 창 + 메모장 (약 25초간 키보드·마우스 사용 금지)
 python tools\build_dictionaries.py <폴더>     # 단어 빈도 데이터 다시 만들기
 ```
 

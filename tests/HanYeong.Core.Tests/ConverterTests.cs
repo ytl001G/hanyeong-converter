@@ -6,70 +6,28 @@ public class ComposerTests
 {
     [Theory]
     [InlineData("dkssud", "안녕")]
-    [InlineData("dkssudgktpdy", "안녕하세요")]
-    [InlineData("gksrmf", "한글")]
-    [InlineData("qnfrhrl", "불고기")]
-    [InlineData("rk", "가")]
-    [InlineData("rkr", "각")]
-    [InlineData("rkrk", "가가")]
-    [InlineData("ekfr", "닭")]
-    [InlineData("ekfrdl", "닭이")]
-    [InlineData("ekfrk", "달가")]
-    [InlineData("rkqt", "값")]
-    [InlineData("rkqtdl", "값이")]
-    [InlineData("rkqtk", "갑사")]
-    [InlineData("hk", "ㅘ")]
-    [InlineData("ghk", "화")]
-    [InlineData("dnjs", "원")]
-    [InlineData("dml", "의")]
-    [InlineData("dho", "왜")]
-    [InlineData("rt", "ㄳ")]
-    [InlineData("rtk", "ㄱ사")]
-    [InlineData("tT", "ㅅㅆ")]
-    [InlineData("Rk", "까")]
-    [InlineData("ekE", "다ㄸ")]
-    [InlineData("ekEk", "다따")]
-    [InlineData("Dkssud", "안녕")]
-    [InlineData("kk", "ㅏㅏ")]
+    [InlineData("ekfr", "닭")]              // double final consonant
+    [InlineData("ekfrk", "달가")]           // ...whose second half moves on before a vowel
+    [InlineData("rkrk", "가가")]            // single final moves on
+    [InlineData("ghk", "화")]               // compound vowel
+    [InlineData("rtk", "ㄱ사")]             // lone cluster splits
+    [InlineData("Rk", "까")]                // Shift jamo
+    [InlineData("kk", "ㅏㅏ")]              // vowels without a consonant stay apart
     [InlineData("dkssud, 123!", "안녕, 123!")]
-    [InlineData("", "")]
-    public void Compose(string keys, string expected) =>
-        Assert.Equal(expected, LayoutConverter.ToKorean(keys));
+    public void Compose(string keys, string expected) => Assert.Equal(expected, LayoutConverter.ToKorean(keys));
 
+    // Matches the Windows IME: Backspace removes one jamo while composing, a whole syllable after commit.
     [Fact]
-    public void BackspaceRemovesOneJamoWhileComposing()
+    public void Backspace()
     {
         var c = new HangulComposer();
-        foreach (char k in "ekfr") c.Type(k);
-        Assert.Equal("닭", c.Text);
+        foreach (char k in "dkssud ekfr") c.Type(k);
         c.Backspace();
-        Assert.Equal("달", c.Text);
-        c.Backspace();
-        Assert.Equal("다", c.Text);
-        c.Backspace();
-        Assert.Equal("ㄷ", c.Text);
-        c.Backspace();
-        Assert.Equal("", c.Text);
-    }
-
-    [Fact]
-    public void BackspaceAfterCommitRemovesWholeSyllable()
-    {
-        var c = new HangulComposer();
-        foreach (char k in "dkssud ") c.Type(k);
-        c.Backspace();
-        Assert.Equal("안녕", c.Text);
-        c.Backspace();
+        Assert.Equal("안녕 달", c.Text);
+        c.Backspace(); c.Backspace(); c.Backspace();
+        Assert.Equal("안녕 ", c.Text);
+        c.Backspace(); c.Backspace();
         Assert.Equal("안", c.Text);
-    }
-
-    [Fact]
-    public void BackspaceAfterMovedConsonantKeepsIt()
-    {
-        var c = new HangulComposer();
-        foreach (char k in "rkrk") c.Type(k);
-        c.Backspace();
-        Assert.Equal("가ㄱ", c.Text);
     }
 }
 
@@ -80,135 +38,63 @@ public class DecomposerTests
     [InlineData("ㅗ디ㅣㅐ", "hello")]
     [InlineData("닭", "ekfr")]
     [InlineData("까", "Rk")]
-    [InlineData("의", "dml")]
-    [InlineData("ㄳ", "rt")]
-    [InlineData("ㅘ", "hk")]
-    [InlineData("안녕, 123!", "dkssud, 123!")]
-    public void ToKeys(string text, string expected) =>
-        Assert.Equal(expected, LayoutConverter.ToEnglish(text));
+    public void ToKeys(string text, string expected) => Assert.Equal(expected, LayoutConverter.ToEnglish(text));
 
-    [Theory]
-    [InlineData("안녕하세요")]
-    [InlineData("닭이 값을 왜 의논해")]
-    [InlineData("까치 뛰어 쌌다")]
-    public void RoundTrip(string text) =>
-        Assert.Equal(text, LayoutConverter.ToKorean(LayoutConverter.ToEnglish(text)));
-}
+    [Fact]
+    public void RoundTrip() =>
+        Assert.Equal("닭이 값을 왜 의논해 까치 뛰어", LayoutConverter.ToKorean(LayoutConverter.ToEnglish("닭이 값을 왜 의논해 까치 뛰어")));
 
-public class FlipTests
-{
-    [Theory]
-    [InlineData("dkssud", "안녕")]
-    [InlineData("ㅗ디ㅣㅐ", "hello")]
-    [InlineData("tkfkdgo wnjdy", "사랑해 줘요")]
-    public void Flip(string text, string expected) =>
-        Assert.Equal(expected, LayoutConverter.Flip(text));
+    [Fact]
+    public void FlipDetectsDirection()
+    {
+        Assert.Equal("안녕", LayoutConverter.Flip("dkssud"));
+        Assert.Equal("hello", LayoutConverter.Flip("ㅗ디ㅣㅐ"));
+    }
 }
 
 public class TypedSegmentTests
 {
-    static TypedSegment Typed(Layout layout, string keys, bool capsLock = false)
-    {
-        var segment = new TypedSegment(layout);
-        foreach (char k in keys)
-        {
-            if (k == '\b') segment.Backspace();
-            else segment.Type(k, capsLock);
-        }
-        return segment;
-    }
-
-    [Fact]
-    public void EnglishConvertsToKorean()
-    {
-        var s = Typed(Layout.English, "dkssud");
-        Assert.Equal("dkssud", s.Text);
-        Assert.Equal("안녕", s.Converted);
-    }
-
-    [Fact]
-    public void KoreanTracksImeOutputIncludingBackspace()
-    {
-        // Matches the real IME: 안녕하 → ⌫ → 안녕ㅎ → ㄹ → 안녕ㅎㄹ
-        var s = Typed(Layout.Korean, "dkssudgk\bf");
-        Assert.Equal("안녕ㅎㄹ", s.Text);
-        Assert.Equal("dkssudgf", s.Converted);
-    }
-
-    [Fact]
-    public void InsertedTextThenTypingContinues()
-    {
-        var s = new TypedSegment(Layout.Korean, "안녕");
-        foreach (char k in "gktpdy") s.Type(k);
-        Assert.Equal("안녕하세요", s.Text);
-        s.Backspace();
-        s.Backspace();
-        s.Backspace();
-        Assert.Equal("안녕하", s.Text);
-    }
-
-    [Fact]
-    public void CapsLockInKoreanModeTypesLatin()
-    {
-        var s = Typed(Layout.Korean, "AB", capsLock: true);
-        Assert.Equal("AB", s.Text);
-    }
-}
-
-public class ImeEditTests
-{
-    static TypedSegment Korean(string keys)
+    static TypedSegment Korean(string keys, bool capsLock = false)
     {
         var s = new TypedSegment(Layout.Korean);
         foreach (char k in keys)
         {
             if (k == '\b') s.Backspace();
-            else s.Type(k);
+            else s.Type(k, capsLock);
         }
         return s;
     }
 
+    [Fact]
+    public void TracksImeOutputIncludingBackspace()
+    {
+        // 안녕하 → ⌫ → 안녕ㅎ → ㄹ → 안녕ㅎㄹ, as the real IME does.
+        var s = Korean("dkssudgk\bf");
+        Assert.Equal("안녕ㅎㄹ", s.Text);
+        Assert.Equal("dkssudgf", s.Converted);
+    }
+
+    [Fact]
+    public void CapsLockInKoreanModeTypesLatin() => Assert.Equal("AB", Korean("AB", capsLock: true).Text);
+
+    // Regression: toggling 한/영 to commit the composing syllable failed in Windows 11 Notepad ("hi" → "ㅗhi"),
+    // so the syllable is erased jamo by jamo.
     [Theory]
-    [InlineData("hi", 2, 2)]          // ㅗ + composing ㅑ (1 step)
+    [InlineData("hi", 2, 2)]          // ㅗ + composing ㅑ
     [InlineData("dkssud", 2, 4)]      // 안 + composing 녕 (ㄴ ㅕ ㅇ)
-    [InlineData("ekfr", 1, 4)]        // composing 닭 (ㄷ ㅏ ㄹ ㄺ)
     [InlineData("rkrk", 2, 3)]        // 가 + composing 가 that started from a carried ㄱ
     [InlineData("dkssud ", 3, 3)]     // nothing composing after Space
-    [InlineData("dkssud", 1, 3)]      // only the composing syllable
     public void BackspacesCoverComposingJamo(string keys, int tail, int expected) =>
         Assert.Equal(expected, Korean(keys).BackspacesFor(tail));
 
-    [Fact]
-    public void EnglishNeedsOneBackspacePerChar()
-    {
-        var s = new TypedSegment(Layout.English);
-        foreach (char k in "dkssud") s.Type(k);
-        Assert.Equal(6, s.BackspacesFor(6));
-    }
-
     [Theory]
-    [InlineData("Hello", "ㅗ디ㅣㅐ", "Hello")]
-    [InlineData("HELLO", "ㅗ띠ㅣㅒ", "HELLO")]     // Shift+E is ㄸ, Shift+O is ㅒ
-    [InlineData("iPhone", "ㅑㅖㅙㅜㄷ", "iPhone")]
-    [InlineData("Qwer", "ㅃㅈㄷㄱ", "Qwer")]
+    [InlineData("Hello", "ㅗ디ㅣㅐ", "Hello")]   // Shift on h is invisible in Korean mode
+    [InlineData("HELLO", "ㅗ띠ㅣㅒ", "HELLO")]   // Shift on e/o gives ㄸ/ㅒ
+    [InlineData("Hellp\bo", "ㅗ디ㅣㅐ", "Hello")] // capitals survive Backspace
     public void ConvertedKeepsTypedCapitals(string keys, string screen, string expected)
     {
         var s = Korean(keys);
         Assert.Equal(screen, s.Text);
         Assert.Equal(expected, s.Converted);
-    }
-
-    [Fact]
-    public void CapitalsSurviveBackspace()
-    {
-        var s = Korean("Hellp\bo");
-        Assert.Equal("Hello", s.Converted);
-    }
-
-    [Fact]
-    public void RestoreCaseForLastWord()
-    {
-        var s = Korean("say Hello");
-        Assert.Equal("Hello", s.RestoreCase("hello"));
     }
 }

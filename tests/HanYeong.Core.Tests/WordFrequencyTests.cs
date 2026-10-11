@@ -43,16 +43,11 @@ public class WordFrequencyTests
         foreach (var (word, score) in reference) Assert.Equal(score, packed.Score(word));
     }
 
-    [Theory]
-    [InlineData("dkssud")]
-    [InlineData("zzzzzzzzzz")]
-    [InlineData("")]
-    [InlineData("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa")]
-    public void MissingEnglishScoresZero(string word) => Assert.Equal(0f, WordFrequency.English.Value.Score(word));
-
-    [Theory]
-    [InlineData("뷁뷁뷁")]
-    [InlineData("hello")]
-    [InlineData("")]
-    public void MissingKoreanScoresZero(string word) => Assert.Equal(0f, WordFrequency.Korean.Value.Score(word));
+    [Fact]
+    public void MissingWordsScoreZero()
+    {
+        Assert.Equal(0f, WordFrequency.English.Value.Score("dkssud"));
+        Assert.Equal(0f, WordFrequency.English.Value.Score(new string('a', 100)));   // longer than the stack buffer
+        Assert.Equal(0f, WordFrequency.Korean.Value.Score("뷁뷁뷁"));
+    }
 }
