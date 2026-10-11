@@ -83,6 +83,7 @@ public class MixedWordTests
     [InlineData("updategoTek", "update했다")]
     [InlineData("SNSfmf", "SNS를")]          // acronym missing from the word lists
     [InlineData("LArk", "LA가")]             // regression: looked up as "lark"
+    [InlineData("giffendms", "giffen은")]    // user's example: rare word, three-key particle
     [InlineData("ch4rk", "ch4가")]           // user's example (chapter 4): letters + digits
     [InlineData("mp3vkdlf", "mp3파일")]
     public void EnglishMode(string keys, string expected) => Assert.Equal(expected, Detector.CheckMixed(keys, Layout.English));

@@ -346,17 +346,20 @@ string RandomString(string alphabet, int min, int max)
 const string lower = "abcdefghijklmnopqrstuvwxyz";
 var common = Enumerable.Range('가', '힣' - '가' + 1).Select(c => (char)c).Where(CommonSyllables.Contains).ToArray();
 double Rate(int n, Func<string> make, Func<string, bool> converts) => Enumerable.Range(0, n).Count(_ => converts(make())) / (double)n;
+// Same as the app: single-word rules, then English + Korean (mixed) rules on the keys.
+bool AppConverts(string s, Layout mode) =>
+    defaults.Check(s, mode) is not null || defaults.CheckMixed(mode == Layout.English ? s : LayoutConverter.ToEnglish(s), mode) is not null;
 const int N = 100_000;
 report["nonsense"] = new
 {
-    randomLowercaseInEnglishMode = Rate(N, () => RandomString(lower, 3, 10), s => defaults.Check(s, Layout.English) is not null),
+    randomLowercaseInEnglishMode = Rate(N, () => RandomString(lower, 3, 10), s => AppConverts(s, Layout.English)),
     randomLowercaseFormsValidHangul = Rate(N, () => RandomString(lower, 3, 10), s => AutoDetector.IsWellFormed(LayoutConverter.ToKorean(s))),
-    randomKeysInKoreanMode = Rate(N, () => LayoutConverter.ToKorean(RandomString(lower, 3, 10)), s => defaults.Check(s, Layout.Korean) is not null),
-    idLikeLettersDigits = Rate(N, () => RandomString(lower, 3, 8) + RandomString("0123456789", 1, 4), s => defaults.Check(s, Layout.English) is not null),
-    passwordLike = Rate(N, () => RandomString(lower + lower.ToUpperInvariant() + "0123456789!@#$%", 8, 14), s => defaults.Check(s, Layout.English) is not null),
+    randomKeysInKoreanMode = Rate(N, () => LayoutConverter.ToKorean(RandomString(lower, 3, 10)), s => AppConverts(s, Layout.Korean)),
+    idLikeLettersDigits = Rate(N, () => RandomString(lower, 3, 8) + RandomString("0123456789", 1, 4), s => AppConverts(s, Layout.English)),
+    passwordLike = Rate(N, () => RandomString(lower + lower.ToUpperInvariant() + "0123456789!@#$%", 8, 14), s => AppConverts(s, Layout.English)),
     // Strings that are valid Hangul syllables but (almost surely) not words, typed in English mode.
     randomSyllablesTypedInEnglish = Rate(N, () => LayoutConverter.ToEnglish(new string(Enumerable.Range(0, rng.Next(2, 5)).Select(_ => common[rng.Next(common.Length)]).ToArray())),
-        s => defaults.Check(s, Layout.English) is not null),
+        s => AppConverts(s, Layout.English)),
 };
 
 // ---------- Ctrl+Space fidelity on whole sentences ----------

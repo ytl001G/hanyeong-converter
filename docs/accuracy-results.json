@@ -1,6 +1,6 @@
 {
   "load": {
-    "ms": 191,
+    "ms": 188,
     "managedMB": 15.6,
     "englishWords": 477661,
     "koreanWords": 486868
@@ -640,13 +640,13 @@
     ]
   },
   "mixed": {
-    "allLatinHangulFixedEnglishMode": 0.7469594890191618,
-    "allLatinHangulFixedKoreanMode": 0.7778458307813457,
-    "latinHangulTokens": 11429,
-    "distinctWords": 4112,
-    "tokens": 6819,
-    "fixedWhenTypedInEnglishMode": 0.9287285525736911,
-    "fixedWhenTypedInKoreanMode": 0.9752163073764482,
+    "allLatinHangulFixedEnglishMode": 0.7513436345314075,
+    "allLatinHangulFixedKoreanMode": 0.7465569365132684,
+    "latinHangulTokens": 11908,
+    "distinctWords": 4428,
+    "tokens": 7165,
+    "fixedWhenTypedInEnglishMode": 0.9321702721563154,
+    "fixedWhenTypedInKoreanMode": 0.928122819260293,
     "topMisses": [
       {
         "word": "kt는",
@@ -1024,11 +1024,11 @@
     }
   ],
   "nonsense": {
-    "randomLowercaseInEnglishMode": 0.02314,
+    "randomLowercaseInEnglishMode": 0.02427,
     "randomLowercaseFormsValidHangul": 0.02649,
-    "randomKeysInKoreanMode": 0.05344,
+    "randomKeysInKoreanMode": 0.05758,
     "idLikeLettersDigits": 0,
-    "passwordLike": 0,
+    "passwordLike": 0.00132,
     "randomSyllablesTypedInEnglish": 0.9996
   },
   "hotkey": {
@@ -1063,6 +1063,6 @@
   },
   "speed": {
     "checks": 200000,
-    "microsecondsPerCheck": 0.730165
+    "microsecondsPerCheck": 0.348505
   }
 }

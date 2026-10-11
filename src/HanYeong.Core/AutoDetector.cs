@@ -203,20 +203,24 @@ public sealed class AutoDetector
             // An all-caps prefix is a deliberate acronym (SNS를, FTA가) even when the word lists miss it.
             bool isAcronym = prefix.All(char.IsAsciiLetterUpper);
             // Letters with digits (ch4 = chapter 4, mp3, h2o) are codes, never Korean typing; no word list has them.
-            bool isCode = prefix.Any(char.IsAsciiDigit) && prefix.Any(char.IsAsciiLetter);
+            // Short only: a long letters+digits run before "rk" is more likely a password-like string.
+            bool isCode = prefix.Length <= 6 && prefix.Any(char.IsAsciiDigit) && prefix.Any(char.IsAsciiLetter);
             if (prefix.All(char.IsAsciiDigit)) continue;   // 2dl could be "2 dl"
+            if (prefix.Any(char.IsAsciiDigit) && !isCode) continue;
             isAcronym |= isCode;
-            // In Korean mode the front already showed up as broken Hangul, which is strong evidence on its own,
-            // so a rarer English word (engel, pareto) is enough there.
-            float needed = typedIn == Layout.Korean ? _o.KnownEnglish : _o.MixedEnglishPrefix;
-            if (!isAcronym && _english(prefix) < needed) continue;
             string korean = LayoutConverter.ToKorean(rest);
+            bool isParticle = IsParticleChain(korean);
+            // A rarer English word (giffen, engel, pareto) is enough when the evidence is strong: broken Hangul in
+            // Korean mode, or a particle of three or more keys (dms 은, fmf 를, dptj 에서) that English words do not
+            // end in. Two-key particles (di 야, ek 다) need a common word, or names split: Namadi is not Nama + 야.
+            float needed = typedIn == Layout.Korean || (isParticle && rest.Length >= 3) ? _o.KnownEnglish : _o.MixedEnglishPrefix;
+            if (!isAcronym && _english(prefix) < needed) continue;
             // A particle chain (SNS를) or a common word of two or more syllables (engel곡선, LG전자); one syllable
             // alone is too easily the tail of a name (Durango → Duran해).
             bool isCommonWord = korean.Length >= 2 && IsWellFormed(korean) && _korean(korean) >= _o.MixedKoreanRest
                 // In English mode the rest must not be English itself: Upwork is not Up + 재가 ("work").
                 && !(typedIn == Layout.English && _english(rest) >= _o.KnownEnglish);
-            if (IsParticleChain(korean) || isCommonWord) return prefix + korean;
+            if (isParticle || isCommonWord) return prefix + korean;
         }
         return null;
     }
