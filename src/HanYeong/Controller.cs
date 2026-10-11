@@ -4,41 +4,79 @@ using static HanYeong.Native;
 namespace HanYeong;
 
 /// <summary>
-/// Tracks what is typed since the last reset point and converts it on the hotkey.
-/// Hook callbacks only decide whether to swallow a key; everything else is posted to the UI thread.
+/// Tracks what is typed since the last reset point, converts it on the hotkey and, in auto mode,
+/// fixes words typed in the wrong mode when Space is pressed.
+/// Typing is tracked inside the hook callback itself so the record and any replacement we inject
+/// stay in order with the user's keystrokes.
 /// </summary>
 sealed class Controller : IDisposable
 {
     const int VK_SHIFT = 0x10, VK_CONTROL = 0x11, VK_MENU = 0x12, VK_LWIN = 0x5B, VK_RWIN = 0x5C;
     const int VK_SPACE = 0x20, VK_BACK = 0x08, VK_CAPITAL = 0x14;
 
-    record Conversion(string Before, Layout BeforeLayout, string After, Layout AfterLayout);
+    record Conversion(string Before, Layout BeforeLayout, string After, Layout AfterLayout)
+    {
+        public Conversion Reversed => new(After, AfterLayout, Before, BeforeLayout);
+    }
 
     readonly GlobalHooks _hooks;
     readonly SynchronizationContext _ui;
+    readonly Settings _settings;
+    readonly AutoDetector _detector;
     readonly System.Windows.Forms.Timer _ctrlReleaseTimer = new() { Interval = 30 };
 
     bool _isSpaceSwallowed;
     int _pendingConverts;
     bool _isBusy;
+    volatile bool _isDictionaryReady;
 
     TypedSegment? _segment;
     IntPtr _segmentWindow;
     // Set right after a conversion; pressing the hotkey again before typing anything reverts it.
     Conversion? _last;
+    // Set right after an auto conversion; an immediate Backspace undoes it.
+    Conversion? _autoUndo;
 
-    public event Action? AutoModeToggleRequested;
+    public event Action<bool>? AutoModeChanged;
 
-    public Controller()
+    public Controller(Settings settings)
     {
         _ui = SynchronizationContext.Current ?? throw new InvalidOperationException("Needs the UI thread.");
-        _hooks = new GlobalHooks { KeyPressed = OnHookKey, MouseClicked = () => _ui.Post(_ => Reset("click"), null) };
+        _settings = settings;
+        _detector = new AutoDetector(word => _settings.ExceptionWords.Contains(word));
+        _hooks = new GlobalHooks { KeyPressed = OnHookKey, MouseClicked = Reset };
         _ctrlReleaseTimer.Tick += (_, _) => RunPendingWhenCtrlReleased();
+
+        // Loading the word tables takes a moment; the auto mode stays idle until they are in memory.
+        Task.Run(() =>
+        {
+            _ = WordFrequency.English.Value;
+            _ = WordFrequency.Korean.Value;
+            _ = CommonSyllables.Count;
+            _isDictionaryReady = true;
+            Log.Write("dictionaries loaded");
+        });
+    }
+
+    public bool AutoMode
+    {
+        get => _settings.AutoMode;
+        set
+        {
+            _settings.AutoMode = value;
+            _settings.Save();
+            _autoUndo = null;
+            AutoModeChanged?.Invoke(value);
+        }
     }
 
     static bool IsModifier(int vk) => vk is >= 0xA0 and <= 0xA5 or VK_SHIFT or VK_CONTROL or VK_MENU or VK_LWIN or VK_RWIN;
     static bool IsAltOrWin(int vk) => vk is 0xA4 or 0xA5 or VK_MENU or VK_LWIN or VK_RWIN;
 
+    // Keys that never change the text: Caps/Num/Scroll Lock, F1–F24, media and browser keys.
+    static bool IsIgnorable(int vk) => vk is VK_CAPITAL or 0x90 or 0x91 or >= 0x70 and <= 0x87 or >= 0xA6 and <= 0xB7 or 0xFF;
+
+    /// <returns>true to swallow the key.</returns>
     bool OnHookKey(KeyEvent e)
     {
         bool ctrl = IsDown(VK_CONTROL), alt = IsDown(VK_MENU), shift = IsDown(VK_SHIFT);
@@ -49,8 +87,8 @@ sealed class Controller : IDisposable
             if (e.IsDown && ctrl && !shift && !win)
             {
                 _isSpaceSwallowed = true;
-                if (alt) _ui.Post(_ => AutoModeToggleRequested?.Invoke(), null);
-                else _ui.Post(_ => QueueConvert(), null);
+                if (alt) _ui.Post(_ => AutoMode = !AutoMode, null);
+                else QueueConvert();
                 return true;
             }
             if (!e.IsDown && _isSpaceSwallowed)
@@ -60,39 +98,46 @@ sealed class Controller : IDisposable
             }
         }
 
-        if (e.IsDown)
-        {
-            bool isCombo = (ctrl || alt || win) && !IsModifier(e.Vk);
-            bool capsLock = (GetKeyState(VK_CAPITAL) & 1) != 0;
-            _ui.Post(_ => OnKeyDown(e.Vk, shift, isCombo, capsLock), null);
-        }
-        else if (IsAltOrWin(e.Vk))
+        if (!e.IsDown)
         {
             // A lone Alt/Win tap moves focus to a menu, and right Alt is the 한/영 key on many setups.
-            _ui.Post(_ => Reset("alt/win"), null);
+            if (IsAltOrWin(e.Vk)) Reset();
+            return false;
         }
-        return false;
+
+        bool isCombo = (ctrl || alt || win) && !IsModifier(e.Vk);
+        bool capsLock = (GetKeyState(VK_CAPITAL) & 1) != 0;
+        return OnKeyDown(e.Vk, shift, isCombo, capsLock);
     }
 
-    void OnKeyDown(int vk, bool shift, bool isCombo, bool capsLock)
+    bool OnKeyDown(int vk, bool shift, bool isCombo, bool capsLock)
     {
         IntPtr fg = GetForegroundWindow();
-        if (_segment is not null && fg != _segmentWindow) Reset("window changed");
+        if (_segment is not null && fg != _segmentWindow) Reset();
+        if (IsModifier(vk) || IsIgnorable(vk)) return false;
 
-        if (IsModifier(vk) || IsIgnorable(vk)) return;
+        var autoUndo = _autoUndo;
+        _autoUndo = null;
+
         if (isCombo)
         {
-            Reset("shortcut");
-            return;
+            Reset();
+            return false;
         }
         if (vk == VK_BACK)
         {
+            if (autoUndo is not null)
+            {
+                UndoAuto(autoUndo);
+                return true;
+            }
             _segment?.Backspace();
             _last = null;
-            return;
+            return false;
         }
         if (KeyMap.ToChar(vk, shift, capsLock) is { } c)
         {
+            if (c == ' ' && TryAutoConvert()) return true;
             if (_segment is null)
             {
                 var layout = Ime.GetLayout();
@@ -102,13 +147,38 @@ sealed class Controller : IDisposable
             }
             _segment.Type(c, capsLock);
             _last = null;
-            return;
+            return false;
         }
-        Reset($"key 0x{vk:X2}");
+        Reset();
+        return false;
     }
 
-    // Keys that never change the text: Caps/Num/Scroll Lock, F1–F24, media and browser keys.
-    static bool IsIgnorable(int vk) => vk is VK_CAPITAL or 0x90 or 0x91 or >= 0x70 and <= 0x87 or >= 0xA6 and <= 0xB7 or 0xFF;
+    /// <summary>On Space: replaces the last word if it was typed in the wrong mode. The Space itself is swallowed and retyped.</summary>
+    bool TryAutoConvert()
+    {
+        if (!AutoMode || !_isDictionaryReady || _segment is null) return false;
+
+        string text = _segment.Text;
+        string word = text[(text.LastIndexOf(' ') + 1)..];
+        if (word.Length == 0 || _detector.Check(word, _segment.Layout) is not { } replacement) return false;
+
+        var conversion = new Conversion(word + " ", _segment.Layout, replacement + " ", _segment.Other);
+        // The Space has not reached the app, so only the word is deleted.
+        Replace(word, conversion.BeforeLayout, conversion.After, conversion.AfterLayout, currentLayout: conversion.BeforeLayout);
+        _last = conversion;
+        _autoUndo = conversion;
+        Log.Write($"auto {conversion.BeforeLayout}->{conversion.AfterLayout} len={word.Length}->{replacement.Length}");
+        return true;
+    }
+
+    void UndoAuto(Conversion conversion)
+    {
+        Replace(conversion.After, conversion.AfterLayout, conversion.Before, conversion.BeforeLayout, currentLayout: conversion.AfterLayout);
+        _last = conversion.Reversed;
+        string word = conversion.Before.TrimEnd(' ');
+        if (_settings.ExceptionWords.Add(word)) _ui.Post(_ => _settings.Save(), null);
+        Log.Write($"auto undone, exception added len={word.Length}");
+    }
 
     void QueueConvert()
     {
@@ -133,13 +203,14 @@ sealed class Controller : IDisposable
         _isBusy = true;
         try
         {
+            _autoUndo = null;
             IntPtr fg = GetForegroundWindow();
             if (_segment is not null && fg == _segmentWindow)
             {
                 if (_last is { } last)
                 {
                     Replace(last.After, last.AfterLayout, last.Before, last.BeforeLayout);
-                    _last = new Conversion(last.After, last.AfterLayout, last.Before, last.BeforeLayout);
+                    _last = last.Reversed;
                     Log.Write($"revert {last.AfterLayout}->{last.BeforeLayout} len={last.After.Length}");
                     return;
                 }
@@ -187,21 +258,23 @@ sealed class Controller : IDisposable
         Log.Write($"convert selection {from}->{to} len={text.Length}");
     }
 
-    void Replace(string oldText, Layout oldLayout, string newText, Layout newLayout)
+    /// <param name="currentLayout">IME mode right now if known; otherwise it is queried.</param>
+    void Replace(string oldText, Layout oldLayout, string newText, Layout newLayout, Layout? currentLayout = null)
     {
         var input = new InputSender();
         // Toggling to English first also commits the syllable the IME is still composing.
-        if ((Ime.GetLayout() ?? oldLayout) == Layout.Korean) input.Key(InputSender.VK_HANGUL);
+        if ((currentLayout ?? Ime.GetLayout() ?? oldLayout) == Layout.Korean) input.Key(InputSender.VK_HANGUL);
         input.Key(InputSender.VK_BACK, oldText.Length).Text(newText);
         if (newLayout == Layout.Korean) input.Key(InputSender.VK_HANGUL);
         if (!input.Send()) Log.Write("SendInput was blocked (elevated window?)");
         _segment = new TypedSegment(newLayout, newText);
     }
 
-    void Reset(string reason)
+    void Reset()
     {
         _segment = null;
         _last = null;
+        _autoUndo = null;
     }
 
     public void Dispose()

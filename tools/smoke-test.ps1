@@ -26,8 +26,10 @@ function TypeKeys($s) { foreach ($ch in $s.ToUpper().ToCharArray()) { Guard; [K]
 function Hotkey { Guard; [K]::Key(0x11, $false); Pump 20; [K]::Key(0x20, $false); [K]::Key(0x20, $true); Pump 20; [K]::Key(0x11, $true); Pump 400 }
 function Mode { $c = [K]::ImmGetContext($tb.Handle); $conv = 0; $sent = 0; [void][K]::ImmGetConversionStatus($c, [ref]$conv, [ref]$sent); [void][K]::ImmReleaseContext($tb.Handle, $c); if ($conv -band 1) { 'KO' } else { 'EN' } }
 
+$env:HANYEONG_SETTINGS = Join-Path $env:TEMP "hanyeong-smoke-$PID.json"
+Remove-Item $env:HANYEONG_SETTINGS -ErrorAction SilentlyContinue
 $app = Start-Process $Exe -PassThru
-Start-Sleep -Milliseconds 800
+Start-Sleep -Milliseconds 2500   # word tables load in the background
 
 $form = New-Object Windows.Forms.Form
 $form.Text = 'HanYeong smoke test'; $form.Width = 500; $form.Height = 120; $form.TopMost = $true
@@ -64,6 +66,21 @@ Hotkey; Pump 200;          Check 'selection -> KO' '안녕 하세요'
 $script:results += [pscustomobject]@{ step = 'clipboard restored'; expected = 'CLIP-KEEP'; actual = (Get-Clipboard); mode = ''; ok = ((Get-Clipboard) -eq 'CLIP-KEEP') }
 Hotkey;                    Check 'selection revert' 'dkssud gktpdy'
 
+# Auto mode: words fixed on Space; Backspace right after undoes and remembers the word.
+function SetMode($m) { $c = [K]::ImmGetContext($tb.Handle); [void][K]::ImmSetConversionStatus($c, $m, 0); [void][K]::ImmReleaseContext($tb.Handle, $c); Pump 100 }
+function Space { Guard; [K]::Key(0x20,$false);[K]::Key(0x20,$true); Pump 150 }
+function Back { Guard; [K]::Key(0x08,$false);[K]::Key(0x08,$true); Pump 150 }
+$tb.Clear(); SetMode 0; Guard; [K]::Key(0x24,$false);[K]::Key(0x24,$true); Pump 50
+TypeKeys 'dkssud'; Space;  Check 'auto EN->KO on space' '안녕 '
+TypeKeys 'gktpdy'; Space;  Check 'keeps typing in KO' '안녕 하세요 '
+TypeKeys 'hello'; Space;   Check 'auto KO->EN on space' '안녕 하세요 hello '
+TypeKeys 'rk'; Space;      Check 'auto rk -> 가' '안녕 하세요 hello 가 '
+Back;                      Check 'backspace undoes' '안녕 하세요 hello rk '
+TypeKeys 'rk'; Space;      Check 'exception sticks' '안녕 하세요 hello rk rk '
+$saved = Get-Content $env:HANYEONG_SETTINGS -Raw
+$script:results += [pscustomobject]@{ step = 'exception saved'; expected = 'rk'; actual = ''; mode = ''; ok = ($saved -match '"rk"') }
+
 $form.Close(); Stop-Process -Id $app.Id
+Remove-Item $env:HANYEONG_SETTINGS -ErrorAction SilentlyContinue
 $results | Format-Table -AutoSize | Out-String -Width 200
 
