@@ -22,6 +22,7 @@ sealed class Controller : IDisposable
     readonly GlobalHooks _hooks;
     readonly SynchronizationContext _ui;
     readonly Settings _settings;
+    readonly FocusTracker _focus;
     readonly AutoDetector _detector;
     readonly System.Windows.Forms.Timer _ctrlReleaseTimer = new() { Interval = 30 };
 
@@ -39,10 +40,11 @@ sealed class Controller : IDisposable
 
     public event Action<bool>? AutoModeChanged;
 
-    public Controller(Settings settings)
+    public Controller(Settings settings, FocusTracker focus)
     {
         _ui = SynchronizationContext.Current ?? throw new InvalidOperationException("Needs the UI thread.");
         _settings = settings;
+        _focus = focus;
         _detector = new AutoDetector(word => _settings.ExceptionWords.Contains(word));
         _hooks = new GlobalHooks { KeyPressed = OnHookKey, MouseClicked = Reset };
         _ctrlReleaseTimer.Tick += (_, _) => RunPendingWhenCtrlReleased();
@@ -76,6 +78,8 @@ sealed class Controller : IDisposable
     // Keys that never change the text: Caps/Num/Scroll Lock, F1–F24, media and browser keys.
     static bool IsIgnorable(int vk) => vk is VK_CAPITAL or 0x90 or 0x91 or >= 0x70 and <= 0x87 or >= 0xA6 and <= 0xB7 or 0xFF;
 
+    AppRule? CurrentRule => _settings.Apps.GetValueOrDefault(_focus.CurrentExe);
+
     /// <returns>true to swallow the key.</returns>
     bool OnHookKey(KeyEvent e)
     {
@@ -84,10 +88,14 @@ sealed class Controller : IDisposable
 
         if (e.Vk == VK_SPACE)
         {
-            if (e.IsDown && ctrl && !shift && !win)
+            // The auto-mode toggle works everywhere; conversion respects per-app rules and password fields.
+            bool isToggle = e.IsDown && ctrl && alt && !shift && !win;
+            bool isConvert = e.IsDown && ctrl && !alt && !shift && !win
+                && CurrentRule?.Hotkey != false && !_focus.IsPasswordFocused;
+            if (isToggle || isConvert)
             {
                 _isSpaceSwallowed = true;
-                if (alt) _ui.Post(_ => AutoMode = !AutoMode, null);
+                if (isToggle) _ui.Post(_ => AutoMode = !AutoMode, null);
                 else QueueConvert();
                 return true;
             }
@@ -102,6 +110,13 @@ sealed class Controller : IDisposable
         {
             // A lone Alt/Win tap moves focus to a menu, and right Alt is the 한/영 key on many setups.
             if (IsAltOrWin(e.Vk)) Reset();
+            return false;
+        }
+
+        if (_focus.IsPasswordFocused)
+        {
+            // Never keep what is typed into a password field.
+            Reset();
             return false;
         }
 
@@ -156,7 +171,7 @@ sealed class Controller : IDisposable
     /// <summary>On Space: replaces the last word if it was typed in the wrong mode. The Space itself is swallowed and retyped.</summary>
     bool TryAutoConvert()
     {
-        if (!AutoMode || !_isDictionaryReady || _segment is null) return false;
+        if (!AutoMode || !_isDictionaryReady || _segment is null || CurrentRule?.AutoMode == false) return false;
 
         string text = _segment.Text;
         string word = text[(text.LastIndexOf(' ') + 1)..];

@@ -42,12 +42,10 @@ static class SelectionReader
     {
         const string VsCodeFormat = "vscode-editor-data";
         if (!Clipboard.ContainsData(VsCodeFormat)) return false;
-        return Clipboard.GetData(VsCodeFormat) switch
-        {
-            string s => s.Contains("\"isFromEmptySelection\":true"),
-            MemoryStream ms => System.Text.Encoding.UTF8.GetString(ms.ToArray()).Contains("\"isFromEmptySelection\":true"),
-            _ => false,
-        };
+        if (Clipboard.TryGetData(VsCodeFormat, out string? json)) return json.Contains("\"isFromEmptySelection\":true");
+        if (Clipboard.TryGetData(VsCodeFormat, out MemoryStream? stream))
+            return System.Text.Encoding.UTF8.GetString(stream.ToArray()).Contains("\"isFromEmptySelection\":true");
+        return false;
     }
 
     static DataObject? Save()

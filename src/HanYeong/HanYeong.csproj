@@ -1,7 +1,12 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
   <ItemGroup>
     <ProjectReference Include="..\HanYeong.Core\HanYeong.Core.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- Only for System.Windows.Automation (password-field detection); UseWPF would change implicit usings. -->
+    <FrameworkReference Include="Microsoft.WindowsDesktop.App.WPF" />
   </ItemGroup>
 
   <PropertyGroup>

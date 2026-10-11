@@ -7,6 +7,7 @@ namespace HanYeong;
 sealed class TrayContext : ApplicationContext
 {
     readonly Settings _settings = Settings.Load();
+    readonly FocusTracker _focus = new();
     readonly Controller _controller;
     readonly NotifyIcon _icon;
     readonly ToolStripMenuItem _autoItem;
@@ -15,14 +16,33 @@ sealed class TrayContext : ApplicationContext
 
     public TrayContext()
     {
-        _controller = new Controller(_settings);
+        _controller = new Controller(_settings, _focus);
 
         _autoItem = new ToolStripMenuItem("자동 모드 (Ctrl+Alt+Space)") { CheckOnClick = true };
         _autoItem.Click += (_, _) => _controller.AutoMode = _autoItem.Checked;
 
+        var appMenu = new ToolStripMenuItem();
+        var appAuto = new ToolStripMenuItem("이 앱에서 자동 모드 끄기") { CheckOnClick = true };
+        var appHotkey = new ToolStripMenuItem("이 앱에서 Ctrl+Space 끄기") { CheckOnClick = true };
+        appMenu.DropDownItems.Add(appAuto);
+        appMenu.DropDownItems.Add(appHotkey);
+        appAuto.Click += (_, _) => UpdateAppRule(rule => rule.AutoMode = !appAuto.Checked);
+        appHotkey.Click += (_, _) => UpdateAppRule(rule => rule.Hotkey = !appHotkey.Checked);
+
         var menu = new ContextMenuStrip();
         menu.Items.Add(_autoItem);
+        menu.Items.Add(appMenu);
         menu.Items.Add(new ToolStripSeparator());
+        menu.Opening += (_, _) =>
+        {
+            // Clicking the tray makes the taskbar the foreground window, so use the app before it.
+            string exe = _focus.LastAppExe;
+            appMenu.Visible = exe.Length > 0;
+            appMenu.Text = $"{exe} 앱 설정";
+            var rule = _settings.Apps.GetValueOrDefault(exe);
+            appAuto.Checked = rule?.AutoMode == false;
+            appHotkey.Checked = rule?.Hotkey == false;
+        };
         menu.Items.Add("로그 폴더 열기", null, (_, _) => OpenLogFolder());
         menu.Items.Add("종료", null, (_, _) => ExitThread());
 
@@ -38,6 +58,19 @@ sealed class TrayContext : ApplicationContext
         };
         ShowState(_controller.AutoMode);
         Log.Write("started");
+    }
+
+    void UpdateAppRule(Action<AppRule> change)
+    {
+        string exe = _focus.LastAppExe;
+        if (exe.Length == 0) return;
+        var rule = _settings.Apps.GetValueOrDefault(exe) ?? new AppRule();
+        change(rule);
+        // Rules that are back to defaults are dropped so the settings file stays readable.
+        if (rule.AutoMode && rule.Hotkey) _settings.Apps.Remove(exe);
+        else _settings.Apps[exe] = rule;
+        _settings.Save();
+        Log.Write($"app rule {exe}: auto={rule.AutoMode} hotkey={rule.Hotkey}");
     }
 
     void ShowState(bool isAutoOn)
@@ -94,6 +127,7 @@ sealed class TrayContext : ApplicationContext
         _icon.Visible = false;
         _icon.Dispose();
         _controller.Dispose();
+        _focus.Dispose();
         _onIcon.Dispose();
         _offIcon.Dispose();
         Log.Write("stopped");
