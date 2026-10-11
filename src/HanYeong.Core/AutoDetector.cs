@@ -101,21 +101,41 @@ public sealed class AutoDetector
     /// </summary>
     string? CheckJoined(string word, Layout typedIn)
     {
+        // English mode, letters then trailing digits: an ID (rlaalswn12 is 김민주 typed as an ID), not Korean.
+        if (typedIn == Layout.English && char.IsAsciiDigit(word[^1])) return null;
+
+        var result = new System.Text.StringBuilder(word.Length);
         bool anyConverts = false;
+        int copied = 0;
         for (int i = 0; i < word.Length;)
         {
             if (!IsLetter(word[i])) { i++; continue; }
             int start = i;
             while (i < word.Length && IsLetter(word[i])) i++;
             string part = word[start..i];
+            // The other characters are the same key in both modes and stay as they are.
+            result.Append(word, copied, start - copied);
+            copied = i;
+
             bool afterNumber = typedIn == Layout.English && start > 0 && (char.IsAsciiDigit(word[start - 1]) || word[start - 1] == '%');
-            bool converts = afterNumber ? IsNumberSuffix(part) : CheckPart(part, typedIn) is not null;
-            if (converts) anyConverts = true;
-            else if (KeyCount(part, typedIn) >= _o.MinKeys) return null;
+            string converted = typedIn == Layout.English ? LayoutConverter.ToKorean(part) : LayoutConverter.ToEnglish(part);
+            if (afterNumber ? IsNumberSuffix(part) : CheckPart(part, typedIn) is not null)
+            {
+                anyConverts = true;
+                result.Append(converted);
+            }
+            // An acronym typed as meant stays English: 양해각서(MOU)를, 유럽연합(EU).
+            else if (typedIn == Layout.English && part.Length >= 2 && part.All(char.IsAsciiLetterUpper) && part.Any(IsEnglishOnlyCapital))
+                result.Append(part);
+            // One-key parts just follow (the t of don't).
+            else if (KeyCount(part, typedIn) < _o.MinKeys)
+                result.Append(converted);
+            else
+                return null;
         }
         if (!anyConverts) return null;
-        // The other characters are the same key in both modes, so the whole word converts as typed.
-        return typedIn == Layout.English ? LayoutConverter.ToKorean(word) : LayoutConverter.ToEnglish(word);
+        result.Append(word, copied, word.Length - copied);
+        return result.ToString();
     }
 
     /// <summary>Keys typed in English mode right after a number: 6보다, 3개, 1분기, 65세 — not 3rd, 4th, 10kg.</summary>

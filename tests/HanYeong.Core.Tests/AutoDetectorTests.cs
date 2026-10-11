@@ -159,6 +159,8 @@ public class JoinedWordTests
     [InlineData("5%로")]
     [InlineData("1분기")]
     [InlineData("65세")]
+    [InlineData("양해각서(MOU)를")]   // acronym typed as meant stays
+    [InlineData("유럽연합(EU)")]
     public void KoreanTypedInEnglishMode(string korean) =>
         Assert.Equal(korean, Detector.Check(KeysOf(korean), Layout.English));
 
@@ -177,5 +179,6 @@ public class JoinedWordTests
     [InlineData("20th", Layout.English)]      // ordinals stay
     [InlineData("1980s", Layout.English)]
     [InlineData("abc1", Layout.English)]
+    [InlineData("rlaalswn12", Layout.English)] // an ID: 김민주 typed as letters, then digits
     public void LeavesAlone(string typed, Layout layout) => Assert.Null(Detector.Check(typed, layout));
 }
