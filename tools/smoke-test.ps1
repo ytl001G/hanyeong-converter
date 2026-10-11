@@ -107,6 +107,7 @@ try {
   Case 'auto KO->EN, English + Korean noun' 'KO' 'engelrhrtjs ' $null 'engel곡선 '
   Case 'auto on Enter after other words' 'EN' ("dkssud gktpdy" + [char]10) $null ("안녕 하세요" + [char]13 + [char]10)
   Case 'one word + Enter stays (ID fields)' 'EN' ("rlaalswn" + [char]10) $null ("rlaalswn" + [char]13 + [char]10)
+  Case 'one common word + Enter converts (chat)' 'EN' ("ekdma" + [char]10) $null ("다음" + [char]13 + [char]10)
   Clear-Doc
   $np.CloseMainWindow() | Out-Null
 } finally {

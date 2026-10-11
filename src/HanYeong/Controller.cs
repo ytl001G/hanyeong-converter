@@ -222,16 +222,12 @@ sealed class Controller : IDisposable
         string text = _segment.Text;
         string word = text[(text.LastIndexOfAny(WordEnds) + 1)..];
         if (word.Length == 0) return false;
-        // A single word and then Enter is how IDs and search terms are entered (rlaalswn is someone's ID, not 김민주);
-        // with nothing else typed since the last click, Enter leaves it alone.
-        if (endKey == VK_RETURN && !_hasEarlierWord && word.Length == text.Length) return false;
         bool isInContext = _settings.SentenceContext && _contextFrom == _segment.Layout;
         var detector = isInContext ? _contextDetector : _detector;
-        string? replacement = detector.Check(word, _segment.Layout);
+        // The keys carry the typed capitals, which Korean mode does not show (Hello → ㅗ디ㅣㅐ).
+        string keys = _segment.Layout == Layout.English ? word : _segment.RestoreCase(LayoutConverter.ToEnglish(word));
+        string? replacement = detector.Suggest(word, keys, _segment.Layout);
         if (replacement is not null && _segment.Layout == Layout.Korean) replacement = _segment.RestoreCase(replacement);
-        // English word + Korean particle in one mode (shortagedlek, 놳ㅁㅎㄷ이다); keys carry the typed capitals.
-        replacement ??= detector.CheckMixed(
-            _segment.Layout == Layout.English ? word : _segment.RestoreCase(LayoutConverter.ToEnglish(word)), _segment.Layout);
         // The user may list either side: what they typed (rk) or what it would become (and).
         if (replacement is null || _settings.ExceptionWords.Contains(replacement))
         {
@@ -239,6 +235,10 @@ sealed class Controller : IDisposable
             _contextFrom = null;
             return false;
         }
+        // A single word and then Enter, with nothing else typed since the last click, may be an ID (rlaalswn is
+        // someone's ID, not 김민주): it only converts into a common word, as one-word chat messages are (ekdma → 다음).
+        if (endKey == VK_RETURN && !_hasEarlierWord && word.Length == text.Length && !IsCommonOnItsOwn(replacement, _segment.Layout))
+            return false;
 
         string ending = end?.ToString() ?? "";
         var conversion = new Conversion(word + ending, _segment.Layout, replacement + ending, _segment.Other);
@@ -252,6 +252,11 @@ sealed class Controller : IDisposable
         Log.Write($"auto {conversion.BeforeLayout}->{conversion.AfterLayout} len={word.Length}->{replacement.Length} end=0x{(endKey == 0 ? end!.Value : endKey):X2}");
         return true;
     }
+
+    // Chat messages of one word are everyday words (다음 5.6, 네 6.7, 수고하세요 3.7); IDs made of names are rarer
+    // (김민주 2.9, 이지은 3.4).
+    static bool IsCommonOnItsOwn(string replacement, Layout typedIn) =>
+        (typedIn == Layout.English ? WordFrequency.Korean.Value : WordFrequency.English.Value).Score(replacement) >= 3.5f;
 
     void QueueConvert()
     {

@@ -87,9 +87,21 @@ public class MixedWordTests
     [InlineData("ch4rk", "ch4가")]           // user's example (chapter 4): letters + digits
     [InlineData("mp3vkdlf", "mp3파일")]
     [InlineData("-6qhek", "-6보다")]          // user's example: number + particle, sign kept
+    [InlineData("+2akszma", "+2만큼")]        // user's example: number + 만큼
+    [InlineData("rebaterk", "rebate가")]       // user's example: rarer word + 가
     [InlineData("3ro", "3개")]               // number + counter
     [InlineData("2024susdp", "2024년에")]
     [InlineData("ATlsms", "A씨는")]          // single capital letter (씨 is Shift+T, l)
+    [InlineData("1ckwjsdptj", "1차전에서")]    // number + ordinary word
+    [InlineData("6wkghleka", "6자회담")]
+    [InlineData("Bgud", "B형")]              // capital + one syllable
+    [InlineData("FAzjq", "FA컵")]
+    [InlineData("CEOemfdml", "CEO들의")]      // regression: not CEOemf + 의
+    [InlineData("tcpviewfmf", "tcpview를")]  // unknown English, long particle
+    [InlineData("Lancetdp", "Lancet에")]      // rarer English, safe two-key particle
+    [InlineData("OpenGLdl", "OpenGL이")]      // inner capitals
+    [InlineData("asms", "a는")]              // user's example: lowercase letter + long particle
+    [InlineData("etmvhcm", "e스포츠")]
     public void EnglishMode(string keys, string expected) => Assert.Equal(expected, Detector.CheckMixed(keys, Layout.English));
 
     [Theory]
@@ -101,6 +113,13 @@ public class MixedWordTests
     [Theory]
     [InlineData("work", Layout.English)]          // a real English word
     [InlineData("Namadi", Layout.English)]        // a name
+    [InlineData("Novak", Layout.English)]         // not Nov + 만
+    [InlineData("Han", Layout.English)]           // not H + 무 ("an" is English)
+    [InlineData("isms", Layout.English)]          // a real word, not i + 는
+    [InlineData("BioLargo", Layout.English)]      // regression: inner capital + 해 (go)
+    [InlineData("7Bravo", Layout.English)]        // regression: code + one syllable
+    [InlineData("Gwo", Layout.English)]           // regression: a name, not G + 재
+    [InlineData("rmEOsms", Layout.Korean)]        // regression: Korean typo 그떄는
     [InlineData("INGKA", Layout.English)]         // capital particle keys
     [InlineData("Upwork", Layout.English)]        // regression: rest "work" read as 재가
     [InlineData("cnrkehlqslek", Layout.Korean)]   // regression: 추가됩니다 was split into cn + 가됩니다
@@ -110,6 +129,19 @@ public class MixedWordTests
     [InlineData("4th", Layout.English)]
     [InlineData("10kg", Layout.English)]
     public void LeavesAlone(string keys, Layout layout) => Assert.Null(Detector.CheckMixed(keys, layout));
+}
+
+/// <summary>The app's full decision between a whole-word reading and an English + Korean split.</summary>
+public class SuggestTests
+{
+    static readonly AutoDetector Detector = new();
+
+    [Theory]
+    [InlineData("quantityrk", "quantity가")]   // user's example: whole reading 벼무샤쇼가 exists nowhere
+    [InlineData("dkssudgktpdy", "안녕하세요")]  // a known whole word stays whole
+    [InlineData("shortagedlek", "shortage이다")]
+    [InlineData("+2akszma", "+2만큼")]        // user's example: number + 만큼
+    public void EnglishMode(string keys, string expected) => Assert.Equal(expected, Detector.Suggest(keys, keys, Layout.English));
 }
 
 /// <summary>Sentence context: an earlier word of the sentence was already fixed the same way.</summary>
@@ -135,6 +167,7 @@ public class ContextTests
     {
         Assert.Null(Normal.Check("so", Layout.English));
         Assert.Equal("내", InContext.Check("so", Layout.English));
+        Assert.Equal("해", InContext.Check("go", Layout.English));   // user's example: 분석부터 해
     }
 }
 
