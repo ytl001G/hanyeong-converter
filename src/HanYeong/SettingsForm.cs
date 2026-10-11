@@ -30,15 +30,17 @@ sealed class SettingsForm : Form
         MaximizeBox = MinimizeBox = false;
         ShowIcon = false;
         StartPosition = FormStartPosition.CenterScreen;
-        ClientSize = new Size(540, 600);
-        MinimumSize = new Size(460, 520);
+        ClientSize = new Size(580, 610);
+        MinimumSize = new Size(500, 540);
         Padding = new Padding(12);
 
         _convertBox = new HotkeyBox(Hotkey.Parse(settings.ConvertHotkey, Hotkey.DefaultConvert));
         _toggleBox = new HotkeyBox(Hotkey.Parse(settings.AutoToggleHotkey, Hotkey.DefaultAutoToggle));
         _autoCheck = new CheckBox { Text = "자동 모드 켜기", Checked = settings.AutoMode, AutoSize = true };
         _startupCheck = new CheckBox { Text = "Windows 시작 시 자동 실행", Checked = IsStartupEnabled(), AutoSize = true };
-        _contextCheck = new CheckBox { Text = "문장 맥락: 앞 단어가 바뀌었으면 to, a, I 같은 짧은 단어도 바꾸기", Checked = settings.SentenceContext, AutoSize = true };
+        _contextCheck = new CheckBox { Text = "문장 맥락으로 짧은 단어도 바꾸기", Checked = settings.SentenceContext, AutoSize = true };
+        new ToolTip { AutoPopDelay = 15000 }.SetToolTip(_contextCheck,
+            "같은 문장에서 이미 자동으로 바뀐 단어가 있으면\nto(새), so(내), a, I처럼 애매하거나 짧은 단어도 같은 방향으로 바꿉니다.\n문장 끝(. ? ! Enter)이나 그대로 둔 단어가 나오면 끝납니다.");
 
         _exceptionList = new ListBox { Dock = DockStyle.Fill, IntegralHeight = false, SelectionMode = SelectionMode.MultiExtended };
         _exceptionList.Items.AddRange(settings.ExceptionWords.Cast<object>().ToArray());
