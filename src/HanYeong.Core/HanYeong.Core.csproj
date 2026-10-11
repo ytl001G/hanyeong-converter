@@ -6,4 +6,9 @@
     <Nullable>enable</Nullable>
   </PropertyGroup>
 
+  <ItemGroup>
+    <EmbeddedResource Include="Data\en.tsv.gz" LogicalName="en.tsv.gz" />
+    <EmbeddedResource Include="Data\ko.tsv.gz" LogicalName="ko.tsv.gz" />
+  </ItemGroup>
+
 </Project>

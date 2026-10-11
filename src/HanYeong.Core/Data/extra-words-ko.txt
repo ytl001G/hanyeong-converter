@@ -1,0 +1,33 @@
+# Hand-picked Korean words (eojeol) typed on their own, mostly chat style, that corpora rank too low.
+# Complete syllables only (ㅋㅋ-style jamo words are handled by a rule, not this list).
+
+갑분싸
+감사
+감사요
+굿
+굿굿
+궁금
+넵
+넹
+네네
+노노
+대박
+레알
+맞아
+맞아요
+멘붕
+아니
+아님
+안녕
+어쩔
+엥
+오키
+오케이
+웅
+응응
+인정
+존맛
+진짜
+짱
+헐
+헐랭

@@ -1,0 +1,21 @@
+// Accuracy check used while tuning AutoDetector. Copy into a console project referencing HanYeong.Core,
+// then: dotnet run -c Release -- <download-folder> 5000   (download folder: see tools/DICTIONARIES.md)
+using System.Text;
+using HanYeong.Core;
+Console.OutputEncoding = Encoding.UTF8;
+string dl = args[0]; int n = int.Parse(args[1]);
+var det = new AutoDetector();
+var en = File.ReadLines(Path.Combine(dl, "en_50k.txt")).Select(l => l.Split(' ')[0]).Where(w => w.Length >= 2 && w.All(char.IsAsciiLetterLower)).Take(n).ToList();
+var ko = File.ReadLines(Path.Combine(dl, "ko_full.txt")).Select(l => l.Split(' ')[0]).Where(w => w.All(Jamo.IsSyllable)).Take(n).ToList();
+void Report(string name, List<string> words, Layout layout, Func<string, string?, bool> ok, int show = 25)
+{
+    var bad = words.Where(w => !ok(w, det.Check(w, layout))).ToList();
+    Console.WriteLine($"{name}: {words.Count - bad.Count}/{words.Count} ok ({100.0 * bad.Count / words.Count:F2}% wrong)");
+    Console.WriteLine("  e.g. " + string.Join(", ", bad.Take(show).Select(w => $"{w}→{det.Check(w, layout) ?? "∅"}")));
+}
+// False positives: real words typed correctly must stay.
+Report("EN typed right (must stay)", en, Layout.English, (w, r) => r is null);
+Report("KO typed right (must stay)", ko, Layout.Korean, (w, r) => r is null);
+// True positives: real words typed in the wrong mode should be fixed.
+Report("KO typed in EN mode (fix)", ko.Select(LayoutConverter.ToEnglish).ToList(), Layout.English, (w, r) => r == LayoutConverter.ToKorean(w));
+Report("EN typed in KO mode (fix)", en.Select(LayoutConverter.ToKorean).ToList(), Layout.Korean, (w, r) => r == LayoutConverter.ToEnglish(w));
