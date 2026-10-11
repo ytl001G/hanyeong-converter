@@ -19,14 +19,19 @@ sealed class SettingsForm : Form
     public SettingsForm(Settings settings)
     {
         _settings = settings;
-        Text = "한영 변환기 설정";
-        Font = new Font("Malgun Gothic", 9.5f);
-        FormBorderStyle = FormBorderStyle.FixedDialog;
-        MaximizeBox = MinimizeBox = false;
-        StartPosition = FormStartPosition.CenterScreen;
+        // Sizes below are in 96-DPI units; WinForms scales them to the monitor (125%, 150%, ...) on load.
+        SuspendLayout();
+        AutoScaleDimensions = new SizeF(96F, 96F);
         AutoScaleMode = AutoScaleMode.Dpi;
-        ClientSize = new Size(520, 560);
-        Padding = new Padding(14);
+        Text = "한영 변환기 설정";
+        Font = new Font("Malgun Gothic", 9F);
+        FormBorderStyle = FormBorderStyle.Sizable;
+        MaximizeBox = MinimizeBox = false;
+        ShowIcon = false;
+        StartPosition = FormStartPosition.CenterScreen;
+        ClientSize = new Size(540, 600);
+        MinimumSize = new Size(460, 520);
+        Padding = new Padding(12);
 
         _convertBox = new HotkeyBox(Hotkey.Parse(settings.ConvertHotkey, Hotkey.DefaultConvert));
         _toggleBox = new HotkeyBox(Hotkey.Parse(settings.AutoToggleHotkey, Hotkey.DefaultAutoToggle));
@@ -52,7 +57,7 @@ sealed class SettingsForm : Form
         _appGrid.Columns.Add(new DataGridViewCheckBoxColumn { HeaderText = "단축키 끔", FillWeight = 25 });
         foreach (var (exe, rule) in settings.Apps.OrderBy(kv => kv.Key)) _appGrid.Rows.Add(exe, !rule.AutoMode, !rule.Hotkey);
 
-        var hotkeys = new TableLayoutPanel { Dock = DockStyle.Top, AutoSize = true, ColumnCount = 2 };
+        var hotkeys = new TableLayoutPanel { Dock = DockStyle.Fill, AutoSize = true, ColumnCount = 2, Margin = Padding.Empty };
         hotkeys.ColumnStyles.Add(new ColumnStyle(SizeType.AutoSize));
         hotkeys.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
         hotkeys.Controls.Add(Label("변환 단축키"), 0, 0);
@@ -76,18 +81,35 @@ sealed class SettingsForm : Form
         {
             foreach (var item in _exceptionList.SelectedItems.Cast<object>().ToList()) _exceptionList.Items.Remove(item);
         };
-        var wordBar = new TableLayoutPanel { Dock = DockStyle.Fill, ColumnCount = 3, RowCount = 1, Margin = Padding.Empty };
-        wordBar.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
-        wordBar.ColumnStyles.Add(new ColumnStyle(SizeType.AutoSize));
-        wordBar.ColumnStyles.Add(new ColumnStyle(SizeType.AutoSize));
-        wordBar.Controls.Add(newWord, 0, 0);
-        wordBar.Controls.Add(addWord, 1, 0);
-        wordBar.Controls.Add(removeWord, 2, 0);
-        var removeApp = new Button { Text = "선택 삭제", AutoSize = true, Dock = DockStyle.Right };
+        var wordBar = Bar(newWord, addWord, removeWord);
+
+        // Running apps with a window, so an app can be picked without the tray menu; typing a name also works.
+        var appPicker = new ComboBox { Dock = DockStyle.Fill, Margin = new Padding(0, 3, 6, 0) };
+        appPicker.Items.AddRange(RunningApps().Cast<object>().ToArray());
+        appPicker.Text = "실행 중인 앱 선택 또는 입력 (예: Code.exe)";
+        appPicker.ForeColor = SystemColors.GrayText;
+        appPicker.Enter += (_, _) =>
+        {
+            if (appPicker.ForeColor == SystemColors.GrayText) appPicker.Text = "";
+            appPicker.ForeColor = SystemColors.WindowText;
+        };
+        var addApp = new Button { Text = "추가", AutoSize = true, Margin = new Padding(0, 0, 6, 0) };
+        addApp.Click += (_, _) =>
+        {
+            string exe = appPicker.Text.Trim();
+            if (exe.Length == 0 || appPicker.ForeColor == SystemColors.GrayText) return;
+            if (!exe.EndsWith(".exe", StringComparison.OrdinalIgnoreCase)) exe += ".exe";
+            bool exists = _appGrid.Rows.Cast<DataGridViewRow>().Any(r => string.Equals((string)r.Cells[0].Value!, exe, StringComparison.OrdinalIgnoreCase));
+            // New apps start with both off — that is why one adds an app here.
+            if (!exists) _appGrid.Rows.Add(exe, true, true);
+            appPicker.Text = "";
+        };
+        var removeApp = new Button { Text = "선택 삭제", AutoSize = true, Margin = Padding.Empty };
         removeApp.Click += (_, _) =>
         {
             foreach (DataGridViewRow row in _appGrid.SelectedRows) _appGrid.Rows.Remove(row);
         };
+        var appBar = Bar(appPicker, addApp, removeApp);
 
         var save = new Button { Text = "저장", AutoSize = true, DialogResult = DialogResult.OK };
         var cancel = new Button { Text = "취소", AutoSize = true, DialogResult = DialogResult.Cancel };
@@ -97,36 +119,68 @@ sealed class SettingsForm : Form
         // Enter in the word box adds the word instead of saving the dialog.
         newWord.Enter += (_, _) => AcceptButton = addWord;
         newWord.Leave += (_, _) => AcceptButton = save;
-        var buttons = new FlowLayoutPanel { Dock = DockStyle.Bottom, FlowDirection = FlowDirection.RightToLeft, AutoSize = true, Padding = new Padding(0, 8, 0, 0) };
+        var buttons = new FlowLayoutPanel { Dock = DockStyle.Fill, FlowDirection = FlowDirection.RightToLeft, AutoSize = true, Margin = new Padding(0, 6, 0, 0) };
         buttons.Controls.Add(cancel);
         buttons.Controls.Add(save);
 
-        var body = new TableLayoutPanel { Dock = DockStyle.Fill, ColumnCount = 1, RowCount = 2 };
-        body.RowStyles.Add(new RowStyle(SizeType.Percent, 45));
-        body.RowStyles.Add(new RowStyle(SizeType.Percent, 55));
-        body.Controls.Add(Group("자동 모드가 바꾸지 않을 단어 (친 그대로 rk, 또는 바뀔 결과 and)", _exceptionList, wordBar), 0, 0);
-        body.Controls.Add(Group("앱별 설정 (트레이 메뉴에서 추가)", _appGrid, removeApp), 0, 1);
+        // Everything sizes from its content; only the two lists share the leftover height.
+        var root = new TableLayoutPanel { Dock = DockStyle.Fill, ColumnCount = 1, RowCount = 4 };
+        root.RowStyles.Add(new RowStyle(SizeType.AutoSize));
+        root.RowStyles.Add(new RowStyle(SizeType.Percent, 45));
+        root.RowStyles.Add(new RowStyle(SizeType.Percent, 55));
+        root.RowStyles.Add(new RowStyle(SizeType.AutoSize));
+        root.Controls.Add(Group("단축키", hotkeys, null), 0, 0);
+        root.Controls.Add(Group("자동 모드가 바꾸지 않을 단어 (친 그대로 rk, 또는 바뀔 결과 and)", _exceptionList, wordBar), 0, 1);
+        root.Controls.Add(Group("앱별 설정 (체크한 기능을 그 앱에서 끔)", _appGrid, appBar), 0, 2);
+        root.Controls.Add(buttons, 0, 3);
+        Controls.Add(root);
 
         Shown += (_, _) => _appGrid.ClearSelection();
-
-        Controls.Add(body);
-        Controls.Add(Group("단축키", hotkeys, null, autoSize: true));
-        Controls.Add(buttons);
+        ResumeLayout(false);
+        PerformLayout();
     }
 
-    static Label Label(string text) => new() { Text = text, AutoSize = true, Anchor = AnchorStyles.Left, Margin = new Padding(3, 8, 12, 3) };
+    static Label Label(string text) => new() { Text = text, AutoSize = true, Anchor = AnchorStyles.Left, Margin = new Padding(3, 6, 12, 3) };
 
-    static GroupBox Group(string title, Control content, Control? footer, bool autoSize = false)
+    /// <summary>An input that stretches, followed by buttons.</summary>
+    static TableLayoutPanel Bar(Control input, params Button[] buttons)
     {
-        var box = new GroupBox { Text = title, Dock = autoSize ? DockStyle.Top : DockStyle.Fill, Padding = new Padding(8), AutoSize = autoSize };
-        box.Controls.Add(content);
+        var bar = new TableLayoutPanel { Dock = DockStyle.Fill, AutoSize = true, ColumnCount = 1 + buttons.Length, RowCount = 1, Margin = new Padding(0, 6, 0, 0) };
+        bar.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
+        bar.Controls.Add(input, 0, 0);
+        for (int i = 0; i < buttons.Length; i++)
+        {
+            bar.ColumnStyles.Add(new ColumnStyle(SizeType.AutoSize));
+            bar.Controls.Add(buttons[i], i + 1, 0);
+        }
+        return bar;
+    }
+
+    /// <summary>A titled box: the content fills it, an optional footer row sits below.</summary>
+    static GroupBox Group(string title, Control content, Control? footer)
+    {
+        var layout = new TableLayoutPanel { Dock = DockStyle.Fill, ColumnCount = 1, RowCount = footer is null ? 1 : 2, AutoSize = footer is null };
+        layout.RowStyles.Add(footer is null ? new RowStyle(SizeType.AutoSize) : new RowStyle(SizeType.Percent, 100));
+        content.Dock = DockStyle.Fill;
+        layout.Controls.Add(content, 0, 0);
         if (footer is not null)
         {
-            var bar = new Panel { Dock = DockStyle.Bottom, Height = 34, Padding = new Padding(0, 4, 0, 0) };
-            bar.Controls.Add(footer);
-            box.Controls.Add(bar);
+            layout.RowStyles.Add(new RowStyle(SizeType.AutoSize));
+            layout.Controls.Add(footer, 0, 1);
         }
+        var box = new GroupBox { Text = title, Dock = DockStyle.Fill, Padding = new Padding(8, 4, 8, 8), AutoSize = footer is null, Margin = new Padding(0, 0, 0, 8) };
+        box.Controls.Add(layout);
         return box;
+    }
+
+    static IEnumerable<string> RunningApps()
+    {
+        int self = Environment.ProcessId;
+        return System.Diagnostics.Process.GetProcesses()
+            .Where(p => p.Id != self && p.MainWindowHandle != IntPtr.Zero)
+            .Select(p => p.ProcessName + ".exe")
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .Order(StringComparer.OrdinalIgnoreCase);
     }
 
     void Save()

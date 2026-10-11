@@ -63,9 +63,13 @@ sealed class TrayContext : ApplicationContext
             _icon.ShowBalloonTip(1200, "한영 변환기", isOn ? "자동 모드 켜짐" : "자동 모드 꺼짐", ToolTipIcon.None);
         };
         ShowState(_controller.AutoMode);
-        // Started by hand (not at Windows start-up): say where it went, since it has no window.
-        if (!isStartupLaunch)
+        // First manual start: say where it went, since it has no window.
+        if (!isStartupLaunch && !_settings.HasShownTrayHint)
+        {
+            _settings.HasShownTrayHint = true;
+            _settings.Save();
             _icon.ShowBalloonTip(4000, "한영 변환기 실행 중", "작업 표시줄 오른쪽 아래 '한' 아이콘에 있어요.\n설정은 아이콘 우클릭, 또는 시작 메뉴에서 한 번 더 실행하세요.", ToolTipIcon.Info);
+        }
         Log.Write("started");
     }
 

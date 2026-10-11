@@ -68,7 +68,7 @@ $exePath = (Resolve-Path $Exe).Path
 $installed = Get-Process HanYeong -ErrorAction SilentlyContinue | Where-Object { $_.Path -ne $exePath } | Select-Object -First 1 -ExpandProperty Path
 Get-Process HanYeong -ErrorAction SilentlyContinue | Stop-Process -Force
 $env:HANYEONG_SETTINGS = Join-Path $env:TEMP "hanyeong-smoke-$PID.json"
-'{ "AutoMode": true, "ExceptionWords": [ "qkqh" ] }' | Set-Content $env:HANYEONG_SETTINGS -Encoding UTF8
+'{ "AutoMode": true, "HasShownTrayHint": true, "ExceptionWords": [ "qkqh" ] }' | Set-Content $env:HANYEONG_SETTINGS -Encoding UTF8
 $app = Start-Process $exePath -PassThru
 Start-Sleep -Milliseconds 2500   # word tables load in the background
 $savedClip = Get-Clipboard -Raw
@@ -140,6 +140,6 @@ try {
   if ($null -ne $savedClip) { Set-Clipboard -Value $savedClip }
   Stop-Process -Id $app.Id -ErrorAction SilentlyContinue
   Remove-Item $env:HANYEONG_SETTINGS -ErrorAction SilentlyContinue
-  if ($installed) { Start-Process $installed }
+  if ($installed) { Start-Process $installed -ArgumentList '--startup' }
 }
 $results | Format-Table -AutoSize | Out-String -Width 220

@@ -19,6 +19,9 @@ sealed class Settings
 
     public bool AutoMode { get; set; } = true;
 
+    /// <summary>The "running in the tray" hint is shown once, on the first manual start.</summary>
+    public bool HasShownTrayHint { get; set; }
+
     public string ConvertHotkey { get; set; } = Hotkey.DefaultConvert.ToString();
     public string AutoToggleHotkey { get; set; } = Hotkey.DefaultAutoToggle.ToString();
 
