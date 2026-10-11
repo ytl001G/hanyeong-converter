@@ -85,7 +85,7 @@ sealed class SettingsForm : Form
         var body = new TableLayoutPanel { Dock = DockStyle.Fill, ColumnCount = 1, RowCount = 2 };
         body.RowStyles.Add(new RowStyle(SizeType.Percent, 45));
         body.RowStyles.Add(new RowStyle(SizeType.Percent, 55));
-        body.Controls.Add(Group("자동 모드 예외 단어 (변환 직후 Backspace로 되돌린 단어)", _exceptionList, removeWord), 0, 0);
+        body.Controls.Add(Group("자동 모드 예외 단어 (같은 단어의 자동 변환을 2번 되돌리면 추가)", _exceptionList, removeWord), 0, 0);
         body.Controls.Add(Group("앱별 설정 (트레이 메뉴에서 추가)", _appGrid, removeApp), 0, 1);
 
         Shown += (_, _) => _appGrid.ClearSelection();

@@ -75,8 +75,10 @@ TypeKeys 'dkssud'; Space;  Check 'auto EN->KO on space' '안녕 '
 TypeKeys 'gktpdy'; Space;  Check 'keeps typing in KO' '안녕 하세요 '
 TypeKeys 'hello'; Space;   Check 'auto KO->EN on space' '안녕 하세요 hello '
 TypeKeys 'rk'; Space;      Check 'auto rk -> 가' '안녕 하세요 hello 가 '
-Back;                      Check 'backspace undoes' '안녕 하세요 hello rk '
-TypeKeys 'rk'; Space;      Check 'exception sticks' '안녕 하세요 hello rk rk '
+Back;                      Check 'backspace undoes (1st)' '안녕 하세요 hello rk '
+TypeKeys 'rk'; Space;      Check 'one undo is not an exception' '안녕 하세요 hello rk 가 '
+Back;                      Check 'backspace undoes (2nd)' '안녕 하세요 hello rk rk '
+TypeKeys 'rk'; Space;      Check 'two undos make an exception' '안녕 하세요 hello rk rk rk '
 $saved = Get-Content $env:HANYEONG_SETTINGS -Raw
 $script:results += [pscustomobject]@{ step = 'exception saved'; expected = 'rk'; actual = ''; mode = ''; ok = ($saved -match '"rk"') }
 

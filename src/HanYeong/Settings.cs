@@ -22,8 +22,11 @@ sealed class Settings
     public string ConvertHotkey { get; set; } = Hotkey.DefaultConvert.ToString();
     public string AutoToggleHotkey { get; set; } = Hotkey.DefaultAutoToggle.ToString();
 
-    /// <summary>Words (as shown on screen) the auto mode must leave alone; added by Backspace-undo.</summary>
+    /// <summary>Words (as shown on screen) the auto mode must leave alone; added after repeated Backspace-undo.</summary>
     public SortedSet<string> ExceptionWords { get; set; } = new(StringComparer.Ordinal);
+
+    /// <summary>How often each word's auto conversion was undone, until it becomes an exception.</summary>
+    public Dictionary<string, int> UndoCounts { get; set; } = new(StringComparer.Ordinal);
 
     /// <summary>Per-app overrides keyed by executable name, e.g. "Code.exe".</summary>
     public Dictionary<string, AppRule> Apps { get; set; } = new(StringComparer.OrdinalIgnoreCase);

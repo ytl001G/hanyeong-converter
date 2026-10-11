@@ -13,6 +13,7 @@ sealed class Controller : IDisposable
 {
     const int VK_SHIFT = 0x10, VK_CONTROL = 0x11, VK_MENU = 0x12, VK_LWIN = 0x5B, VK_RWIN = 0x5C;
     const int VK_BACK = 0x08, VK_CAPITAL = 0x14;
+    const int UndosBeforeException = 2;
 
     record Conversion(string Before, Layout BeforeLayout, string After, Layout AfterLayout)
     {
@@ -224,9 +225,20 @@ sealed class Controller : IDisposable
     {
         Replace(conversion.After, conversion.AfterLayout, conversion.Before, conversion.BeforeLayout, currentLayout: conversion.AfterLayout);
         _last = conversion.Reversed;
+        // One undo may just be a Backspace meant for something else; only repeated undos make an exception.
         string word = conversion.Before.TrimEnd(' ');
-        if (_settings.ExceptionWords.Add(word)) _ui.Post(_ => _settings.Save(), null);
-        Log.Write($"auto undone, exception added len={word.Length}");
+        int count = _settings.UndoCounts.GetValueOrDefault(word) + 1;
+        if (count >= UndosBeforeException)
+        {
+            _settings.UndoCounts.Remove(word);
+            _settings.ExceptionWords.Add(word);
+        }
+        else
+        {
+            _settings.UndoCounts[word] = count;
+        }
+        _ui.Post(_ => _settings.Save(), null);
+        Log.Write($"auto undone ({count}/{UndosBeforeException}) len={word.Length}");
     }
 
     void QueueConvert()
