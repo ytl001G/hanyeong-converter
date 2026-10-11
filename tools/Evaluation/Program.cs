@@ -231,17 +231,17 @@ report["examples"] = new
 
 // ---------- mixed words: English + Korean particle (AI가, SNS를) found in the Korean test text ----------
 // Only "word + particle" (SNS를); compounds like LG전자 are a different thing and are not attempted.
-var mixedPattern = new System.Text.RegularExpressions.Regex("^[A-Za-z]{2,}[가-힣]+$");
+var mixedPattern = new System.Text.RegularExpressions.Regex("^[A-Za-z][A-Za-z0-9]+[가-힣]+$");
 var mixedAll = sentences["ko_web"].Concat(sentences["ko_news"]).SelectMany(t => t)
     .Where(w => mixedPattern.IsMatch(w)).ToList();
 var mixedFreq = mixedAll
-    .Where(w => AutoDetector.IsParticleChain(w[w.TakeWhile(char.IsAsciiLetter).Count()..]))
+    .Where(w => AutoDetector.IsParticleChain(w[w.TakeWhile(char.IsAsciiLetterOrDigit).Count()..]))
     .GroupBy(w => w).ToDictionary(g => g.Key, g => g.Count());
 long mixedTotal = mixedFreq.Values.Sum(v => (long)v), mixedEnFixed = 0, mixedKoFixed = 0;
 var mixedMisses = new Dictionary<string, int>();
 foreach (var (w, count) in mixedFreq)
 {
-    int cut = w.TakeWhile(char.IsAsciiLetter).Count();
+    int cut = w.TakeWhile(char.IsAsciiLetterOrDigit).Count();
     string keys = w[..cut] + LayoutConverter.ToEnglish(w[cut..]);   // the whole word typed in one mode
     bool en = defaults.CheckMixed(keys, Layout.English) == w;
     bool ko = defaults.CheckMixed(keys, Layout.Korean) == w;
@@ -254,7 +254,7 @@ var allMixedFreq = mixedAll.GroupBy(w => w).ToDictionary(g => g.Key, g => g.Coun
 long allMixedEn = 0, allMixedKo = 0;
 foreach (var (w, count) in allMixedFreq)
 {
-    int cut = w.TakeWhile(char.IsAsciiLetter).Count();
+    int cut = w.TakeWhile(char.IsAsciiLetterOrDigit).Count();
     string keys = w[..cut] + LayoutConverter.ToEnglish(w[cut..]);
     if (defaults.CheckMixed(keys, Layout.English) == w) allMixedEn += count;
     if (defaults.CheckMixed(keys, Layout.Korean) == w) allMixedKo += count;

@@ -83,6 +83,8 @@ public class MixedWordTests
     [InlineData("updategoTek", "update했다")]
     [InlineData("SNSfmf", "SNS를")]          // acronym missing from the word lists
     [InlineData("LArk", "LA가")]             // regression: looked up as "lark"
+    [InlineData("ch4rk", "ch4가")]           // user's example (chapter 4): letters + digits
+    [InlineData("mp3vkdlf", "mp3파일")]
     public void EnglishMode(string keys, string expected) => Assert.Equal(expected, Detector.CheckMixed(keys, Layout.English));
 
     [Theory]
@@ -95,7 +97,11 @@ public class MixedWordTests
     [InlineData("work", Layout.English)]          // a real English word
     [InlineData("Namadi", Layout.English)]        // a name
     [InlineData("INGKA", Layout.English)]         // capital particle keys
+    [InlineData("Upwork", Layout.English)]        // regression: rest "work" read as 재가
     [InlineData("cnrkehlqslek", Layout.Korean)]   // regression: 추가됩니다 was split into cn + 가됩니다
+    [InlineData("chrk", Layout.Korean)]           // digits are English-mode only (초4가 is Korean)
+    [InlineData("2dl", Layout.English)]           // digits alone: could be "2 dl"
+    [InlineData("user123", Layout.English)]
     public void LeavesAlone(string keys, Layout layout) => Assert.Null(Detector.CheckMixed(keys, layout));
 }
 
