@@ -1,6 +1,6 @@
 {
   "load": {
-    "ms": 198,
+    "ms": 189,
     "managedMB": 15.6,
     "englishWords": 477661,
     "koreanWords": 486868
@@ -670,20 +670,16 @@
     ]
   },
   "mixed": {
-    "allLatinHangulFixedEnglishMode": 0.8008061807188445,
+    "allLatinHangulFixedEnglishMode": 0.8014779979845482,
     "allLatinHangulFixedKoreanMode": 0.7690628149143433,
     "latinHangulTokens": 11908,
     "distinctWords": 4463,
     "tokens": 7202,
-    "fixedWhenTypedInEnglishMode": 0.9823660094418217,
+    "fixedWhenTypedInEnglishMode": 0.9834768119966676,
     "fixedWhenTypedInKoreanMode": 0.9322410441544016,
     "topMisses": [
       {
         "word": "MWC2015에서",
-        "count": 2
-      },
-      {
-        "word": "ledge가",
         "count": 2
       },
       {
@@ -708,10 +704,6 @@
       },
       {
         "word": "Endourology에",
-        "count": 1
-      },
-      {
-        "word": "ects가",
         "count": 1
       },
       {
@@ -776,6 +768,14 @@
       },
       {
         "word": "cilostazol이",
+        "count": 1
+      },
+      {
+        "word": "CoC가",
+        "count": 1
+      },
+      {
+        "word": "Xgolf가",
         "count": 1
       }
     ]
@@ -844,9 +844,9 @@
       },
       {
         "shape": "LH",
-        "missedTokens": 2018,
-        "shareOfAllWords": 0.0005845246378003799,
-        "missRateInShape": 0.1477414159162457,
+        "missedTokens": 2011,
+        "shareOfAllWords": 0.000582497049859546,
+        "missRateInShape": 0.14722893330404863,
         "examples": [
           "A매치(31)",
           "SK텔레콤은(26)",
@@ -2038,7 +2038,7 @@
       "parameter": "KnownEnglish",
       "value": 2,
       "isDefault": false,
-      "enModeFalsePositive": 0.00011573422499309391,
+      "enModeFalsePositive": 0.00011599606713108734,
       "enModeFixed": 0.9973527836741014,
       "koModeFalsePositive": 1.709754634080249E-05,
       "koModeFixed": 0.9128170417337091
@@ -2047,7 +2047,7 @@
       "parameter": "KnownEnglish",
       "value": 2.5,
       "isDefault": false,
-      "enModeFalsePositive": 0.00015343949286414712,
+      "enModeFalsePositive": 0.00015396317714013399,
       "enModeFixed": 0.9973527836741014,
       "koModeFalsePositive": 1.709754634080249E-05,
       "koModeFixed": 0.9054844145013413
@@ -2056,7 +2056,7 @@
       "parameter": "KnownEnglish",
       "value": 3,
       "isDefault": false,
-      "enModeFalsePositive": 0.00022649344936431274,
+      "enModeFalsePositive": 0.0002270171336402996,
       "enModeFixed": 0.9973527836741014,
       "koModeFalsePositive": 1.677495112682508E-05,
       "koModeFixed": 0.8914342272187521
@@ -2102,6 +2102,6 @@
   },
   "speed": {
     "checks": 200000,
-    "microsecondsPerCheck": 0.41206
+    "microsecondsPerCheck": 0.954666
   }
 }
