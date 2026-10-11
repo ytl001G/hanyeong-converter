@@ -44,6 +44,8 @@ sealed class Controller : IDisposable
     Conversion? _last;
     // Mode of the words the auto mode fixed earlier in this sentence: the user is typing in the wrong mode.
     Layout? _contextFrom;
+    // A word was already finished since the last click/reset; the tracked segment itself restarts after conversions.
+    bool _hasEarlierWord;
 
     public event Action<bool>? AutoModeChanged;
 
@@ -179,7 +181,12 @@ sealed class Controller : IDisposable
         }
         if (KeyMap.ToChar(vk, shift, capsLock) is { } c)
         {
-            if (WordEnds.Contains(c) && TryAutoConvert(c)) return true;
+            if (WordEnds.Contains(c))
+            {
+                bool isConverted = TryAutoConvert(c);
+                _hasEarlierWord = true;
+                if (isConverted) return true;
+            }
             if (_segment is null)
             {
                 var layout = Ime.GetLayout();
@@ -217,7 +224,7 @@ sealed class Controller : IDisposable
         if (word.Length == 0) return false;
         // A single word and then Enter is how IDs and search terms are entered (rlaalswn is someone's ID, not 김민주);
         // with nothing else typed since the last click, Enter leaves it alone.
-        if (endKey == VK_RETURN && word.Length == text.Length) return false;
+        if (endKey == VK_RETURN && !_hasEarlierWord && word.Length == text.Length) return false;
         bool isInContext = _settings.SentenceContext && _contextFrom == _segment.Layout;
         var detector = isInContext ? _contextDetector : _detector;
         string? replacement = detector.Check(word, _segment.Layout);
@@ -340,6 +347,7 @@ sealed class Controller : IDisposable
         _segment = null;
         _last = null;
         _contextFrom = null;
+        _hasEarlierWord = false;
     }
 
     public void Dispose()
