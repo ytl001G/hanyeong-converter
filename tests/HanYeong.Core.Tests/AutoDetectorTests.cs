@@ -158,6 +158,10 @@ public class MixedWordTests
     [InlineData("APIfmf", "API를")]
     [InlineData("serverrk", "server가")]
     [InlineData("emaildmf", "email을")]
+    [InlineData("SNSfmf", "SNS를")]                    // acronym missing from the word lists
+    [InlineData("FTArk", "FTA가")]
+    [InlineData("UNdp", "UN에")]
+    [InlineData("LArk", "LA가")]
     public void EnglishMode(string keys, string expected) =>
         Assert.Equal(expected, Detector.CheckMixed(keys, Layout.English));
 
@@ -165,6 +169,7 @@ public class MixedWordTests
     [InlineData("shortagedlek", "shortage이다")]       // English part typed in Korean mode
     [InlineData("Githubdp", "Github에")]
     [InlineData("updategkrh", "update하고")]
+    [InlineData("SNSdp", "SNS에")]
     public void KoreanMode(string keys, string expected) =>
         Assert.Equal(expected, Detector.CheckMixed(keys, Layout.Korean));
 
@@ -176,6 +181,10 @@ public class MixedWordTests
     [InlineData("gkrrysdp", Layout.Korean)]     // 학교에: real Korean
     [InlineData("dkssudgktpdy", Layout.Korean)] // 안녕하세요
     [InlineData("qwerty", Layout.English)]
+    [InlineData("cnrkehlqslek", Layout.Korean)] // 추가됩니다: proper syllables in front
+    [InlineData("skagksdms", Layout.Korean)]    // 남한은
+    [InlineData("INGKA", Layout.English)]       // capital particle keys
+    [InlineData("Namadi", Layout.English)]      // a name
     public void LeavesAlone(string keys, Layout layout) =>
         Assert.Null(Detector.CheckMixed(keys, layout));
 }

@@ -106,6 +106,9 @@ try {
   Fresh 'EN'; Type-Text 'qkqh '; Record 'manual exception respected' 'qkqh ' $tb.Text
   Fresh 'EN'; Type-Text 'dkssud. gktpdy?'; Record 'auto on . and ?' '안녕. 하세요?' $tb.Text
   Fresh 'KO'; Type-Text 'Hello, world!'; Record 'auto on , and ! (KO)' 'Hello, world!' $tb.Text
+  # Arrow keys end the word too; the cursor then moves, so the next letter lands before the last syllable.
+  Fresh 'EN'; Type-Text 'dkssud'; Tap 0x25; Pump 150; Type-Text 'x'; Record 'auto on Left arrow' '안x녕' $tb.Text
+  Fresh 'KO'; Type-Text 'hello'; Tap 0x25; Pump 150; Record 'auto on Left arrow (KO)' 'hello' $tb.Text
   $form.Close(); $script:pumpForm = $false
 
   # ================= Windows Notepad (TSF) =================
@@ -133,6 +136,7 @@ try {
     Case 'auto EN "dkssud gktpdy "'    'EN' 'dkssud gktpdy ' $null '안녕 하세요 '
     Case 'auto EN "dkssud." '          'EN' 'dkssud.'        $null '안녕.'
     Case 'auto on Enter'               'EN' ("dkssud" + [char]10) $null ("안녕" + [char]13 + [char]10)
+    Case 'auto on Left arrow'          'EN' 'dkssud'         { Tap 0x25; Pump 150 } '안녕'
     Clear-Doc
     $np.CloseMainWindow() | Out-Null
   }

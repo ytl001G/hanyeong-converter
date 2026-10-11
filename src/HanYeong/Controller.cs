@@ -12,7 +12,7 @@ namespace HanYeong;
 sealed class Controller : IDisposable
 {
     const int VK_SHIFT = 0x10, VK_CONTROL = 0x11, VK_MENU = 0x12, VK_LWIN = 0x5B, VK_RWIN = 0x5C;
-    const int VK_BACK = 0x08, VK_RETURN = 0x0D, VK_CAPITAL = 0x14;
+    const int VK_BACK = 0x08, VK_RETURN = 0x0D, VK_CAPITAL = 0x14, VK_LEFT = 0x25, VK_DOWN = 0x28;
 
     record Conversion(string Before, Layout BeforeLayout, string After, Layout AfterLayout)
     {
@@ -198,7 +198,8 @@ sealed class Controller : IDisposable
             _last = null;
             return false;
         }
-        if (vk == VK_RETURN && TryAutoConvert(null))
+        // Enter and the arrow keys end the word too; they are replayed after the replacement and reset tracking.
+        if ((vk == VK_RETURN || vk is >= VK_LEFT and <= VK_DOWN) && TryAutoConvert(null, (ushort)vk))
         {
             Reset();
             return true;
@@ -207,14 +208,14 @@ sealed class Controller : IDisposable
         return false;
     }
 
-    // Characters that end a word and trigger the auto mode (Enter does too).
+    // Characters that end a word and trigger the auto mode (Enter and arrow keys do too).
     static readonly char[] WordEnds = [' ', '.', ',', '?', '!', ';', ':'];
 
     /// <summary>
-    /// When a word ends (<paramref name="end"/> = Space/punctuation, or null for Enter), replaces it if it was typed
-    /// in the wrong mode. The ending key is swallowed and retyped after the replacement.
+    /// When a word ends, replaces it if it was typed in the wrong mode. The ending key is swallowed and replayed
+    /// after the replacement: <paramref name="end"/> for Space/punctuation, <paramref name="endKey"/> for Enter/arrows.
     /// </summary>
-    bool TryAutoConvert(char? end)
+    bool TryAutoConvert(char? end, ushort endKey = 0)
     {
         if (!AutoMode || !_isDictionaryReady || _segment is null || CurrentRule?.AutoMode == false) return false;
 
@@ -233,13 +234,13 @@ sealed class Controller : IDisposable
         var conversion = new Conversion(word + ending, _segment.Layout, replacement + ending, _segment.Other);
         // The ending key has not reached the app, so only the word is deleted.
         var input = new InputSender().Key(InputSender.VK_BACK, _segment.BackspacesFor(word.Length)).Text(conversion.After);
-        if (end is null) input.Key(InputSender.VK_RETURN);
+        if (endKey != 0) input.Key(endKey);
         Send(input);
         _segment = new TypedSegment(conversion.BeforeLayout);
         _last = conversion;
-        // Undoing across a line break is not offered; Enter is a reset point anyway.
-        _autoUndo = end is null ? null : conversion;
-        Log.Write($"auto {conversion.BeforeLayout}->{conversion.AfterLayout} len={word.Length}->{replacement.Length} end={(end is null ? "enter" : "char")}");
+        // Undo is only offered while the cursor is still right after the word.
+        _autoUndo = endKey == 0 ? conversion : null;
+        Log.Write($"auto {conversion.BeforeLayout}->{conversion.AfterLayout} len={word.Length}->{replacement.Length} end=0x{(endKey == 0 ? end!.Value : endKey):X2}");
         return true;
     }
 

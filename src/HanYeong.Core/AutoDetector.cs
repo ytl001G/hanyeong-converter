@@ -18,7 +18,7 @@ public sealed record AutoDetectorOptions
     /// <summary>Consonant-only/vowel-only input needs very common English (ㅈㄷ → we).</summary>
     public float CommonEnglish { get; init; } = 4.5f;
     /// <summary>English part of a mixed word (shortage + 이다) must be at least this common.</summary>
-    public float MixedEnglishPrefix { get; init; } = 3.0f;
+    public float MixedEnglishPrefix { get; init; } = 3.5f;
 }
 
 /// <summary>
@@ -128,21 +128,40 @@ public sealed class AutoDetector
         if (keys.Length < 3 || !keys.All(char.IsAsciiLetter)) return null;
         string display = typedIn == Layout.English ? keys : LayoutConverter.ToKorean(keys);
         if (_isException(display)) return null;
-        if (typedIn == Layout.English ? _english(keys) >= _o.KnownEnglish : _korean(display) > 0) return null;
+        // Korean mode: Shift on a key without a shifted jamo (S, N, ...) changes nothing in Korean, so it is
+        // a sure sign of English (SNS typed there shows as the real word 눈).
+        bool isShiftedForEnglish = typedIn == Layout.Korean && HasEnglishOnlyShift(keys);
+        // English mode: capitals then lowercase (LArk, UNdp) is an acronym plus a particle, not the word
+        // "lark" or "UNDP" that a case-insensitive lookup would find.
+        bool isAcronymThenLower = keys.Length >= 3 && char.IsAsciiLetterUpper(keys[0]) && char.IsAsciiLetterUpper(keys[1])
+            && keys.Any(char.IsAsciiLetterLower);
+        bool isRealWord = typedIn == Layout.English
+            ? !isAcronymThenLower && _english(keys) >= _o.KnownEnglish
+            : !isShiftedForEnglish && _korean(display) > 0;
+        if (isRealWord) return null;
 
-        // Longest English prefix first: "updated" + "다" loses to "update" + "했다" only if both are real.
+        // Longest English prefix first.
         for (int split = keys.Length - 1; split >= 2; split--)
         {
-            string prefix = keys[..split];
-            if (_english(prefix) < _o.MixedEnglishPrefix) continue;
-            string particle = LayoutConverter.ToKorean(keys[split..]);
+            string prefix = keys[..split], rest = keys[split..];
+            // A particle typed by mistake is plain lowercase (Shift only for ㄲㄸㅃㅆㅉㅒㅖ); INGKA is not IN + 함.
+            if (HasEnglishOnlyShift(rest)) continue;
+            // Korean mode: English typed there shows up as broken Hangul (놳ㅁㅎㄷ). Proper syllables mean
+            // the user was typing Korean on purpose: 추가됩니다 is not "cn" + 가됩니다.
+            if (typedIn == Layout.Korean && !HasEnglishOnlyShift(prefix) && IsWellFormed(LayoutConverter.ToKorean(prefix))) continue;
+            // An all-caps prefix is a deliberate acronym (SNS를, FTA가) even when the word lists miss it.
+            bool isAcronym = prefix.All(char.IsAsciiLetterUpper);
+            if (!isAcronym && _english(prefix) < _o.MixedEnglishPrefix) continue;
+            string particle = LayoutConverter.ToKorean(rest);
             if (IsParticleChain(particle)) return prefix + particle;
         }
         return null;
     }
 
-    // One to three particles in a row: 에서는 = 에서 + 는.
-    static bool IsParticleChain(string text, int depth = 0)
+    static bool HasEnglishOnlyShift(string keys) => keys.Any(c => char.IsAsciiLetterUpper(c) && !KoreanShiftKeys.Contains(c));
+
+    /// <summary>One to three particles/endings in a row: 에서는 = 에서 + 는.</summary>
+    public static bool IsParticleChain(string text, int depth = 0)
     {
         if (text.Length == 0) return depth > 0;
         if (depth == 3) return false;

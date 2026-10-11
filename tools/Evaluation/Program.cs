@@ -154,9 +154,13 @@ report["examples"] = new
 };
 
 // ---------- mixed words: English + Korean particle (AI가, SNS를) found in the Korean test text ----------
+// Only "word + particle" (SNS를); compounds like LG전자 are a different thing and are not attempted.
 var mixedPattern = new System.Text.RegularExpressions.Regex("^[A-Za-z]{2,}[가-힣]+$");
-var mixedFreq = sentences["ko_web"].Concat(sentences["ko_news"]).SelectMany(t => t)
-    .Where(w => mixedPattern.IsMatch(w)).GroupBy(w => w).ToDictionary(g => g.Key, g => g.Count());
+var mixedAll = sentences["ko_web"].Concat(sentences["ko_news"]).SelectMany(t => t)
+    .Where(w => mixedPattern.IsMatch(w)).ToList();
+var mixedFreq = mixedAll
+    .Where(w => AutoDetector.IsParticleChain(w[w.TakeWhile(char.IsAsciiLetter).Count()..]))
+    .GroupBy(w => w).ToDictionary(g => g.Key, g => g.Count());
 long mixedTotal = mixedFreq.Values.Sum(v => (long)v), mixedEnFixed = 0, mixedKoFixed = 0;
 var mixedMisses = new Dictionary<string, int>();
 foreach (var (w, count) in mixedFreq)
@@ -171,6 +175,7 @@ foreach (var (w, count) in mixedFreq)
 }
 report["mixed"] = new
 {
+    latinHangulTokens = mixedAll.Count,
     distinctWords = mixedFreq.Count,
     tokens = mixedTotal,
     fixedWhenTypedInEnglishMode = (double)mixedEnFixed / mixedTotal,
@@ -237,7 +242,7 @@ report["nonsense"] = new
 static bool TypableAscii(string s) => s.All(c => c is >= ' ' and <= '~');
 object Fidelity(string key, Layout lang)
 {
-    int total = 0, exact = 0;
+    int total = 0, exact = 0, reproducible = 0, reproducibleExact = 0;
     var failures = new List<object>();
     foreach (string s in raw[key])
     {
@@ -257,10 +262,14 @@ object Fidelity(string key, Layout lang)
             converted = seg.Converted;
         }
         total++;
-        if (converted == s) exact++;
-        else if (failures.Count < 8) failures.Add(new { original = s.Length > 80 ? s[..80] : s, converted = converted.Length > 80 ? converted[..80] : converted });
+        // Text that no key sequence reproduces: a lone jamo right after a syllable (요ㅋ re-typed is 욬),
+        // or Latin letters inside Korean (0.01%p), which flip along with everything else.
+        bool isReproducible = lang == Layout.English || !s.Any(c => Jamo.IsJamo(c) || char.IsAsciiLetter(c));
+        if (isReproducible) reproducible++;
+        if (converted == s) { exact++; if (isReproducible) reproducibleExact++; }
+        else if (isReproducible && failures.Count < 8) failures.Add(new { original = s.Length > 80 ? s[..80] : s, converted = converted.Length > 80 ? converted[..80] : converted });
     }
-    return new { sentences = total, exactRate = (double)exact / total, failures };
+    return new { sentences = total, exactRate = (double)exact / total, reproducibleSentences = reproducible, reproducibleExactRate = (double)reproducibleExact / reproducible, failures };
 }
 report["hotkey"] = new
 {
