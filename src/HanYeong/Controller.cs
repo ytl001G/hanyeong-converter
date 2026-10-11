@@ -20,6 +20,7 @@ sealed class Controller : IDisposable
 
     bool _isSpaceSwallowed;
     int _pendingConverts;
+    bool _isBusy;
 
     TypedSegment? _segment;
     IntPtr _segmentWindow;
@@ -123,26 +124,67 @@ sealed class Controller : IDisposable
         int count = _pendingConverts;
         _pendingConverts = 0;
         // Pressing the hotkey twice while holding Ctrl cancels out.
-        if (count % 2 == 1) Convert();
+        if (count % 2 == 1) _ = ConvertAsync();
     }
 
-    void Convert()
+    async Task ConvertAsync()
     {
-        if (_segment is null || GetForegroundWindow() != _segmentWindow) return;
-
-        if (_last is { } last)
+        if (_isBusy) return;
+        _isBusy = true;
+        try
         {
-            Replace(last.After, last.AfterLayout, last.Before, last.BeforeLayout);
-            _last = new Conversion(last.After, last.AfterLayout, last.Before, last.BeforeLayout);
-            Log.Write($"revert {last.AfterLayout}->{last.BeforeLayout} len={last.After.Length}");
-            return;
+            IntPtr fg = GetForegroundWindow();
+            if (_segment is not null && fg == _segmentWindow)
+            {
+                if (_last is { } last)
+                {
+                    Replace(last.After, last.AfterLayout, last.Before, last.BeforeLayout);
+                    _last = new Conversion(last.After, last.AfterLayout, last.Before, last.BeforeLayout);
+                    Log.Write($"revert {last.AfterLayout}->{last.BeforeLayout} len={last.After.Length}");
+                    return;
+                }
+                if (!_segment.IsEmpty)
+                {
+                    var conversion = new Conversion(_segment.Text, _segment.Layout, _segment.Converted, _segment.Other);
+                    Replace(conversion.Before, conversion.BeforeLayout, conversion.After, conversion.AfterLayout);
+                    _last = conversion;
+                    Log.Write($"convert {conversion.BeforeLayout}->{conversion.AfterLayout} len={conversion.Before.Length}->{conversion.After.Length}");
+                    return;
+                }
+            }
+            // Nothing typed since the last click/arrow key: the user probably selected text.
+            await ConvertSelectionAsync(fg);
         }
-        if (_segment.IsEmpty) return;
+        catch (Exception ex)
+        {
+            Log.Write($"convert failed: {ex}");
+        }
+        finally
+        {
+            _isBusy = false;
+        }
+    }
 
-        var conversion = new Conversion(_segment.Text, _segment.Layout, _segment.Converted, _segment.Other);
-        Replace(conversion.Before, conversion.BeforeLayout, conversion.After, conversion.AfterLayout);
-        _last = conversion;
-        Log.Write($"convert {conversion.BeforeLayout}->{conversion.AfterLayout} len={conversion.Before.Length}->{conversion.After.Length}");
+    async Task ConvertSelectionAsync(IntPtr window)
+    {
+        string? text = await SelectionReader.ReadAsync();
+        if (string.IsNullOrEmpty(text)) return;
+
+        Layout from = LayoutConverter.Detect(text);
+        Layout to = from == Layout.Korean ? Layout.English : Layout.Korean;
+        string converted = from == Layout.Korean ? LayoutConverter.ToEnglish(text) : LayoutConverter.ToKorean(text);
+
+        var input = new InputSender();
+        if (Ime.GetLayout() == Layout.Korean) input.Key(InputSender.VK_HANGUL);
+        // Typing over the selection replaces it.
+        input.Text(converted);
+        if (to == Layout.Korean) input.Key(InputSender.VK_HANGUL);
+        if (!input.Send()) Log.Write("SendInput was blocked (elevated window?)");
+
+        _segment = new TypedSegment(to, converted);
+        _segmentWindow = window;
+        _last = new Conversion(text, from, converted, to);
+        Log.Write($"convert selection {from}->{to} len={text.Length}");
     }
 
     void Replace(string oldText, Layout oldLayout, string newText, Layout newLayout)

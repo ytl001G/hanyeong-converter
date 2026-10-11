@@ -8,6 +8,7 @@ sealed class InputSender
 {
     public const ushort VK_BACK = 0x08;
     public const ushort VK_HANGUL = 0x15;
+    public const ushort VK_RETURN = 0x0D;
 
     // Marks our own events so the hook can tell them apart from other injected input.
     public static readonly IntPtr Signature = 0x48594E47; // "HYNG"
@@ -24,11 +25,26 @@ sealed class InputSender
         return this;
     }
 
+    public InputSender Chord(ushort modifier, ushort vk)
+    {
+        _inputs.Add(Keyboard(modifier, (char)0, 0));
+        Key(vk);
+        _inputs.Add(Keyboard(modifier, (char)0, KEYEVENTF_KEYUP));
+        return this;
+    }
+
     /// <summary>Types text directly as Unicode characters, bypassing the IME.</summary>
     public InputSender Text(string text)
     {
         foreach (char c in text)
         {
+            // Apps handle a Unicode '\n' inconsistently; Enter is understood everywhere.
+            if (c == '\r') continue;
+            if (c == '\n')
+            {
+                Key(VK_RETURN);
+                continue;
+            }
             _inputs.Add(Keyboard(0, c, KEYEVENTF_UNICODE));
             _inputs.Add(Keyboard(0, c, KEYEVENTF_UNICODE | KEYEVENTF_KEYUP));
         }

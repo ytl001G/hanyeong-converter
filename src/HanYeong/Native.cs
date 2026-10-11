@@ -143,6 +143,9 @@ static partial class Native
 
     public static bool IsDown(int vk) => (GetAsyncKeyState(vk) & 0x8000) != 0;
 
+    [LibraryImport("user32.dll")]
+    public static partial uint GetClipboardSequenceNumber();
+
     [LibraryImport("imm32.dll")]
     public static partial IntPtr ImmGetDefaultIMEWnd(IntPtr hWnd);
 

@@ -16,12 +16,14 @@ public static class K {
   [DllImport("imm32.dll")] public static extern bool ImmGetConversionStatus(IntPtr c, out int conv, out int sent);
   [DllImport("imm32.dll")] public static extern bool ImmReleaseContext(IntPtr h, IntPtr c);
   [DllImport("user32.dll")] public static extern bool SetForegroundWindow(IntPtr h);
+  [DllImport("user32.dll")] public static extern IntPtr GetForegroundWindow();
 }
 "@
 
+function Guard { if ([K]::GetForegroundWindow() -ne $form.Handle) { $form.Close(); if ($app) { Stop-Process -Id $app.Id -ErrorAction SilentlyContinue }; throw 'Test window lost focus - aborted before sending keys to another window.' } }
 function Pump($ms) { $end = [DateTime]::Now.AddMilliseconds($ms); while ([DateTime]::Now -lt $end) { [Windows.Forms.Application]::DoEvents(); Start-Sleep -Milliseconds 5 } }
-function TypeKeys($s) { foreach ($ch in $s.ToUpper().ToCharArray()) { [K]::Key([uint16][char]$ch, $false); [K]::Key([uint16][char]$ch, $true); Pump 15 } }
-function Hotkey { [K]::Key(0x11, $false); Pump 20; [K]::Key(0x20, $false); [K]::Key(0x20, $true); Pump 20; [K]::Key(0x11, $true); Pump 400 }
+function TypeKeys($s) { foreach ($ch in $s.ToUpper().ToCharArray()) { Guard; [K]::Key([uint16][char]$ch, $false); [K]::Key([uint16][char]$ch, $true); Pump 15 } }
+function Hotkey { Guard; [K]::Key(0x11, $false); Pump 20; [K]::Key(0x20, $false); [K]::Key(0x20, $true); Pump 20; [K]::Key(0x11, $true); Pump 400 }
 function Mode { $c = [K]::ImmGetContext($tb.Handle); $conv = 0; $sent = 0; [void][K]::ImmGetConversionStatus($c, [ref]$conv, [ref]$sent); [void][K]::ImmReleaseContext($tb.Handle, $c); if ($conv -band 1) { 'KO' } else { 'EN' } }
 
 $app = Start-Process $Exe -PassThru
@@ -44,14 +46,23 @@ Hotkey;                    Check 'convert whole -> EN' 'dkssudgktpdy'
 Hotkey;                    Check 'revert' '안녕하세요'
 $tb.Clear(); Pump 50
 $c = [K]::ImmGetContext($tb.Handle); [void][K]::ImmSetConversionStatus($c, 1, 0); [void][K]::ImmReleaseContext($tb.Handle, $c); Pump 100
-[K]::Key(0x24,$false);[K]::Key(0x24,$true); Pump 50   # Home -> reset segment
+Guard; [K]::Key(0x24,$false);[K]::Key(0x24,$true); Pump 50   # Home -> reset segment
 TypeKeys 'hello';              Check 'typed KO' 'ㅗ디ㅣㅐ'
 Hotkey;                    Check 'convert -> EN' 'hello'
 $tb.Clear(); Pump 50
 $c = [K]::ImmGetContext($tb.Handle); [void][K]::ImmSetConversionStatus($c, 1, 0); [void][K]::ImmReleaseContext($tb.Handle, $c); Pump 100
-[K]::Key(0x24,$false);[K]::Key(0x24,$true); Pump 50
+Guard; [K]::Key(0x24,$false);[K]::Key(0x24,$true); Pump 50
 TypeKeys 'dkssudgk'; [K]::Key(0x08,$false);[K]::Key(0x08,$true); Pump 30; TypeKeys 'f'; Check 'KO with backspace (IME drops ㅏ, ㅎ+ㄹ stay apart)' '안녕ㅎㄹ'
 Hotkey;                    Check 'convert -> EN' 'dkssudgf'
+
+# Selection: text set without typing, Home resets the segment, then select all and convert.
+Set-Clipboard -Value 'CLIP-KEEP'
+$tb.Text = 'dkssud gktpdy'; Pump 30
+Guard; [K]::Key(0x24,$false);[K]::Key(0x24,$true); Pump 50
+$tb.SelectAll(); Pump 30
+Hotkey; Pump 200;          Check 'selection -> KO' '안녕 하세요'
+$script:results += [pscustomobject]@{ step = 'clipboard restored'; expected = 'CLIP-KEEP'; actual = (Get-Clipboard); mode = ''; ok = ((Get-Clipboard) -eq 'CLIP-KEEP') }
+Hotkey;                    Check 'selection revert' 'dkssud gktpdy'
 
 $form.Close(); Stop-Process -Id $app.Id
 $results | Format-Table -AutoSize | Out-String -Width 200
