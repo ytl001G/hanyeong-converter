@@ -170,7 +170,10 @@ public sealed class AutoDetector
     /// </summary>
     public string? CheckMixed(string keys, Layout typedIn)
     {
-        // Digits only in English mode (ch4가, mp3파일): in Korean mode 초4가 is real Korean ("4th grader").
+        // A sign in front of a number stays as it is: -6qhek → -6보다.
+        if (typedIn == Layout.English && keys.Length > 1 && keys[0] is '-' or '+' && char.IsAsciiDigit(keys[1]))
+            return CheckMixed(keys[1..], typedIn) is { } signed ? keys[0] + signed : null;
+        // Digits only in English mode (ch4가, mp3파일, 6보다): in Korean mode 초4가 is real Korean ("4th grader").
         if (keys.Length < 3 || !keys.All(c => char.IsAsciiLetter(c) || (typedIn == Layout.English && char.IsAsciiDigit(c)))) return null;
         string display = typedIn == Layout.English ? keys : LayoutConverter.ToKorean(keys);
         if (_isException(display)) return null;
@@ -190,7 +193,7 @@ public sealed class AutoDetector
         // that includes it goes first: mp3 + 파일, not mp3vk + 일.
         int lastDigit = keys.LastIndexOfAny("0123456789".ToCharArray());
         var splits = lastDigit >= 0
-            ? Enumerable.Range(Math.Max(lastDigit + 1, 2), keys.Length - Math.Max(lastDigit + 1, 2))
+            ? Enumerable.Range(lastDigit + 1, keys.Length - lastDigit - 1)
             : Enumerable.Range(2, keys.Length - 2).Reverse();
         foreach (int split in splits)
         {
@@ -205,10 +208,17 @@ public sealed class AutoDetector
             // Letters with digits (ch4 = chapter 4, mp3, h2o) are codes, never Korean typing; no word list has them.
             // Short only: a long letters+digits run before "rk" is more likely a password-like string.
             bool isCode = prefix.Length <= 6 && prefix.Any(char.IsAsciiDigit) && prefix.Any(char.IsAsciiLetter);
-            if (prefix.All(char.IsAsciiDigit)) continue;   // 2dl could be "2 dl"
-            if (prefix.Any(char.IsAsciiDigit) && !isCode) continue;
-            isAcronym |= isCode;
+            bool isNumber = prefix.All(char.IsAsciiDigit);
+            if (prefix.Any(char.IsAsciiDigit) && !isCode && !isNumber) continue;
             string korean = LayoutConverter.ToKorean(rest);
+            // A number takes a particle or a counter (6보다, 3개, 10분, 2024년이); English units and ordinals
+            // (3rd, 4th, 10kg) never read as those.
+            if (isNumber)
+            {
+                if (IsParticleChain(korean) || IsCounterChain(korean)) return prefix + korean;
+                continue;
+            }
+            isAcronym |= isCode;
             bool isParticle = IsParticleChain(korean);
             // A rarer English word (giffen, engel, pareto) is enough when the evidence is strong: broken Hangul in
             // Korean mode, or a particle of three or more keys (dms 은, fmf 를, dptj 에서) that English words do not
@@ -223,6 +233,26 @@ public sealed class AutoDetector
             if (isParticle || isCommonWord) return prefix + korean;
         }
         return null;
+    }
+
+    // Counters that follow a number (3개, 10분, 2024년).
+    static readonly HashSet<string> Counters =
+    [
+        "개", "명", "번", "분", "초", "시", "일", "월", "년", "원", "살", "층", "장", "권", "등", "점", "회", "배", "차",
+        "대", "쪽", "편", "곡", "병", "잔", "벌", "주", "개월", "시간", "주일", "주년", "년생", "학년", "만원", "천원",
+        "퍼센트", "프로", "위", "조", "억", "만", "천", "백", "인", "명씩", "개씩", "번째", "째", "줄", "칸", "판", "골",
+    ];
+
+    // A counter, optionally followed by particles: 개, 개가, 분에서.
+    static bool IsCounterChain(string text)
+    {
+        for (int length = Math.Min(3, text.Length); length >= 1; length--)
+        {
+            if (!Counters.Contains(text[..length])) continue;
+            string after = text[length..];
+            if (after.Length == 0 || IsParticleChain(after)) return true;
+        }
+        return false;
     }
 
     static bool HasEnglishOnlyShift(string keys) => keys.Any(c => char.IsAsciiLetterUpper(c) && !KoreanShiftKeys.Contains(c));

@@ -86,6 +86,9 @@ public class MixedWordTests
     [InlineData("giffendms", "giffen은")]    // user's example: rare word, three-key particle
     [InlineData("ch4rk", "ch4가")]           // user's example (chapter 4): letters + digits
     [InlineData("mp3vkdlf", "mp3파일")]
+    [InlineData("-6qhek", "-6보다")]          // user's example: number + particle, sign kept
+    [InlineData("3ro", "3개")]               // number + counter
+    [InlineData("2024susdp", "2024년에")]
     public void EnglishMode(string keys, string expected) => Assert.Equal(expected, Detector.CheckMixed(keys, Layout.English));
 
     [Theory]
@@ -101,8 +104,10 @@ public class MixedWordTests
     [InlineData("Upwork", Layout.English)]        // regression: rest "work" read as 재가
     [InlineData("cnrkehlqslek", Layout.Korean)]   // regression: 추가됩니다 was split into cn + 가됩니다
     [InlineData("chrk", Layout.Korean)]           // digits are English-mode only (초4가 is Korean)
-    [InlineData("2dl", Layout.English)]           // digits alone: could be "2 dl"
     [InlineData("user123", Layout.English)]
+    [InlineData("3rd", Layout.English)]           // English ordinals and units stay
+    [InlineData("4th", Layout.English)]
+    [InlineData("10kg", Layout.English)]
     public void LeavesAlone(string keys, Layout layout) => Assert.Null(Detector.CheckMixed(keys, layout));
 }
 

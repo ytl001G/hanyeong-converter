@@ -1,6 +1,6 @@
 {
   "load": {
-    "ms": 188,
+    "ms": 189,
     "managedMB": 15.6,
     "englishWords": 477661,
     "koreanWords": 486868
@@ -640,12 +640,12 @@
     ]
   },
   "mixed": {
-    "allLatinHangulFixedEnglishMode": 0.7513436345314075,
+    "allLatinHangulFixedEnglishMode": 0.7486563654685925,
     "allLatinHangulFixedKoreanMode": 0.7465569365132684,
     "latinHangulTokens": 11908,
     "distinctWords": 4428,
     "tokens": 7165,
-    "fixedWhenTypedInEnglishMode": 0.9321702721563154,
+    "fixedWhenTypedInEnglishMode": 0.927983251919051,
     "fixedWhenTypedInKoreanMode": 0.928122819260293,
     "topMisses": [
       {
@@ -654,6 +654,10 @@
       },
       {
         "word": "crowding을",
+        "count": 2
+      },
+      {
+        "word": "MWC2015에서",
         "count": 2
       },
       {
@@ -742,10 +746,6 @@
       },
       {
         "word": "probing을",
-        "count": 1
-      },
-      {
-        "word": "Pilsen의",
         "count": 1
       }
     ]
@@ -1028,7 +1028,7 @@
     "randomLowercaseFormsValidHangul": 0.02649,
     "randomKeysInKoreanMode": 0.05758,
     "idLikeLettersDigits": 0,
-    "passwordLike": 0.00132,
+    "passwordLike": 0.00014,
     "randomSyllablesTypedInEnglish": 0.9996
   },
   "hotkey": {
@@ -1063,6 +1063,6 @@
   },
   "speed": {
     "checks": 200000,
-    "microsecondsPerCheck": 0.348505
+    "microsecondsPerCheck": 0.362979
   }
 }
