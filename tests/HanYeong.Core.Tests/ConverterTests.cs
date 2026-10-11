@@ -104,3 +104,53 @@ public class FlipTests
     public void Flip(string text, string expected) =>
         Assert.Equal(expected, LayoutConverter.Flip(text));
 }
+
+public class TypedSegmentTests
+{
+    static TypedSegment Typed(Layout layout, string keys, bool capsLock = false)
+    {
+        var segment = new TypedSegment(layout);
+        foreach (char k in keys)
+        {
+            if (k == '\b') segment.Backspace();
+            else segment.Type(k, capsLock);
+        }
+        return segment;
+    }
+
+    [Fact]
+    public void EnglishConvertsToKorean()
+    {
+        var s = Typed(Layout.English, "dkssud");
+        Assert.Equal("dkssud", s.Text);
+        Assert.Equal("안녕", s.Converted);
+    }
+
+    [Fact]
+    public void KoreanTracksImeOutputIncludingBackspace()
+    {
+        // Matches the real IME: 안녕하 → ⌫ → 안녕ㅎ → ㄹ → 안녕ㅎㄹ
+        var s = Typed(Layout.Korean, "dkssudgk\bf");
+        Assert.Equal("안녕ㅎㄹ", s.Text);
+        Assert.Equal("dkssudgf", s.Converted);
+    }
+
+    [Fact]
+    public void InsertedTextThenTypingContinues()
+    {
+        var s = new TypedSegment(Layout.Korean, "안녕");
+        foreach (char k in "gktpdy") s.Type(k);
+        Assert.Equal("안녕하세요", s.Text);
+        s.Backspace();
+        s.Backspace();
+        s.Backspace();
+        Assert.Equal("안녕하", s.Text);
+    }
+
+    [Fact]
+    public void CapsLockInKoreanModeTypesLatin()
+    {
+        var s = Typed(Layout.Korean, "AB", capsLock: true);
+        Assert.Equal("AB", s.Text);
+    }
+}

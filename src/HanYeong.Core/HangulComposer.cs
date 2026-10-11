@@ -59,6 +59,13 @@ public sealed class HangulComposer
         if (_committed.Length > 0) _committed.Length--;
     }
 
+    /// <summary>Appends finished text that did not come from keys (e.g. text we inserted ourselves).</summary>
+    public void AppendCommitted(string text)
+    {
+        Commit();
+        _committed.Append(text);
+    }
+
     public void Commit()
     {
         _committed.Append(_block.ToString());
