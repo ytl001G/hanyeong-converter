@@ -11,6 +11,7 @@ sealed class TrayContext : ApplicationContext
     readonly Controller _controller;
     readonly NotifyIcon _icon;
     readonly ToolStripMenuItem _autoItem;
+    SettingsForm? _settingsForm;
     readonly Icon _onIcon = DrawIcon(Color.FromArgb(37, 99, 235));
     readonly Icon _offIcon = DrawIcon(Color.FromArgb(140, 140, 140));
 
@@ -18,12 +19,12 @@ sealed class TrayContext : ApplicationContext
     {
         _controller = new Controller(_settings, _focus);
 
-        _autoItem = new ToolStripMenuItem("자동 모드 (Ctrl+Alt+Space)") { CheckOnClick = true };
+        _autoItem = new ToolStripMenuItem { CheckOnClick = true };
         _autoItem.Click += (_, _) => _controller.AutoMode = _autoItem.Checked;
 
         var appMenu = new ToolStripMenuItem();
         var appAuto = new ToolStripMenuItem("이 앱에서 자동 모드 끄기") { CheckOnClick = true };
-        var appHotkey = new ToolStripMenuItem("이 앱에서 Ctrl+Space 끄기") { CheckOnClick = true };
+        var appHotkey = new ToolStripMenuItem { CheckOnClick = true };
         appMenu.DropDownItems.Add(appAuto);
         appMenu.DropDownItems.Add(appHotkey);
         appAuto.Click += (_, _) => UpdateAppRule(rule => rule.AutoMode = !appAuto.Checked);
@@ -41,8 +42,10 @@ sealed class TrayContext : ApplicationContext
             appMenu.Text = $"{exe} 앱 설정";
             var rule = _settings.Apps.GetValueOrDefault(exe);
             appAuto.Checked = rule?.AutoMode == false;
+            appHotkey.Text = $"이 앱에서 {_controller.ConvertKey} 끄기";
             appHotkey.Checked = rule?.Hotkey == false;
         };
+        menu.Items.Add("설정…", null, (_, _) => OpenSettings());
         menu.Items.Add("로그 폴더 열기", null, (_, _) => OpenLogFolder());
         menu.Items.Add("종료", null, (_, _) => ExitThread());
 
@@ -73,11 +76,32 @@ sealed class TrayContext : ApplicationContext
         Log.Write($"app rule {exe}: auto={rule.AutoMode} hotkey={rule.Hotkey}");
     }
 
+    void OpenSettings()
+    {
+        if (_settingsForm is not null)
+        {
+            _settingsForm.Activate();
+            return;
+        }
+        using (_settingsForm = new SettingsForm(_settings))
+        {
+            if (_settingsForm.ShowDialog() == DialogResult.OK)
+            {
+                _controller.ApplySettings();
+                ShowState(_settings.AutoMode);
+                Log.Write("settings saved");
+            }
+        }
+        _settingsForm = null;
+    }
+
     void ShowState(bool isAutoOn)
     {
         _autoItem.Checked = isAutoOn;
+        _autoItem.Text = $"자동 모드 ({_controller.ToggleKey})";
         _icon.Icon = isAutoOn ? _onIcon : _offIcon;
-        _icon.Text = $"한영 변환기 · Ctrl+Space 변환\n자동 모드 {(isAutoOn ? "켜짐" : "꺼짐")} (Ctrl+Alt+Space)";
+        // NotifyIcon tooltips are limited to 127 characters.
+        _icon.Text = $"한영 변환기 · {_controller.ConvertKey} 변환\n자동 모드 {(isAutoOn ? "켜짐" : "꺼짐")} ({_controller.ToggleKey})";
     }
 
     /// <summary>A rounded square with 한 on it, tinted by state.</summary>

@@ -42,6 +42,9 @@ sealed class FocusTracker : IDisposable
 
     public bool IsPasswordFocused => _isPassword;
 
+    /// <summary>This program's own window (the settings dialog) is in front.</summary>
+    public bool IsOwnAppForeground { get; private set; }
+
     void OnWinEvent(IntPtr hook, uint evt, IntPtr hwnd, int idObject, int idChild, uint thread, uint time)
     {
         if (evt == EVENT_SYSTEM_FOREGROUND) Update(hwnd);
@@ -52,6 +55,7 @@ sealed class FocusTracker : IDisposable
     {
         Native.GetWindowThreadProcessId(hwnd, out uint pid);
         CurrentExe = ExeFor(pid);
+        IsOwnAppForeground = pid == _ownPid;
         if (pid != _ownPid && !IsShellSurface(hwnd) && CurrentExe.Length > 0) LastAppExe = CurrentExe;
     }
 

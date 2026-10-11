@@ -12,7 +12,7 @@ namespace HanYeong;
 sealed class Controller : IDisposable
 {
     const int VK_SHIFT = 0x10, VK_CONTROL = 0x11, VK_MENU = 0x12, VK_LWIN = 0x5B, VK_RWIN = 0x5C;
-    const int VK_SPACE = 0x20, VK_BACK = 0x08, VK_CAPITAL = 0x14;
+    const int VK_BACK = 0x08, VK_CAPITAL = 0x14;
 
     record Conversion(string Before, Layout BeforeLayout, string After, Layout AfterLayout)
     {
@@ -24,9 +24,15 @@ sealed class Controller : IDisposable
     readonly Settings _settings;
     readonly FocusTracker _focus;
     readonly AutoDetector _detector;
-    readonly System.Windows.Forms.Timer _ctrlReleaseTimer = new() { Interval = 30 };
+    readonly System.Windows.Forms.Timer _modifierReleaseTimer = new() { Interval = 30 };
 
-    bool _isSpaceSwallowed;
+    const ushort VK_UNASSIGNED = 0xE8;
+
+    Hotkey _convertKey;
+    Hotkey _toggleKey;
+    int _swallowedKeyUp;
+    // A hotkey was used while Alt/Win were held, so their release is not a "lone tap".
+    bool _isModifierUsedByHotkey;
     int _pendingConverts;
     bool _isBusy;
     volatile bool _isDictionaryReady;
@@ -47,7 +53,8 @@ sealed class Controller : IDisposable
         _focus = focus;
         _detector = new AutoDetector(word => _settings.ExceptionWords.Contains(word));
         _hooks = new GlobalHooks { KeyPressed = OnHookKey, MouseClicked = Reset };
-        _ctrlReleaseTimer.Tick += (_, _) => RunPendingWhenCtrlReleased();
+        _modifierReleaseTimer.Tick += (_, _) => RunPendingWhenModifiersReleased();
+        ApplySettings();
 
         // Loading the word tables takes a moment; the auto mode stays idle until they are in memory.
         Task.Run(() =>
@@ -58,6 +65,16 @@ sealed class Controller : IDisposable
             _isDictionaryReady = true;
             Log.Write("dictionaries loaded");
         });
+    }
+
+    public Hotkey ConvertKey => _convertKey;
+    public Hotkey ToggleKey => _toggleKey;
+
+    /// <summary>Re-reads hotkeys after the settings window saved.</summary>
+    public void ApplySettings()
+    {
+        _convertKey = Hotkey.Parse(_settings.ConvertHotkey, Hotkey.DefaultConvert);
+        _toggleKey = Hotkey.Parse(_settings.AutoToggleHotkey, Hotkey.DefaultAutoToggle);
     }
 
     public bool AutoMode
@@ -83,33 +100,50 @@ sealed class Controller : IDisposable
     /// <returns>true to swallow the key.</returns>
     bool OnHookKey(KeyEvent e)
     {
+        // Leave our own settings window alone, so the hotkey boxes can record any combination.
+        if (_focus.IsOwnAppForeground)
+        {
+            Reset();
+            return false;
+        }
+
         bool ctrl = IsDown(VK_CONTROL), alt = IsDown(VK_MENU), shift = IsDown(VK_SHIFT);
         bool win = IsDown(VK_LWIN) || IsDown(VK_RWIN);
 
-        if (e.Vk == VK_SPACE)
+        if (e.IsDown)
         {
             // The auto-mode toggle works everywhere; conversion respects per-app rules and password fields.
-            bool isToggle = e.IsDown && ctrl && alt && !shift && !win;
-            bool isConvert = e.IsDown && ctrl && !alt && !shift && !win
+            bool isToggle = _toggleKey.Matches(e.Vk, ctrl, alt, shift, win);
+            bool isConvert = !isToggle && _convertKey.Matches(e.Vk, ctrl, alt, shift, win)
                 && CurrentRule?.Hotkey != false && !_focus.IsPasswordFocused;
             if (isToggle || isConvert)
             {
-                _isSpaceSwallowed = true;
+                _swallowedKeyUp = e.Vk;
+                if (alt || win)
+                {
+                    _isModifierUsedByHotkey = true;
+                    // An unassigned key between Alt/Win down and up stops the menu bar / Start menu from opening.
+                    new InputSender().Key(VK_UNASSIGNED).Send();
+                }
                 if (isToggle) _ui.Post(_ => AutoMode = !AutoMode, null);
                 else QueueConvert();
                 return true;
             }
-            if (!e.IsDown && _isSpaceSwallowed)
-            {
-                _isSpaceSwallowed = false;
-                return true;
-            }
+        }
+        else if (e.Vk == _swallowedKeyUp)
+        {
+            _swallowedKeyUp = 0;
+            return true;
         }
 
         if (!e.IsDown)
         {
             // A lone Alt/Win tap moves focus to a menu, and right Alt is the 한/영 key on many setups.
-            if (IsAltOrWin(e.Vk)) Reset();
+            if (IsAltOrWin(e.Vk))
+            {
+                if (!_isModifierUsedByHotkey) Reset();
+                if (!IsDown(VK_MENU) && !IsDown(VK_LWIN) && !IsDown(VK_RWIN)) _isModifierUsedByHotkey = false;
+            }
             return false;
         }
 
@@ -197,18 +231,18 @@ sealed class Controller : IDisposable
 
     void QueueConvert()
     {
-        // Wait for Ctrl to be released, otherwise our Backspaces would arrive as Ctrl+Backspace.
+        // Wait for the modifiers to be released, otherwise our Backspaces would arrive as Ctrl+Backspace.
         _pendingConverts++;
-        _ctrlReleaseTimer.Start();
+        _modifierReleaseTimer.Start();
     }
 
-    void RunPendingWhenCtrlReleased()
+    void RunPendingWhenModifiersReleased()
     {
-        if (IsDown(VK_CONTROL)) return;
-        _ctrlReleaseTimer.Stop();
+        if (IsDown(VK_CONTROL) || IsDown(VK_MENU) || IsDown(VK_SHIFT) || IsDown(VK_LWIN) || IsDown(VK_RWIN)) return;
+        _modifierReleaseTimer.Stop();
         int count = _pendingConverts;
         _pendingConverts = 0;
-        // Pressing the hotkey twice while holding Ctrl cancels out.
+        // Pressing the hotkey twice while holding the modifiers cancels out.
         if (count % 2 == 1) _ = ConvertAsync();
     }
 
@@ -295,6 +329,6 @@ sealed class Controller : IDisposable
     public void Dispose()
     {
         _hooks.Dispose();
-        _ctrlReleaseTimer.Dispose();
+        _modifierReleaseTimer.Dispose();
     }
 }

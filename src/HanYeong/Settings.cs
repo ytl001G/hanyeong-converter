@@ -19,6 +19,9 @@ sealed class Settings
 
     public bool AutoMode { get; set; } = true;
 
+    public string ConvertHotkey { get; set; } = Hotkey.DefaultConvert.ToString();
+    public string AutoToggleHotkey { get; set; } = Hotkey.DefaultAutoToggle.ToString();
+
     /// <summary>Words (as shown on screen) the auto mode must leave alone; added by Backspace-undo.</summary>
     public SortedSet<string> ExceptionWords { get; set; } = new(StringComparer.Ordinal);
 
