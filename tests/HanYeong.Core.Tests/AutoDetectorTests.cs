@@ -89,6 +89,7 @@ public class MixedWordTests
     [InlineData("-6qhek", "-6보다")]          // user's example: number + particle, sign kept
     [InlineData("+2akszma", "+2만큼")]        // user's example: number + 만큼
     [InlineData("rebaterk", "rebate가")]       // user's example: rarer word + 가
+    [InlineData("fMRIsms", "fMRI는")]          // user's example: acronym starting lowercase
     [InlineData("3ro", "3개")]               // number + counter
     [InlineData("2024susdp", "2024년에")]
     [InlineData("ATlsms", "A씨는")]          // single capital letter (씨 is Shift+T, l)
@@ -119,6 +120,8 @@ public class MixedWordTests
     [InlineData("BioLargo", Layout.English)]      // regression: inner capital + 해 (go)
     [InlineData("7Bravo", Layout.English)]        // regression: code + one syllable
     [InlineData("Gwo", Layout.English)]           // regression: a name, not G + 재
+    [InlineData("CyberArk", Layout.English)]      // CamelCase, not CyberA + 가
+    [InlineData("PowerPoint", Layout.English)]
     [InlineData("rmEOsms", Layout.Korean)]        // regression: Korean typo 그떄는
     [InlineData("INGKA", Layout.English)]         // capital particle keys
     [InlineData("Upwork", Layout.English)]        // regression: rest "work" read as 재가
@@ -141,6 +144,8 @@ public class SuggestTests
     [InlineData("dkssudgktpdy", "안녕하세요")]  // a known whole word stays whole
     [InlineData("shortagedlek", "shortage이다")]
     [InlineData("+2akszma", "+2만큼")]        // user's example: number + 만큼
+    [InlineData("fMRIsms", "fMRI는")]           // user's example: lowercase letter belongs to the acronym
+    [InlineData("mRNAfmf", "mRNA를")]
     public void EnglishMode(string keys, string expected) => Assert.Equal(expected, Detector.Suggest(keys, keys, Layout.English));
 }
 

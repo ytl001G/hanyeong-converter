@@ -153,7 +153,7 @@ public sealed class AutoDetector
         bool anyConverts = false, anyKept = false, anyWeakConversion = false;
         // What came right before the current piece: a number (2차), or something typed as meant that a particle
         // may follow (SDS가, )는, ’는).
-        bool afterNumber = false, afterKept = false;
+        bool afterNumber = false, afterKept = false, afterEnglishWord = false;
         for (int i = 0; i < word.Length;)
         {
             int start = i;
@@ -165,14 +165,18 @@ public sealed class AutoDetector
                 result.Append(other);
                 afterNumber = char.IsAsciiDigit(other[^1]) || other[^1] == '%';
                 afterKept = ")]}”’\"'".Contains(other[^1]);
+                afterEnglishWord = false;
                 continue;
             }
             if (typedIn == Layout.English && AcronymLength(word, i) is > 0 and var length)
             {
+                // One capital between an English word and lowercase is CamelCase (CyberArk, PowerPoint), not an
+                // acronym and a particle; 비타민C가 has Korean before the C.
+                if (length == 1 && afterEnglishWord && i + 1 < word.Length && char.IsAsciiLetterLower(word[i + 1])) return null;
                 // An acronym typed as meant stays English: 양해각서(MOU)를, 삼성SDS가, 비타민C가.
                 result.Append(word, i, length);
                 i += length;
-                afterNumber = false;
+                afterNumber = afterEnglishWord = false;
                 afterKept = anyKept = true;
                 continue;
             }
@@ -193,13 +197,22 @@ public sealed class AutoDetector
             {
                 anyKept = true;
                 result.Append(part);
+                afterNumber = afterKept = false;
+                afterEnglishWord = true;
+                continue;
+            }
+            // A lowercase letter right before an acronym belongs to it: fMRI는, mRNA를, iOS가.
+            else if (typedIn == Layout.English && part.Length == 1 && i < word.Length && AcronymLength(word, i) > 0)
+            {
+                anyKept = true;
+                result.Append(part);
             }
             // One-key parts just follow (the t of don't).
             else if (KeyCount(part, typedIn) < _o.MinKeys)
                 result.Append(converted);
             else
                 return null;
-            afterNumber = afterKept = false;
+            afterNumber = afterKept = afterEnglishWord = false;
         }
         // Next to English typed as meant, only strong conversions count: Port-au-Prince, McVeigh stay.
         if (anyKept && anyWeakConversion) return null;
