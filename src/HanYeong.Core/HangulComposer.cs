@@ -29,6 +29,22 @@ public sealed class HangulComposer
     public string Composing => _block.ToString();
     public bool IsComposing => !_block.IsEmpty;
 
+    /// <summary>Backspaces the IME needs to remove the syllable being composed (one per jamo step).</summary>
+    public int ComposingBackspaces
+    {
+        get
+        {
+            if (_block.IsEmpty) return 0;
+            int count = 0;
+            foreach (var previous in _history)
+            {
+                count++;
+                if (previous.IsEmpty) return count;
+            }
+            return count + 1;
+        }
+    }
+
     public static string Compose(string keys)
     {
         var composer = new HangulComposer();

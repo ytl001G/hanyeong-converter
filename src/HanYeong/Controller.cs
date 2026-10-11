@@ -13,7 +13,6 @@ sealed class Controller : IDisposable
 {
     const int VK_SHIFT = 0x10, VK_CONTROL = 0x11, VK_MENU = 0x12, VK_LWIN = 0x5B, VK_RWIN = 0x5C;
     const int VK_BACK = 0x08, VK_CAPITAL = 0x14;
-    const int UndosBeforeException = 2;
 
     record Conversion(string Before, Layout BeforeLayout, string After, Layout AfterLayout)
     {
@@ -211,10 +210,13 @@ sealed class Controller : IDisposable
         string text = _segment.Text;
         string word = text[(text.LastIndexOf(' ') + 1)..];
         if (word.Length == 0 || _detector.Check(word, _segment.Layout) is not { } replacement) return false;
+        // The user may list either side: what they typed (rk) or what it would become (and).
+        if (_settings.ExceptionWords.Contains(replacement)) return false;
+        if (_segment.Layout == Layout.Korean) replacement = _segment.RestoreCase(replacement);
 
         var conversion = new Conversion(word + " ", _segment.Layout, replacement + " ", _segment.Other);
         // The Space has not reached the app, so only the word is deleted.
-        Replace(word, conversion.BeforeLayout, conversion.After, conversion.AfterLayout, currentLayout: conversion.BeforeLayout);
+        Replace(_segment.BackspacesFor(word.Length), conversion.After, _segment.Layout);
         _last = conversion;
         _autoUndo = conversion;
         Log.Write($"auto {conversion.BeforeLayout}->{conversion.AfterLayout} len={word.Length}->{replacement.Length}");
@@ -223,22 +225,10 @@ sealed class Controller : IDisposable
 
     void UndoAuto(Conversion conversion)
     {
-        Replace(conversion.After, conversion.AfterLayout, conversion.Before, conversion.BeforeLayout, currentLayout: conversion.AfterLayout);
+        // The IME mode was never changed, so it is still the one the word was typed in.
+        Replace(conversion.After.Length, conversion.Before, conversion.BeforeLayout);
         _last = conversion.Reversed;
-        // One undo may just be a Backspace meant for something else; only repeated undos make an exception.
-        string word = conversion.Before.TrimEnd(' ');
-        int count = _settings.UndoCounts.GetValueOrDefault(word) + 1;
-        if (count >= UndosBeforeException)
-        {
-            _settings.UndoCounts.Remove(word);
-            _settings.ExceptionWords.Add(word);
-        }
-        else
-        {
-            _settings.UndoCounts[word] = count;
-        }
-        _ui.Post(_ => _settings.Save(), null);
-        Log.Write($"auto undone ({count}/{UndosBeforeException}) len={word.Length}");
+        Log.Write($"auto undone len={conversion.Before.Length - 1}");
     }
 
     void QueueConvert()
@@ -270,7 +260,7 @@ sealed class Controller : IDisposable
             {
                 if (_last is { } last)
                 {
-                    Replace(last.After, last.AfterLayout, last.Before, last.BeforeLayout);
+                    Replace(last.After.Length, last.Before, _segment.Layout);
                     _last = last.Reversed;
                     Log.Write($"revert {last.AfterLayout}->{last.BeforeLayout} len={last.After.Length}");
                     return;
@@ -278,7 +268,7 @@ sealed class Controller : IDisposable
                 if (!_segment.IsEmpty)
                 {
                     var conversion = new Conversion(_segment.Text, _segment.Layout, _segment.Converted, _segment.Other);
-                    Replace(conversion.Before, conversion.BeforeLayout, conversion.After, conversion.AfterLayout);
+                    Replace(_segment.BackspacesFor(conversion.Before.Length), conversion.After, _segment.Layout);
                     _last = conversion;
                     Log.Write($"convert {conversion.BeforeLayout}->{conversion.AfterLayout} len={conversion.Before.Length}->{conversion.After.Length}");
                     return;
@@ -306,29 +296,29 @@ sealed class Controller : IDisposable
         Layout to = from == Layout.Korean ? Layout.English : Layout.Korean;
         string converted = from == Layout.Korean ? LayoutConverter.ToEnglish(text) : LayoutConverter.ToKorean(text);
 
-        var input = new InputSender();
-        if (Ime.GetLayout() == Layout.Korean) input.Key(InputSender.VK_HANGUL);
         // Typing over the selection replaces it.
-        input.Text(converted);
-        if (to == Layout.Korean) input.Key(InputSender.VK_HANGUL);
-        if (!input.Send()) Log.Write("SendInput was blocked (elevated window?)");
-
-        _segment = new TypedSegment(to, converted);
+        Send(new InputSender().Text(converted));
+        _segment = new TypedSegment(Ime.GetLayout() ?? Layout.English);
         _segmentWindow = window;
         _last = new Conversion(text, from, converted, to);
         Log.Write($"convert selection {from}->{to} len={text.Length}");
     }
 
-    /// <param name="currentLayout">IME mode right now if known; otherwise it is queried.</param>
-    void Replace(string oldText, Layout oldLayout, string newText, Layout newLayout, Layout? currentLayout = null)
+    /// <summary>
+    /// Erases with Backspace and types <paramref name="newText"/> as Unicode, which the IME passes through.
+    /// The 한/영 mode is never touched: toggling it to commit a syllable is unreliable in TSF apps such as
+    /// the Windows 11 Notepad, so the composing syllable is erased jamo by jamo instead (see BackspacesFor).
+    /// </summary>
+    void Replace(int backspaces, string newText, Layout imeLayout)
     {
-        var input = new InputSender();
-        // Toggling to English first also commits the syllable the IME is still composing.
-        if ((currentLayout ?? Ime.GetLayout() ?? oldLayout) == Layout.Korean) input.Key(InputSender.VK_HANGUL);
-        input.Key(InputSender.VK_BACK, oldText.Length).Text(newText);
-        if (newLayout == Layout.Korean) input.Key(InputSender.VK_HANGUL);
+        Send(new InputSender().Key(InputSender.VK_BACK, backspaces).Text(newText));
+        // Further typing happens in the unchanged mode, so tracking starts over from here.
+        _segment = new TypedSegment(imeLayout);
+    }
+
+    static void Send(InputSender input)
+    {
         if (!input.Send()) Log.Write("SendInput was blocked (elevated window?)");
-        _segment = new TypedSegment(newLayout, newText);
     }
 
     void Reset()

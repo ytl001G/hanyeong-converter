@@ -1,20 +1,30 @@
 namespace HanYeong.Core;
 
+/// <summary>Thresholds on the Zipf-like scores of <see cref="WordFrequency"/>; defaults are the tuned values.</summary>
+public sealed record AutoDetectorOptions
+{
+    public static readonly AutoDetectorOptions Default = new();
+
+    /// <summary>Score given to well-formed Korean missing from the data (a new eojeol beats an unknown Latin string).</summary>
+    public float UnseenKorean { get; init; } = 1.5f;
+    /// <summary>English mode: convert when Korean scores at least this much higher.</summary>
+    public float EnglishToKoreanMargin { get; init; } = 1.0f;
+    /// <summary>Korean mode, well-formed text: convert when English scores at least this much higher.</summary>
+    public float KoreanToEnglishMargin { get; init; } = 2.0f;
+    /// <summary>Well-formed Korean this common is never treated as a typo (내 vs "so").</summary>
+    public float CommonKorean { get; init; } = 3.5f;
+    /// <summary>Broken Korean still needs a real English word; rarer entries are mostly corpus noise.</summary>
+    public float KnownEnglish { get; init; } = 2.0f;
+    /// <summary>Consonant-only/vowel-only input needs very common English (ㅈㄷ → we).</summary>
+    public float CommonEnglish { get; init; } = 4.5f;
+}
+
 /// <summary>
 /// Decides whether a just-finished word was typed in the wrong input mode, by comparing how
 /// common it is in each language. Errs on the side of leaving text alone.
 /// </summary>
 public sealed class AutoDetector
 {
-    // Unknown but well-formed Korean (a new eojeol) still beats an unknown Latin string.
-    const float UnseenKorean = 1.5f;
-    const float EnglishToKoreanMargin = 1.0f;
-    const float KoreanToEnglishMargin = 2.0f;
-    // Well-formed Korean this common is never treated as a typo (내 vs "so").
-    const float CommonKorean = 3.5f;
-    // Broken Korean still needs a real English word; rarer entries are mostly corpus noise.
-    const float KnownEnglish = 2.0f;
-    const float CommonEnglish = 4.5f;
     // Shift letters that type double consonants / ㅒㅖ in Korean mode.
     const string KoreanShiftKeys = "QWERTOP";
 
@@ -30,17 +40,19 @@ public sealed class AutoDetector
     readonly Func<string, float> _english;
     readonly Func<string, float> _korean;
     readonly Func<string, bool> _isException;
+    readonly AutoDetectorOptions _o;
 
-    public AutoDetector(Func<string, bool>? isException = null)
-        : this(w => WordFrequency.English.Value.Score(w), w => WordFrequency.Korean.Value.Score(w), isException)
+    public AutoDetector(Func<string, bool>? isException = null, AutoDetectorOptions? options = null)
+        : this(w => WordFrequency.English.Value.Score(w), w => WordFrequency.Korean.Value.Score(w), isException, options)
     {
     }
 
-    public AutoDetector(Func<string, float> english, Func<string, float> korean, Func<string, bool>? isException = null)
+    public AutoDetector(Func<string, float> english, Func<string, float> korean, Func<string, bool>? isException = null, AutoDetectorOptions? options = null)
     {
         _english = english;
         _korean = korean;
         _isException = isException ?? (_ => false);
+        _o = options ?? AutoDetectorOptions.Default;
     }
 
     /// <summary>The replacement for <paramref name="word"/> (as shown on screen), or null to leave it.</summary>
@@ -66,8 +78,8 @@ public sealed class AutoDetector
         if (!IsWellFormed(korean)) return null;
 
         float en = _english(word);
-        float ko = _korean(korean) is var k && k > 0 ? k : UnseenKorean;
-        return ko - en >= EnglishToKoreanMargin ? korean : null;
+        float ko = _korean(korean) is var k && k > 0 ? k : _o.UnseenKorean;
+        return ko - en >= _o.EnglishToKoreanMargin ? korean : null;
     }
 
     string? CheckKorean(string word)
@@ -79,15 +91,15 @@ public sealed class AutoDetector
 
         string english = LayoutConverter.ToEnglish(word);
         float en = _english(english);
-        if (en < KnownEnglish) return null;
+        if (en < _o.KnownEnglish) return null;
         // Other consonant-only/vowel-only strings could still be chat shorthand; only very common
         // English (ㅈㄷ → we, ㅛㅐㅕ → you) is worth converting.
-        if ((word.All(Jamo.IsConsonant) || word.All(Jamo.IsVowel)) && en < CommonEnglish) return null;
+        if ((word.All(Jamo.IsConsonant) || word.All(Jamo.IsVowel)) && en < _o.CommonEnglish) return null;
 
         if (!IsWellFormed(word)) return english;
 
         float ko = _korean(word);
-        return ko < CommonKorean && en - ko >= KoreanToEnglishMargin ? english : null;
+        return ko < _o.CommonKorean && en - ko >= _o.KoreanToEnglishMargin ? english : null;
     }
 
     /// <summary>Only complete, everyday syllables (no stray jamo, nothing outside KS X 1001).</summary>

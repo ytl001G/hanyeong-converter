@@ -7,7 +7,6 @@ namespace HanYeong;
 sealed class InputSender
 {
     public const ushort VK_BACK = 0x08;
-    public const ushort VK_HANGUL = 0x15;
     public const ushort VK_RETURN = 0x0D;
 
     // Marks our own events so the hook can tell them apart from other injected input.

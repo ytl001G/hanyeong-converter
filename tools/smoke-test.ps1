@@ -1,6 +1,8 @@
-﻿# End-to-end check: starts HanYeong.exe, types into a test window with SendInput and verifies the text.
-# Takes keyboard focus for ~5 seconds. Usage: .\tools\smoke-test.ps1 -Exe src\HanYeong\bin\Debug\net10.0-windows\HanYeong.exe
-param([string]$Exe)
+﻿# End-to-end check: starts HanYeong.exe and types with SendInput, then verifies the text.
+#   -Exe      path to HanYeong.exe (a running installed copy is stopped first and restarted afterwards)
+#   -Notepad  also run the cases in Windows Notepad (a TSF app; behaves differently from classic edit boxes)
+# Takes keyboard focus for 15-40 seconds and aborts if its window loses focus.
+param([Parameter(Mandatory)][string]$Exe, [switch]$Notepad)
 $ErrorActionPreference = 'Stop'
 Add-Type -AssemblyName System.Windows.Forms
 Add-Type @"
@@ -11,78 +13,120 @@ public static class K {
   [StructLayout(LayoutKind.Explicit, Size=40)] public struct IN { [FieldOffset(0)] public uint type; [FieldOffset(8)] public KI ki; }
   [DllImport("user32.dll")] static extern uint SendInput(uint n, IN[] i, int size);
   public static void Key(ushort vk, bool up) { var a = new IN[1]; a[0].type = 1; a[0].ki.vk = vk; a[0].ki.flags = up ? 2u : 0u; SendInput(1, a, Marshal.SizeOf(typeof(IN))); }
-  [DllImport("imm32.dll")] public static extern IntPtr ImmGetContext(IntPtr h);
-  [DllImport("imm32.dll")] public static extern bool ImmSetConversionStatus(IntPtr c, int conv, int sent);
-  [DllImport("imm32.dll")] public static extern bool ImmGetConversionStatus(IntPtr c, out int conv, out int sent);
-  [DllImport("imm32.dll")] public static extern bool ImmReleaseContext(IntPtr h, IntPtr c);
-  [DllImport("user32.dll")] public static extern bool SetForegroundWindow(IntPtr h);
   [DllImport("user32.dll")] public static extern IntPtr GetForegroundWindow();
+  [DllImport("user32.dll")] public static extern bool SetForegroundWindow(IntPtr h);
+  [DllImport("user32.dll")] public static extern uint GetWindowThreadProcessId(IntPtr h, out uint pid);
+  [StructLayout(LayoutKind.Sequential)] public struct GTI { public int cb; public uint flags; public IntPtr a, focus, c, m, ms, caret; public int l, t, r, b; }
+  [DllImport("user32.dll")] static extern bool GetGUIThreadInfo(uint tid, ref GTI g);
+  [DllImport("imm32.dll")] static extern IntPtr ImmGetDefaultIMEWnd(IntPtr h);
+  [DllImport("user32.dll")] static extern IntPtr SendMessageTimeout(IntPtr h, int m, IntPtr w, IntPtr l, uint f, uint t, out IntPtr r);
+  public static bool IsKorean() {
+    IntPtr fg = GetForegroundWindow(); uint pid; uint tid = GetWindowThreadProcessId(fg, out pid);
+    var g = new GTI(); g.cb = Marshal.SizeOf(typeof(GTI)); IntPtr focus = GetGUIThreadInfo(tid, ref g) && g.focus != IntPtr.Zero ? g.focus : fg;
+    IntPtr r; SendMessageTimeout(ImmGetDefaultIMEWnd(focus), 0x283, (IntPtr)1, IntPtr.Zero, 2, 200, out r); return ((long)r & 1) != 0;
+  }
 }
 "@
 
-function Guard { if ([K]::GetForegroundWindow() -ne $form.Handle) { $form.Close(); if ($app) { Stop-Process -Id $app.Id -ErrorAction SilentlyContinue }; throw 'Test window lost focus - aborted before sending keys to another window.' } }
-function Pump($ms) { $end = [DateTime]::Now.AddMilliseconds($ms); while ([DateTime]::Now -lt $end) { [Windows.Forms.Application]::DoEvents(); Start-Sleep -Milliseconds 5 } }
-function TypeKeys($s) { foreach ($ch in $s.ToUpper().ToCharArray()) { Guard; [K]::Key([uint16][char]$ch, $false); [K]::Key([uint16][char]$ch, $true); Pump 15 } }
+$script:target = [IntPtr]::Zero
+$script:results = @()
+$script:pumpForm = $false
+
+function Pump($ms) { $end = [DateTime]::Now.AddMilliseconds($ms); while ([DateTime]::Now -lt $end) { if ($script:pumpForm) { [Windows.Forms.Application]::DoEvents() }; Start-Sleep -Milliseconds 5 } }
+function Guard { if ([K]::GetForegroundWindow() -ne $script:target) { throw 'Test window lost focus - aborted before sending keys to another window.' } }
+function Tap($vk) { Guard; [K]::Key($vk, $false); [K]::Key($vk, $true); Pump 25 }
+# Types letters/digits/space; capitals are typed with Shift.
+function Type-Text($s) {
+  foreach ($ch in $s.ToCharArray()) {
+    Guard
+    if ($ch -eq ' ') { Tap 0x20; Pump 120; continue }
+    $isUpper = [char]::IsUpper($ch)
+    if ($isUpper) { [K]::Key(0x10, $false) }
+    [K]::Key([uint16][char]::ToUpper($ch), $false); [K]::Key([uint16][char]::ToUpper($ch), $true)
+    if ($isUpper) { [K]::Key(0x10, $true) }
+    Pump 25
+  }
+}
+function Back { Tap 0x08; Pump 150 }
 function Hotkey { Guard; [K]::Key(0x11, $false); Pump 20; [K]::Key(0x20, $false); [K]::Key(0x20, $true); Pump 20; [K]::Key(0x11, $true); Pump 400 }
-function Mode { $c = [K]::ImmGetContext($tb.Handle); $conv = 0; $sent = 0; [void][K]::ImmGetConversionStatus($c, [ref]$conv, [ref]$sent); [void][K]::ImmReleaseContext($tb.Handle, $c); if ($conv -band 1) { 'KO' } else { 'EN' } }
+function Mode { if ([K]::IsKorean()) { 'KO' } else { 'EN' } }
+# Real 한/영 key presses, so HanYeong sees the switch like a user's.
+function Set-Mode($m) { if ((Mode) -ne $m) { Tap 0x15; Pump 150 } }
+function Record($label, $expected, $actual) { $script:results += [pscustomobject]@{ where = $script:where; step = $label; expected = $expected; actual = $actual; mode = (Mode); ok = ($actual -ceq $expected) } }
 
+# ---- start the app with throwaway settings (one manual exception word) ----
+$exePath = (Resolve-Path $Exe).Path
+$installed = Get-Process HanYeong -ErrorAction SilentlyContinue | Where-Object { $_.Path -ne $exePath } | Select-Object -First 1 -ExpandProperty Path
+Get-Process HanYeong -ErrorAction SilentlyContinue | Stop-Process -Force
 $env:HANYEONG_SETTINGS = Join-Path $env:TEMP "hanyeong-smoke-$PID.json"
-Remove-Item $env:HANYEONG_SETTINGS -ErrorAction SilentlyContinue
-$app = Start-Process $Exe -PassThru
+'{ "AutoMode": true, "ExceptionWords": [ "qkqh" ] }' | Set-Content $env:HANYEONG_SETTINGS -Encoding UTF8
+$app = Start-Process $exePath -PassThru
 Start-Sleep -Milliseconds 2500   # word tables load in the background
+$savedClip = Get-Clipboard -Raw
 
-$form = New-Object Windows.Forms.Form
-$form.Text = 'HanYeong smoke test'; $form.Width = 500; $form.Height = 120; $form.TopMost = $true
-$tb = New-Object Windows.Forms.TextBox; $tb.Dock = 'Fill'; $tb.Font = New-Object Drawing.Font('Malgun Gothic', 14)
-$form.Controls.Add($tb); $form.Show(); Pump 300
-[void][K]::SetForegroundWindow($form.Handle); $tb.Focus() | Out-Null; Pump 200
-$c = [K]::ImmGetContext($tb.Handle); [void][K]::ImmSetConversionStatus($c, 0, 0); [void][K]::ImmReleaseContext($tb.Handle, $c); Pump 100
+try {
+  # ================= test window (classic edit box) =================
+  $script:where = 'form'; $script:pumpForm = $true
+  $form = New-Object Windows.Forms.Form
+  $form.Text = 'HanYeong smoke test'; $form.Width = 520; $form.Height = 120; $form.TopMost = $true
+  $tb = New-Object Windows.Forms.TextBox; $tb.Dock = 'Fill'; $tb.Font = New-Object Drawing.Font('Malgun Gothic', 14)
+  $form.Controls.Add($tb); $form.Show(); Pump 300
+  [void][K]::SetForegroundWindow($form.Handle); $tb.Focus() | Out-Null; Pump 200
+  $script:target = $form.Handle
+  function Fresh($m) { $tb.Clear(); Pump 30; Set-Mode $m; Tap 0x23; Pump 50 }   # End = reset point
 
-$results = @()
-function Check($label, $expected) { $actual = $tb.Text; $script:results += [pscustomobject]@{ step = $label; expected = $expected; actual = $actual; mode = (Mode); ok = ($actual -eq $expected) } }
+  Fresh 'EN'; Type-Text 'dkssud'; Record 'typed EN' 'dkssud' $tb.Text
+  Hotkey; Record 'Ctrl+Space -> KO, mode stays EN' '안녕' $tb.Text
+  Hotkey; Record 'again reverts' 'dkssud' $tb.Text
+  Fresh 'KO'; Type-Text 'dkssud'; Hotkey; Record 'KO composing 녕 -> EN' 'dkssud' $tb.Text
+  Fresh 'KO'; Type-Text 'Hello'; Record 'Shift in KO mode' 'ㅗ디ㅣㅐ' $tb.Text
+  Hotkey; Record 'capital restored' 'Hello' $tb.Text
+  Fresh 'KO'; Type-Text 'dkssudgk'; Back; Type-Text 'f'; Record 'IME backspace' '안녕ㅎㄹ' $tb.Text
+  Hotkey; Record 'convert after backspace' 'dkssudgf' $tb.Text
 
-TypeKeys 'dkssud';             Check 'typed EN' 'dkssud'
-Hotkey;                    Check 'convert -> KO' '안녕'
-TypeKeys 'gktpdy'; Pump 100;   Check 'keep typing (KO)' '안녕하세요'
-Hotkey;                    Check 'convert whole -> EN' 'dkssudgktpdy'
-Hotkey;                    Check 'revert' '안녕하세요'
-$tb.Clear(); Pump 50
-$c = [K]::ImmGetContext($tb.Handle); [void][K]::ImmSetConversionStatus($c, 1, 0); [void][K]::ImmReleaseContext($tb.Handle, $c); Pump 100
-Guard; [K]::Key(0x24,$false);[K]::Key(0x24,$true); Pump 50   # Home -> reset segment
-TypeKeys 'hello';              Check 'typed KO' 'ㅗ디ㅣㅐ'
-Hotkey;                    Check 'convert -> EN' 'hello'
-$tb.Clear(); Pump 50
-$c = [K]::ImmGetContext($tb.Handle); [void][K]::ImmSetConversionStatus($c, 1, 0); [void][K]::ImmReleaseContext($tb.Handle, $c); Pump 100
-Guard; [K]::Key(0x24,$false);[K]::Key(0x24,$true); Pump 50
-TypeKeys 'dkssudgk'; [K]::Key(0x08,$false);[K]::Key(0x08,$true); Pump 30; TypeKeys 'f'; Check 'KO with backspace (IME drops ㅏ, ㅎ+ㄹ stay apart)' '안녕ㅎㄹ'
-Hotkey;                    Check 'convert -> EN' 'dkssudgf'
+  Set-Clipboard -Value 'CLIP-KEEP'
+  $tb.Text = 'dkssud gktpdy'; Pump 30; Tap 0x23; $tb.SelectAll(); Pump 30
+  Hotkey; Pump 200; Record 'selection -> KO' '안녕 하세요' $tb.Text
+  Record 'clipboard restored' 'CLIP-KEEP' (Get-Clipboard -Raw).TrimEnd()
 
-# Selection: text set without typing, Home resets the segment, then select all and convert.
-Set-Clipboard -Value 'CLIP-KEEP'
-$tb.Text = 'dkssud gktpdy'; Pump 30
-Guard; [K]::Key(0x24,$false);[K]::Key(0x24,$true); Pump 50
-$tb.SelectAll(); Pump 30
-Hotkey; Pump 200;          Check 'selection -> KO' '안녕 하세요'
-$script:results += [pscustomobject]@{ step = 'clipboard restored'; expected = 'CLIP-KEEP'; actual = (Get-Clipboard); mode = ''; ok = ((Get-Clipboard) -eq 'CLIP-KEEP') }
-Hotkey;                    Check 'selection revert' 'dkssud gktpdy'
+  Fresh 'EN'; Type-Text 'dkssud gktpdy '; Record 'auto: each word on Space, mode stays' '안녕 하세요 ' $tb.Text
+  Fresh 'KO'; Type-Text 'hi Hello '; Record 'auto KO->EN keeps capitals' 'hi Hello ' $tb.Text
+  Fresh 'EN'; Type-Text 'rk '; Record 'auto rk' '가 ' $tb.Text
+  Back; Record 'Backspace undoes' 'rk ' $tb.Text
+  Type-Text 'rk '; Record 'undo adds no exception' 'rk 가 ' $tb.Text
+  Fresh 'EN'; Type-Text 'qkqh '; Record 'manual exception respected' 'qkqh ' $tb.Text
+  $form.Close(); $script:pumpForm = $false
 
-# Auto mode: words fixed on Space; Backspace right after undoes and remembers the word.
-function SetMode($m) { $c = [K]::ImmGetContext($tb.Handle); [void][K]::ImmSetConversionStatus($c, $m, 0); [void][K]::ImmReleaseContext($tb.Handle, $c); Pump 100 }
-function Space { Guard; [K]::Key(0x20,$false);[K]::Key(0x20,$true); Pump 150 }
-function Back { Guard; [K]::Key(0x08,$false);[K]::Key(0x08,$true); Pump 150 }
-$tb.Clear(); SetMode 0; Guard; [K]::Key(0x24,$false);[K]::Key(0x24,$true); Pump 50
-TypeKeys 'dkssud'; Space;  Check 'auto EN->KO on space' '안녕 '
-TypeKeys 'gktpdy'; Space;  Check 'keeps typing in KO' '안녕 하세요 '
-TypeKeys 'hello'; Space;   Check 'auto KO->EN on space' '안녕 하세요 hello '
-TypeKeys 'rk'; Space;      Check 'auto rk -> 가' '안녕 하세요 hello 가 '
-Back;                      Check 'backspace undoes (1st)' '안녕 하세요 hello rk '
-TypeKeys 'rk'; Space;      Check 'one undo is not an exception' '안녕 하세요 hello rk 가 '
-Back;                      Check 'backspace undoes (2nd)' '안녕 하세요 hello rk rk '
-TypeKeys 'rk'; Space;      Check 'two undos make an exception' '안녕 하세요 hello rk rk rk '
-$saved = Get-Content $env:HANYEONG_SETTINGS -Raw
-$script:results += [pscustomobject]@{ step = 'exception saved'; expected = 'rk'; actual = ''; mode = ''; ok = ($saved -match '"rk"') }
-
-$form.Close(); Stop-Process -Id $app.Id
-Remove-Item $env:HANYEONG_SETTINGS -ErrorAction SilentlyContinue
-$results | Format-Table -AutoSize | Out-String -Width 200
-
+  # ================= Windows Notepad (TSF) =================
+  if ($Notepad) {
+    $script:where = 'notepad'
+    $np = Start-Process notepad -PassThru
+    Start-Sleep -Milliseconds 1500
+    $script:target = [K]::GetForegroundWindow()
+    $fgPid = 0; [void][K]::GetWindowThreadProcessId($script:target, [ref]$fgPid)
+    if ((Get-Process -Id $fgPid).ProcessName -ne 'Notepad') { throw 'Notepad did not come to the front - aborted before typing.' }
+    function Read-Doc { Guard; [K]::Key(0x11, $false); Tap 0x41; Tap 0x43; [K]::Key(0x11, $true); Pump 250; $t = Get-Clipboard -Raw; Tap 0x23; if ($null -eq $t) { '' } else { $t } }
+    function Clear-Doc { Guard; [K]::Key(0x11, $false); Tap 0x41; [K]::Key(0x11, $true); Tap 0x2E; Pump 100 }
+    function Case($label, $mode, $keys, $action, $expected) {
+      Clear-Doc; Set-Mode $mode; Tap 0x23; Type-Text $keys; Pump 100
+      if ($action) { & $action }
+      Record $label $expected (Read-Doc)
+    }
+    Case 'KO hi + Ctrl+Space'          'KO' 'hi'             { Hotkey } 'hi'
+    Case 'KO 안녕 + Ctrl+Space'         'KO' 'dkssud'         { Hotkey } 'dkssud'
+    Case 'KO Hello + Ctrl+Space'       'KO' 'Hello'          { Hotkey } 'Hello'
+    Case 'EN dkssud + Ctrl+Space'      'EN' 'dkssud'         { Hotkey } '안녕'
+    Case 'revert'                      'EN' 'dkssud'         { Hotkey; Hotkey } 'dkssud'
+    Case 'auto KO "hi "'               'KO' 'hi '            $null 'hi '
+    Case 'auto KO "Hello world "'      'KO' 'Hello world '   $null 'Hello world '
+    Case 'auto EN "dkssud gktpdy "'    'EN' 'dkssud gktpdy ' $null '안녕 하세요 '
+    Clear-Doc
+    $np.CloseMainWindow() | Out-Null
+  }
+} finally {
+  if ($null -ne $savedClip) { Set-Clipboard -Value $savedClip }
+  Stop-Process -Id $app.Id -ErrorAction SilentlyContinue
+  Remove-Item $env:HANYEONG_SETTINGS -ErrorAction SilentlyContinue
+  if ($installed) { Start-Process $installed }
+}
+$results | Format-Table -AutoSize | Out-String -Width 220

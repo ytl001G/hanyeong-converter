@@ -154,3 +154,61 @@ public class TypedSegmentTests
         Assert.Equal("AB", s.Text);
     }
 }
+
+public class ImeEditTests
+{
+    static TypedSegment Korean(string keys)
+    {
+        var s = new TypedSegment(Layout.Korean);
+        foreach (char k in keys)
+        {
+            if (k == '\b') s.Backspace();
+            else s.Type(k);
+        }
+        return s;
+    }
+
+    [Theory]
+    [InlineData("hi", 2, 2)]          // ㅗ + composing ㅑ (1 step)
+    [InlineData("dkssud", 2, 4)]      // 안 + composing 녕 (ㄴ ㅕ ㅇ)
+    [InlineData("ekfr", 1, 4)]        // composing 닭 (ㄷ ㅏ ㄹ ㄺ)
+    [InlineData("rkrk", 2, 3)]        // 가 + composing 가 that started from a carried ㄱ
+    [InlineData("dkssud ", 3, 3)]     // nothing composing after Space
+    [InlineData("dkssud", 1, 3)]      // only the composing syllable
+    public void BackspacesCoverComposingJamo(string keys, int tail, int expected) =>
+        Assert.Equal(expected, Korean(keys).BackspacesFor(tail));
+
+    [Fact]
+    public void EnglishNeedsOneBackspacePerChar()
+    {
+        var s = new TypedSegment(Layout.English);
+        foreach (char k in "dkssud") s.Type(k);
+        Assert.Equal(6, s.BackspacesFor(6));
+    }
+
+    [Theory]
+    [InlineData("Hello", "ㅗ디ㅣㅐ", "Hello")]
+    [InlineData("HELLO", "ㅗ띠ㅣㅒ", "HELLO")]     // Shift+E is ㄸ, Shift+O is ㅒ
+    [InlineData("iPhone", "ㅑㅖㅙㅜㄷ", "iPhone")]
+    [InlineData("Qwer", "ㅃㅈㄷㄱ", "Qwer")]
+    public void ConvertedKeepsTypedCapitals(string keys, string screen, string expected)
+    {
+        var s = Korean(keys);
+        Assert.Equal(screen, s.Text);
+        Assert.Equal(expected, s.Converted);
+    }
+
+    [Fact]
+    public void CapitalsSurviveBackspace()
+    {
+        var s = Korean("Hellp\bo");
+        Assert.Equal("Hello", s.Converted);
+    }
+
+    [Fact]
+    public void RestoreCaseForLastWord()
+    {
+        var s = Korean("say Hello");
+        Assert.Equal("Hello", s.RestoreCase("hello"));
+    }
+}

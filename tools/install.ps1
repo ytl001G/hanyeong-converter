@@ -29,7 +29,7 @@ $link.Description = '한/영 잘못 친 글자 변환'
 $link.Save()
 
 # Same value the settings window toggles.
-Set-ItemProperty 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Run' -Name 'HanYeongConverter' -Value "`"$exe`""
+Set-ItemProperty 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Run' -Name 'HanYeongConverter' -Value "`"$exe`" --startup"
 
 Start-Process $exe
 "Installed: $exe"

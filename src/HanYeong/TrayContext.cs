@@ -15,8 +15,11 @@ sealed class TrayContext : ApplicationContext
     readonly Icon _onIcon = DrawIcon(Color.FromArgb(37, 99, 235));
     readonly Icon _offIcon = DrawIcon(Color.FromArgb(140, 140, 140));
 
-    public TrayContext()
+    readonly SynchronizationContext _ui;
+
+    public TrayContext(bool isStartupLaunch)
     {
+        _ui = SynchronizationContext.Current!;
         _controller = new Controller(_settings, _focus);
 
         _autoItem = new ToolStripMenuItem { CheckOnClick = true };
@@ -60,8 +63,14 @@ sealed class TrayContext : ApplicationContext
             _icon.ShowBalloonTip(1200, "한영 변환기", isOn ? "자동 모드 켜짐" : "자동 모드 꺼짐", ToolTipIcon.None);
         };
         ShowState(_controller.AutoMode);
+        // Started by hand (not at Windows start-up): say where it went, since it has no window.
+        if (!isStartupLaunch)
+            _icon.ShowBalloonTip(4000, "한영 변환기 실행 중", "작업 표시줄 오른쪽 아래 '한' 아이콘에 있어요.\n설정은 아이콘 우클릭, 또는 시작 메뉴에서 한 번 더 실행하세요.", ToolTipIcon.Info);
         Log.Write("started");
     }
+
+    /// <summary>Called from another thread when the program is launched a second time.</summary>
+    public void RequestSettings() => _ui.Post(_ => OpenSettings(), null);
 
     void UpdateAppRule(Action<AppRule> change)
     {
@@ -85,6 +94,7 @@ sealed class TrayContext : ApplicationContext
         }
         using (_settingsForm = new SettingsForm(_settings))
         {
+            _settingsForm.Shown += (_, _) => _settingsForm.Activate();
             if (_settingsForm.ShowDialog() == DialogResult.OK)
             {
                 _controller.ApplySettings();

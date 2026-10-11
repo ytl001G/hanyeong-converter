@@ -62,11 +62,27 @@ sealed class SettingsForm : Form
         hotkeys.Controls.Add(_autoCheck, 1, 2);
         hotkeys.Controls.Add(_startupCheck, 1, 3);
 
-        var removeWord = new Button { Text = "선택 삭제", AutoSize = true, Dock = DockStyle.Right };
+        var newWord = new TextBox { Dock = DockStyle.Fill, PlaceholderText = "예: rk, and", Margin = new Padding(0, 3, 6, 0) };
+        var addWord = new Button { Text = "추가", AutoSize = true, Margin = new Padding(0, 0, 6, 0) };
+        addWord.Click += (_, _) =>
+        {
+            string word = newWord.Text.Trim();
+            if (word.Length > 0 && !_exceptionList.Items.Contains(word)) _exceptionList.Items.Add(word);
+            newWord.Clear();
+            newWord.Focus();
+        };
+        var removeWord = new Button { Text = "선택 삭제", AutoSize = true, Margin = Padding.Empty };
         removeWord.Click += (_, _) =>
         {
             foreach (var item in _exceptionList.SelectedItems.Cast<object>().ToList()) _exceptionList.Items.Remove(item);
         };
+        var wordBar = new TableLayoutPanel { Dock = DockStyle.Fill, ColumnCount = 3, RowCount = 1, Margin = Padding.Empty };
+        wordBar.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
+        wordBar.ColumnStyles.Add(new ColumnStyle(SizeType.AutoSize));
+        wordBar.ColumnStyles.Add(new ColumnStyle(SizeType.AutoSize));
+        wordBar.Controls.Add(newWord, 0, 0);
+        wordBar.Controls.Add(addWord, 1, 0);
+        wordBar.Controls.Add(removeWord, 2, 0);
         var removeApp = new Button { Text = "선택 삭제", AutoSize = true, Dock = DockStyle.Right };
         removeApp.Click += (_, _) =>
         {
@@ -78,6 +94,9 @@ sealed class SettingsForm : Form
         save.Click += (_, _) => Save();
         AcceptButton = save;
         CancelButton = cancel;
+        // Enter in the word box adds the word instead of saving the dialog.
+        newWord.Enter += (_, _) => AcceptButton = addWord;
+        newWord.Leave += (_, _) => AcceptButton = save;
         var buttons = new FlowLayoutPanel { Dock = DockStyle.Bottom, FlowDirection = FlowDirection.RightToLeft, AutoSize = true, Padding = new Padding(0, 8, 0, 0) };
         buttons.Controls.Add(cancel);
         buttons.Controls.Add(save);
@@ -85,7 +104,7 @@ sealed class SettingsForm : Form
         var body = new TableLayoutPanel { Dock = DockStyle.Fill, ColumnCount = 1, RowCount = 2 };
         body.RowStyles.Add(new RowStyle(SizeType.Percent, 45));
         body.RowStyles.Add(new RowStyle(SizeType.Percent, 55));
-        body.Controls.Add(Group("자동 모드 예외 단어 (같은 단어의 자동 변환을 2번 되돌리면 추가)", _exceptionList, removeWord), 0, 0);
+        body.Controls.Add(Group("자동 모드가 바꾸지 않을 단어 (친 그대로 rk, 또는 바뀔 결과 and)", _exceptionList, wordBar), 0, 0);
         body.Controls.Add(Group("앱별 설정 (트레이 메뉴에서 추가)", _appGrid, removeApp), 0, 1);
 
         Shown += (_, _) => _appGrid.ClearSelection();
@@ -141,7 +160,7 @@ sealed class SettingsForm : Form
     static void SetStartup(bool isEnabled)
     {
         using var key = Registry.CurrentUser.CreateSubKey(RunKey);
-        if (isEnabled) key.SetValue(RunValue, $"\"{Application.ExecutablePath}\"");
+        if (isEnabled) key.SetValue(RunValue, $"\"{Application.ExecutablePath}\" {Program.StartupArg}");
         else key.DeleteValue(RunValue, throwOnMissingValue: false);
     }
 
