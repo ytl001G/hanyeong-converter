@@ -89,6 +89,7 @@ public class MixedWordTests
     [InlineData("-6qhek", "-6보다")]          // user's example: number + particle, sign kept
     [InlineData("3ro", "3개")]               // number + counter
     [InlineData("2024susdp", "2024년에")]
+    [InlineData("ATlsms", "A씨는")]          // single capital letter (씨 is Shift+T, l)
     public void EnglishMode(string keys, string expected) => Assert.Equal(expected, Detector.CheckMixed(keys, Layout.English));
 
     [Theory]
@@ -147,8 +148,34 @@ public class JoinedWordTests
     [InlineData("애ㅜ'ㅅ", "don't")]                           // one-key part follows
     public void KoreanModeConverts(string typed, string expected) => Assert.Equal(expected, Detector.Check(typed, Layout.Korean));
 
+    // Found by mining the test corpora: quotes, brackets, middle dots and numbers inside words.
+    [Theory]
+    [InlineData("“이번")]
+    [InlineData("것”이라고")]
+    [InlineData("시·군")]
+    [InlineData("달러(약")]
+    [InlineData("제2차")]
+    [InlineData("7시30분")]
+    [InlineData("5%로")]
+    [InlineData("1분기")]
+    [InlineData("65세")]
+    public void KoreanTypedInEnglishMode(string korean) =>
+        Assert.Equal(korean, Detector.Check(KeysOf(korean), Layout.English));
+
+    [Theory]
+    [InlineData("it’s")]
+    [InlineData("(or")]
+    public void EnglishTypedInKoreanMode(string english) =>
+        Assert.Equal(english, Detector.Check(LayoutConverter.ToKorean(english), Layout.Korean));
+
+    static string KeysOf(string text) => string.Concat(text.Select(c => Jamo.IsHangul(c) ? LayoutConverter.ToEnglish(c.ToString()) : c.ToString()));
+
     [Theory]
     [InlineData("e-mail", Layout.English)]
     [InlineData("신-구", Layout.Korean)]
+    [InlineData("(see", Layout.English)]      // real English inside brackets
+    [InlineData("20th", Layout.English)]      // ordinals stay
+    [InlineData("1980s", Layout.English)]
+    [InlineData("abc1", Layout.English)]
     public void LeavesAlone(string typed, Layout layout) => Assert.Null(Detector.Check(typed, layout));
 }

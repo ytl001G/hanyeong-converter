@@ -1,6 +1,6 @@
 {
   "load": {
-    "ms": 189,
+    "ms": 192,
     "managedMB": 15.6,
     "englishWords": 477661,
     "koreanWords": 486868
@@ -22,9 +22,9 @@
       "sentences": 100000,
       "tokens": 2090860,
       "letterTokens": 1950448,
-      "falsePositiveTokens": 191,
-      "falsePositivePerToken": 9.792622002739883E-05,
-      "sentencesWithFalsePositive": 0.00176,
+      "falsePositiveTokens": 194,
+      "falsePositivePerToken": 9.946432819536845E-05,
+      "sentencesWithFalsePositive": 0.00178,
       "wrongModeTokens": 1950435,
       "wrongModeFixed": 0.9224793443513882,
       "wrongModeSentencesFullyFixed": 0.26998,
@@ -252,9 +252,9 @@
         "count": 2
       },
       {
-        "word": "Ejah",
-        "result": "떠모",
-        "count": 1
+        "word": "Kilaaks",
+        "result": "Kila만",
+        "count": 2
       }
     ],
     "falsePositiveHangul": [
@@ -640,36 +640,20 @@
     ]
   },
   "mixed": {
-    "allLatinHangulFixedEnglishMode": 0.7486563654685925,
+    "allLatinHangulFixedEnglishMode": 0.7700705408128989,
     "allLatinHangulFixedKoreanMode": 0.7465569365132684,
     "latinHangulTokens": 11908,
     "distinctWords": 4428,
     "tokens": 7165,
-    "fixedWhenTypedInEnglishMode": 0.927983251919051,
+    "fixedWhenTypedInEnglishMode": 0.9637124912770412,
     "fixedWhenTypedInKoreanMode": 0.928122819260293,
     "topMisses": [
-      {
-        "word": "kt는",
-        "count": 7
-      },
-      {
-        "word": "crowding을",
-        "count": 2
-      },
       {
         "word": "MWC2015에서",
         "count": 2
       },
       {
-        "word": "kr에서",
-        "count": 2
-      },
-      {
         "word": "OpenGL이",
-        "count": 2
-      },
-      {
-        "word": "Bur는",
         "count": 2
       },
       {
@@ -693,59 +677,75 @@
         "count": 2
       },
       {
-        "word": "Bressler는",
-        "count": 2
-      },
-      {
         "word": "Perot이",
         "count": 2
-      },
-      {
-        "word": "tvN의",
-        "count": 2
-      },
-      {
-        "word": "kt의",
-        "count": 2
-      },
-      {
-        "word": "tvN에서",
-        "count": 2
-      },
-      {
-        "word": "Mbps를",
-        "count": 1
       },
       {
         "word": "PCBs도",
         "count": 1
       },
       {
-        "word": "msn과",
+        "word": "QnA로",
         "count": 1
       },
       {
-        "word": "NOx를",
+        "word": "Sider에",
         "count": 1
       },
       {
-        "word": "rituximab을",
+        "word": "Iavicoli씨",
         "count": 1
       },
       {
-        "word": "capa는",
+        "word": "Sera지",
         "count": 1
       },
       {
-        "word": "mSv이다",
+        "word": "Playart에서",
         "count": 1
       },
       {
-        "word": "probing해도",
+        "word": "Nedelcheva는",
         "count": 1
       },
       {
-        "word": "probing을",
+        "word": "baPWV가",
+        "count": 1
+      },
+      {
+        "word": "BEEcube의",
+        "count": 1
+      },
+      {
+        "word": "Zichal이",
+        "count": 1
+      },
+      {
+        "word": "Mplus와",
+        "count": 1
+      },
+      {
+        "word": "vsp로",
+        "count": 1
+      },
+      {
+        "word": "Kixx에",
+        "count": 1
+      },
+      {
+        "word": "Endourology에",
+        "count": 1
+      },
+      {
+        "word": "alphoscerate의",
+        "count": 1
+      },
+      {
+        "word": "ects가",
+        "count": 1
+      },
+      {
+        "word": "NUC5i5RYK에",
         "count": 1
       }
     ]
@@ -787,12 +787,1025 @@
       "falsePositiveExamples": []
     }
   },
+  "numbers": {
+    "koreanTokens": 120650,
+    "fixedWhenTypedInEnglishMode": 0.7261417322834646,
+    "englishTokens": 7690,
+    "falsePositive": 0,
+    "falsePositiveExamples": []
+  },
+  "failureShapes": {
+    "koreanTypedInEnglishMode": [
+      {
+        "shape": "DH",
+        "missedTokens": 33050,
+        "shareOfAllWords": 0.009573111634936847,
+        "missRateInShape": 0.2739124309003058,
+        "examples": [
+          "1인당(175)",
+          "3년간(151)",
+          "5년간(142)",
+          "1년간(120)",
+          "1분기(108)",
+          "2분기(107)",
+          "10년간(98)",
+          "65세(97)",
+          "20여(92)",
+          "10여(90)",
+          "3분기(86)",
+          "2년간(84)"
+        ]
+      },
+      {
+        "shape": "“H",
+        "missedTokens": 14707,
+        "shareOfAllWords": 0.004259962263691867,
+        "missRateInShape": 1,
+        "examples": [
+          "“이번(342)",
+          "“이(151)",
+          "“앞으로도(127)",
+          "“앞으로(123)",
+          "“우리(104)",
+          "“지난(104)",
+          "“최근(98)",
+          "“푸틴(86)",
+          "“현재(84)",
+          "“특히(63)",
+          "“올해(58)",
+          "“내(52)"
+        ]
+      },
+      {
+        "shape": "H”H",
+        "missedTokens": 12373,
+        "shareOfAllWords": 0.0035839065131338457,
+        "missRateInShape": 1,
+        "examples": [
+          "것”이라고(801)",
+          "있다”고(627)",
+          "있다”며(460)",
+          "한다”고(432)",
+          "것”이라며(273)",
+          "바란다”고(183)",
+          "없다”고(142)",
+          "한다”며(131)",
+          "계획”이라고(118)",
+          "기대한다”고(103)",
+          "하겠다”고(101)",
+          "없다”며(95)"
+        ]
+      },
+      {
+        "shape": "‘H",
+        "missedTokens": 12357,
+        "shareOfAllWords": 0.00357927202641194,
+        "missRateInShape": 1,
+        "examples": [
+          "‘사랑의(59)",
+          "‘기싸움(56)",
+          "‘탄핵되면(50)",
+          "‘내(44)",
+          "‘나는(42)",
+          "‘더(36)",
+          "‘세계(34)",
+          "‘이(32)",
+          "‘올해의(32)",
+          "‘한국(32)",
+          "‘찾아가는(31)",
+          "‘대한민국(30)"
+        ]
+      },
+      {
+        "shape": "\"H",
+        "missedTokens": 10797,
+        "shareOfAllWords": 0.003127409571026116,
+        "missRateInShape": 1,
+        "examples": [
+          "\"이번(178)",
+          "\"이(96)",
+          "\"우리(64)",
+          "\"지난(63)",
+          "\"앞으로(61)",
+          "\"한국(49)",
+          "\"현재(48)",
+          "\"특히(46)",
+          "\"우병우(44)",
+          "\"내가(43)",
+          "\"우리는(42)",
+          "\"앞으로도(42)"
+        ]
+      },
+      {
+        "shape": "H\"H",
+        "missedTokens": 9112,
+        "shareOfAllWords": 0.0026393401881254024,
+        "missRateInShape": 1,
+        "examples": [
+          "것\"이라고(579)",
+          "있다\"고(497)",
+          "한다\"고(307)",
+          "있다\"며(263)",
+          "것\"이라며(203)",
+          "없다\"고(137)",
+          "한다\"며(112)",
+          "바란다\"고(79)",
+          "없다\"며(76)",
+          "있다\"면서(70)",
+          "했다\"고(67)",
+          "계획\"이라고(64)"
+        ]
+      },
+      {
+        "shape": "H’H",
+        "missedTokens": 8661,
+        "shareOfAllWords": 0.0025087055936516803,
+        "missRateInShape": 1,
+        "examples": [
+          "한다’는(28)",
+          "날’을(22)",
+          "없다’는(21)",
+          "있다’고(20)",
+          "아내’로(20)",
+          "있다’는(19)",
+          "캠페인’을(19)",
+          "프로그램’을(18)",
+          "한다’고(15)",
+          "사업’을(13)",
+          "프로젝트’를(12)",
+          "서비스’를(12)"
+        ]
+      },
+      {
+        "shape": "H",
+        "missedTokens": 8301,
+        "shareOfAllWords": 0.0024044296424087976,
+        "missRateInShape": 0.002677767849366284,
+        "examples": [
+          "내(1975)",
+          "해(884)",
+          "새(751)",
+          "채(588)",
+          "미(360)",
+          "양(278)",
+          "도(234)",
+          "는(194)",
+          "유(171)",
+          "모(152)",
+          "새해(142)",
+          "몸(132)"
+        ]
+      },
+      {
+        "shape": "H(H",
+        "missedTokens": 7473,
+        "shareOfAllWords": 0.0021645949545501682,
+        "missRateInShape": 1,
+        "examples": [
+          "달러(약(76)",
+          "농촌진흥청(청장(18)",
+          "한인회(회장(14)",
+          "문화체육관광부(장관(12)",
+          "법정행(동양일보(11)",
+          "고창군(군수(10)",
+          "유로(약(10)",
+          "새마을부녀회(회장(10)",
+          "전북본부(본부장(10)",
+          "지원(동양일보(10)",
+          "달러(한화(9)",
+          "거부(동양일보(9)"
+        ]
+      },
+      {
+        "shape": "H·H",
+        "missedTokens": 7052,
+        "shareOfAllWords": 0.0020426500226800193,
+        "missRateInShape": 1,
+        "examples": [
+          "시·군(84)",
+          "시·도(51)",
+          "한·중(42)",
+          "최순실·우병우(42)",
+          "한·일(30)",
+          "국내·외(27)",
+          "읍·면(26)",
+          "한·미(22)",
+          "전·현직(22)",
+          "사망김새롬·이찬오(21)",
+          "시·군이(20)",
+          "시·군에(17)"
+        ]
+      },
+      {
+        "shape": "H)H",
+        "missedTokens": 6386,
+        "shareOfAllWords": 0.001849739512880687,
+        "missRateInShape": 1,
+        "examples": [
+          "등)을(33)",
+          "부장판사)는(28)",
+          "위반)로(24)",
+          "분)의(22)",
+          "등)를(17)",
+          "이양호)은(17)",
+          "목사)가(17)",
+          "목사)는(16)",
+          "등)로(15)",
+          "등)에(14)",
+          "상당)을(13)",
+          "목사)에서(13)"
+        ]
+      },
+      {
+        "shape": "HDH",
+        "missedTokens": 5425,
+        "shareOfAllWords": 0.0015713806541462147,
+        "missRateInShape": 1,
+        "examples": [
+          "제2차(105)",
+          "제1회(94)",
+          "제2의(88)",
+          "제1차(63)",
+          "제2회(60)",
+          "제3차(46)",
+          "제1항에(37)",
+          "제1항(37)",
+          "제3회(34)",
+          "제3의(32)",
+          "제4회(29)",
+          "제1항의(28)"
+        ]
+      },
+      {
+        "shape": "LH",
+        "missedTokens": 4886,
+        "shareOfAllWords": 0.00141525638270201,
+        "missRateInShape": 0.35771286331356617,
+        "examples": [
+          "A씨는(155)",
+          "K리그(138)",
+          "A씨가(44)",
+          "SK텔레콤(33)",
+          "B형(31)",
+          "FA컵(31)",
+          "A매치(31)",
+          "A씨의(29)",
+          "A씨를(29)",
+          "B씨는(29)",
+          "SK텔레콤은(26)",
+          "A씨(20)"
+        ]
+      },
+      {
+        "shape": "DHDH",
+        "missedTokens": 4875,
+        "shareOfAllWords": 0.0014120701730806998,
+        "missRateInShape": 1,
+        "examples": [
+          "7시30분(35)",
+          "1박2일(21)",
+          "6시30분(18)",
+          "2박3일(16)",
+          "9시30분(15)",
+          "1월3일(14)",
+          "10시30분(13)",
+          "1월1일부터(12)",
+          "1대1로(10)",
+          "1시30분(9)",
+          "6월5일(9)",
+          "3박4일(8)"
+        ]
+      },
+      {
+        "shape": "D%H",
+        "missedTokens": 4703,
+        "shareOfAllWords": 0.0013622494408202116,
+        "missRateInShape": 1,
+        "examples": [
+          "5%로(76)",
+          "4%로(67)",
+          "1%로(62)",
+          "2%로(57)",
+          "3%로(54)",
+          "6%로(54)",
+          "9%로(49)",
+          "8%로(46)",
+          "7%로(43)",
+          "50%를(41)",
+          "5%에(38)",
+          "5%를(37)"
+        ]
+      },
+      {
+        "shape": "‘H’H",
+        "missedTokens": 4688,
+        "shareOfAllWords": 0.0013579046095184247,
+        "missRateInShape": 1,
+        "examples": [
+          "‘돌배미강’이(32)",
+          "‘좋아요’를(5)",
+          "‘나’라는(4)",
+          "‘시’는(3)",
+          "‘나’는(3)",
+          "‘명량’이(3)",
+          "‘미생’의(3)",
+          "‘길’에(3)",
+          "‘나’를(3)",
+          "‘더컸유세단’과(3)",
+          "‘묵묵부답’특검(3)",
+          "‘사랑’에(2)"
+        ]
+      },
+      {
+        "shape": "H’",
+        "missedTokens": 3772,
+        "shareOfAllWords": 0.0010925802446893128,
+        "missRateInShape": 1,
+        "examples": [
+          "법대로’(50)",
+          "날’(46)",
+          "밤’(27)",
+          "만들기’(18)",
+          "있다’(15)",
+          "이야기’(13)",
+          "예능’(13)",
+          "집’(12)",
+          "논란’(11)",
+          "프로젝트’(11)",
+          "상납’(11)",
+          "도시’(10)"
+        ]
+      },
+      {
+        "shape": "H)",
+        "missedTokens": 3427,
+        "shareOfAllWords": 0.000992649124748217,
+        "missRateInShape": 1,
+        "examples": [
+          "기자)(155)",
+          "등)(101)",
+          "교수)(57)",
+          "포함)(50)",
+          "한국시간)(46)",
+          "원)(41)",
+          "기준)(35)",
+          "참조)(34)",
+          "제외)(30)",
+          "이상)(23)",
+          "목사)(20)",
+          "한다)(18)"
+        ]
+      },
+      {
+        "shape": "H(H)H",
+        "missedTokens": 2552,
+        "shareOfAllWords": 0.0007392006321439888,
+        "missRateInShape": 1,
+        "examples": [
+          "처음(동양일보)최초의(10)",
+          "정준영(사진)이(9)",
+          "비박(비박근혜)계(7)",
+          "친박(친박근혜)계(7)",
+          "영향(동양일보)러시아가(5)",
+          "헤인즈(오리온)가(5)",
+          "혐의(절도)로(4)",
+          "친박(친박근혜)계가(3)",
+          "추가경정예산(추경)안(3)",
+          "총장(사진)이(3)",
+          "사장(왼쪽)이(3)",
+          "친박(친박근혜)계의(3)"
+        ]
+      },
+      {
+        "shape": "‘H’",
+        "missedTokens": 2245,
+        "shareOfAllWords": 0.0006502764181674197,
+        "missRateInShape": 1,
+        "examples": [
+          "‘사적지’(42)",
+          "‘성추행’(42)",
+          "‘발암’(11)",
+          "‘개혁보수신당’(10)",
+          "‘눈길’(8)",
+          "‘위안부’(6)",
+          "‘마비’(6)",
+          "‘무한도전’(5)",
+          "‘나’(5)",
+          "‘친러’(5)",
+          "‘가’(4)",
+          "‘톡톡’(4)"
+        ]
+      },
+      {
+        "shape": "H(L",
+        "missedTokens": 2210,
+        "shareOfAllWords": 0.0006401384784632505,
+        "missRateInShape": 1,
+        "examples": [
+          "홈페이지(www(75)",
+          "목포투데이(www(18)",
+          "홈페이지(http(13)",
+          "웹사이트(www(10)",
+          "뉴욕타임스(N(10)",
+          "세가지(feat(9)",
+          "증후군(Burning(9)",
+          "페이스북(www(6)",
+          "사이트(www(6)",
+          "인터넷(www(5)",
+          "중동호흡기증후군(MERS(5)",
+          "메디컬투데이(www(5)"
+        ]
+      },
+      {
+        "shape": "H(L)H",
+        "missedTokens": 2173,
+        "shareOfAllWords": 0.0006294212279188432,
+        "missRateInShape": 1,
+        "examples": [
+          "국제빙상경기연맹(ISU)은(34)",
+          "양해각서(MOU)를(18)",
+          "소셜네트워크서비스(SNS)를(10)",
+          "업무협약(MOU)을(10)",
+          "뉴욕증권거래소(NYSE)에서(9)",
+          "월스트리트저널(WSJ)은(7)",
+          "한국야구위원회(KBO)는(7)",
+          "국내총생산(GDP)의(6)",
+          "항공우주국(NASA)이(5)",
+          "파이낸셜타임스(FT)는(5)",
+          "최고경영자(CEO)로(4)",
+          "상장지수펀드(ETF)를(4)"
+        ]
+      },
+      {
+        "shape": "D~DH",
+        "missedTokens": 1735,
+        "shareOfAllWords": 0.0005025521539066695,
+        "missRateInShape": 1,
+        "examples": [
+          "2~3년(19)",
+          "20~30대(18)",
+          "2~3일(14)",
+          "30~40대(12)",
+          "2~3개월(12)",
+          "1~2년(10)",
+          "3~4일(10)",
+          "3~4년(10)",
+          "2~3회(9)",
+          "8~9일(8)",
+          "1~4월(8)",
+          "1~2일(7)"
+        ]
+      },
+      {
+        "shape": "H(L)",
+        "missedTokens": 1692,
+        "shareOfAllWords": 0.0004900969708415474,
+        "missRateInShape": 1,
+        "examples": [
+          "미국여자프로골프(LPGA)(23)",
+          "국제축구연맹(FIFA)(21)",
+          "유럽연합(EU)(20)",
+          "아시아축구연맹(AFC)(20)",
+          "경제협력개발기구(OECD)(19)",
+          "사물인터넷(IoT)(16)",
+          "정보기술(IT)(14)",
+          "한국여자프로골프(KLPGA)(12)",
+          "유럽축구연맹(UEFA)(12)",
+          "자유무역협정(FTA)(10)",
+          "조류인플루엔자(AI)(10)",
+          "연방공개시장위원회(FOMC)(9)"
+        ]
+      },
+      {
+        "shape": "H…",
+        "missedTokens": 1646,
+        "shareOfAllWords": 0.00047677282151606804,
+        "missRateInShape": 1,
+        "examples": [
+          "늦을수도…(94)",
+          "국제수영연맹…(8)",
+          "것…(7)",
+          "헤…(7)",
+          "되는데…(6)",
+          "대…(6)",
+          "시…(5)",
+          "하…(5)",
+          "있…(5)",
+          "이…(5)",
+          "그…(5)",
+          "지…(5)"
+        ]
+      }
+    ],
+    "englishTypedInKoreanMode": [
+      {
+        "shape": "L",
+        "missedTokens": 311481,
+        "shareOfAllWords": 0.07853326710755554,
+        "missRateInShape": 0.08202744176223073,
+        "examples": [
+          "to(106053)",
+          "a(87057)",
+          "an(15181)",
+          "I(8322)",
+          "A(5861)",
+          "so(4348)",
+          "do(3177)",
+          "work(2804)",
+          "did(2304)",
+          "p(2261)",
+          "end(1869)",
+          "S(1524)"
+        ]
+      },
+      {
+        "shape": "L’L",
+        "missedTokens": 20918,
+        "shareOfAllWords": 0.005274025964202782,
+        "missRateInShape": 1,
+        "examples": [
+          "it’s(1168)",
+          "don’t(817)",
+          "It’s(681)",
+          "company’s(651)",
+          "I’m(520)",
+          "that’s(466)",
+          "didn’t(439)",
+          "you’re(375)",
+          "doesn’t(312)",
+          "can’t(300)",
+          "he’s(296)",
+          "we’re(272)"
+        ]
+      },
+      {
+        "shape": "\"L",
+        "missedTokens": 11997,
+        "shareOfAllWords": 0.003024786762240213,
+        "missRateInShape": 1,
+        "examples": [
+          "\"The(816)",
+          "\"I(679)",
+          "\"the(351)",
+          "\"We(320)",
+          "\"It(232)",
+          "\"a(192)",
+          "\"This(168)",
+          "\"A(125)",
+          "\"If(105)",
+          "\"He(105)",
+          "\"You(98)",
+          "\"In(90)"
+        ]
+      },
+      {
+        "shape": "“L",
+        "missedTokens": 11127,
+        "shareOfAllWords": 0.0028054348840082398,
+        "missRateInShape": 1,
+        "examples": [
+          "“I(1055)",
+          "“The(902)",
+          "“We(828)",
+          "“It(375)",
+          "“This(273)",
+          "“He(152)",
+          "“If(143)",
+          "“There(139)",
+          "“You(130)",
+          "“They(130)",
+          "“In(120)",
+          "“But(112)"
+        ]
+      },
+      {
+        "shape": "(L",
+        "missedTokens": 9920,
+        "shareOfAllWords": 0.002501115669035835,
+        "missRateInShape": 1,
+        "examples": [
+          "(or(434)",
+          "(the(419)",
+          "(and(292)",
+          "(e(250)",
+          "(see(244)",
+          "(a(203)",
+          "(in(197)",
+          "(which(194)",
+          "(i(176)",
+          "(as(154)",
+          "(such(147)",
+          "(for(129)"
+        ]
+      },
+      {
+        "shape": "DL",
+        "missedTokens": 7690,
+        "shareOfAllWords": 0.00193886890069411,
+        "missRateInShape": 1,
+        "examples": [
+          "20th(305)",
+          "19th(266)",
+          "2nd(264)",
+          "1980s(262)",
+          "1970s(235)",
+          "1st(225)",
+          "3rd(225)",
+          "1990s(221)",
+          "4th(219)",
+          "1960s(189)",
+          "1950s(154)",
+          "18th(136)"
+        ]
+      },
+      {
+        "shape": "L)",
+        "missedTokens": 7448,
+        "shareOfAllWords": 0.0018778537805422277,
+        "missRateInShape": 1,
+        "examples": [
+          "below)(62)",
+          "main)(51)",
+          "BC)(50)",
+          "right)(28)",
+          "m)(28)",
+          "million)(25)",
+          "time)(23)",
+          "left)(23)",
+          "above)(22)",
+          "century)(21)",
+          "year)(20)",
+          "billion)(20)"
+        ]
+      },
+      {
+        "shape": "L\"",
+        "missedTokens": 5769,
+        "shareOfAllWords": 0.0014545298684140858,
+        "missRateInShape": 1,
+        "examples": [
+          "world\"(24)",
+          "life\"(20)",
+          "time\"(20)",
+          "people\"(16)",
+          "it\"(15)",
+          "out\"(15)",
+          "up\"(14)",
+          "Love\"(13)",
+          "man\"(13)",
+          "me\"(12)",
+          "God\"(12)",
+          "work\"(11)"
+        ]
+      },
+      {
+        "shape": "(L)",
+        "missedTokens": 4165,
+        "shareOfAllWords": 0.001050115600961114,
+        "missRateInShape": 1,
+        "examples": [
+          "(AP)(60)",
+          "(left)(37)",
+          "(right)(33)",
+          "(SEC)(27)",
+          "(convert)(26)",
+          "(EPS)(25)",
+          "(R)(13)",
+          "(AI)(12)",
+          "(pictured)(12)",
+          "(Reuters)(10)",
+          "(A)(8)",
+          "(DPR)(8)"
+        ]
+      },
+      {
+        "shape": "L-L",
+        "missedTokens": 4095,
+        "shareOfAllWords": 0.0010324665992642887,
+        "missRateInShape": 0.14989567700135437,
+        "examples": [
+          "so-called(138)",
+          "non-profit(32)",
+          "re-elected(30)",
+          "co-founder(29)",
+          "high-end(24)",
+          "co-star(21)",
+          "re-election(21)",
+          "cease-fire(19)",
+          "al-Qaeda(18)",
+          "co-operation(17)",
+          "non-existent(15)",
+          "avant-garde(14)"
+        ]
+      },
+      {
+        "shape": "\"L\"",
+        "missedTokens": 2927,
+        "shareOfAllWords": 0.0007379803995229727,
+        "missRateInShape": 1,
+        "examples": [
+          "\"normal\"(9)",
+          "\"true\"(8)",
+          "\"good\"(7)",
+          "\"serious\"(6)",
+          "\"C\"(5)",
+          "\"fire\"(5)",
+          "\"a\"(5)",
+          "\"black\"(5)",
+          "\"B\"(5)",
+          "\"no\"(5)",
+          "\"new\"(5)",
+          "\"in\"(4)"
+        ]
+      },
+      {
+        "shape": "L'L",
+        "missedTokens": 2536,
+        "shareOfAllWords": 0.0006393981186164191,
+        "missRateInShape": 0.12066996574038828,
+        "examples": [
+          "I'm(317)",
+          "you're(210)",
+          "I've(149)",
+          "we're(123)",
+          "they're(114)",
+          "we've(80)",
+          "I'd(76)",
+          "you've(72)",
+          "I'll(60)",
+          "you'll(56)",
+          "God's(55)",
+          "they've(43)"
+        ]
+      },
+      {
+        "shape": "L”",
+        "missedTokens": 2180,
+        "shareOfAllWords": 0.0005496403385582783,
+        "missRateInShape": 1,
+        "examples": [
+          "weight”(36)",
+          "Buy”(31)",
+          "perform”(22)",
+          "out”(12)",
+          "time”(11)",
+          "it”(10)",
+          "life”(9)",
+          "well”(6)",
+          "man”(6)",
+          "You”(6)",
+          "outperform”(6)",
+          "him”(5)"
+        ]
+      },
+      {
+        "shape": "LD",
+        "missedTokens": 1858,
+        "shareOfAllWords": 0.0004684549307528812,
+        "missRateInShape": 1,
+        "examples": [
+          "N1(21)",
+          "V8(21)",
+          "F1(19)",
+          "Q1(19)",
+          "Q3(17)",
+          "M4(17)",
+          "Q2(15)",
+          "Q4(14)",
+          "S24(13)",
+          "PS5(13)",
+          "IPv6(13)",
+          "A1(12)"
+        ]
+      },
+      {
+        "shape": "L’",
+        "missedTokens": 1815,
+        "shareOfAllWords": 0.000457613401139117,
+        "missRateInShape": 1,
+        "examples": [
+          "analysts’(66)",
+          "Harris’(19)",
+          "years’(17)",
+          "workers’(14)",
+          "Steelers’(14)",
+          "kids’(14)",
+          "parents’(13)",
+          "Magistrates’(12)",
+          "girls’(10)",
+          "James’(9)",
+          "students’(9)",
+          "victims’(8)"
+        ]
+      },
+      {
+        "shape": "D-L",
+        "missedTokens": 1265,
+        "shareOfAllWords": 0.00031894267352120274,
+        "missRateInShape": 0.7547732696897375,
+        "examples": [
+          "200-day(61)",
+          "52-week(48)",
+          "50-day(44)",
+          "12-month(42)",
+          "10-year(22)",
+          "32-bit(22)",
+          "16-bit(16)",
+          "24-hour(15)",
+          "64-bit(12)",
+          "20-year(10)",
+          "3-D(8)",
+          "30-day(7)"
+        ]
+      },
+      {
+        "shape": "“L”",
+        "missedTokens": 1217,
+        "shareOfAllWords": 0.0003068405009290939,
+        "missRateInShape": 1,
+        "examples": [
+          "“buy”(154)",
+          "“neutral”(73)",
+          "“outperform”(72)",
+          "“overweight”(68)",
+          "“hold”(63)",
+          "“Hold”(19)",
+          "“underweight”(15)",
+          "“sell”(9)",
+          "“Buy”(8)",
+          "“positive”(4)",
+          "“underperform”(3)",
+          "“peaceful”(3)"
+        ]
+      },
+      {
+        "shape": "L—L",
+        "missedTokens": 1164,
+        "shareOfAllWords": 0.00029347768535864033,
+        "missRateInShape": 1,
+        "examples": [
+          "war—and(2)",
+          "and—in(2)",
+          "it—and(2)",
+          "days—against(1)",
+          "says—but(1)",
+          "brand—a(1)",
+          "country—including(1)",
+          "prevention—such(1)",
+          "tactics—are(1)",
+          "liquid—brandishing(1)",
+          "statement—was(1)",
+          "Jesus—the(1)"
+        ]
+      },
+      {
+        "shape": "‘L",
+        "missedTokens": 1157,
+        "shareOfAllWords": 0.00029171278518895776,
+        "missRateInShape": 1,
+        "examples": [
+          "‘I(80)",
+          "‘The(49)",
+          "‘We(26)",
+          "‘the(20)",
+          "‘It(15)",
+          "‘You(14)",
+          "‘Oh(13)",
+          "‘s(12)",
+          "‘He(11)",
+          "‘This(10)",
+          "‘not(9)",
+          "‘a(9)"
+        ]
+      },
+      {
+        "shape": "'L",
+        "missedTokens": 1097,
+        "shareOfAllWords": 0.0002765850694488217,
+        "missRateInShape": 0.3744027303754266,
+        "examples": [
+          "'s(807)",
+          "'I(146)",
+          "'a(26)",
+          "'So(8)",
+          "'to(7)",
+          "'Do(6)",
+          "'em(6)",
+          "'A(5)",
+          "'Go(4)",
+          "'t(4)",
+          "'An(3)",
+          "'did(3)"
+        ]
+      },
+      {
+        "shape": "“L’L",
+        "missedTokens": 1026,
+        "shareOfAllWords": 0.0002586839391563273,
+        "missRateInShape": 1,
+        "examples": [
+          "“It’s(272)",
+          "“I’m(152)",
+          "“We’re(108)",
+          "“I’ve(59)",
+          "“There’s(58)",
+          "“We’ve(49)",
+          "“That’s(38)",
+          "“He’s(35)",
+          "“They’re(21)",
+          "“She’s(17)",
+          "“Don’t(16)",
+          "“Let’s(15)"
+        ]
+      },
+      {
+        "shape": "L-D",
+        "missedTokens": 794,
+        "shareOfAllWords": 0.00020019010496113437,
+        "missRateInShape": 0.857451403887689,
+        "examples": [
+          "COVID-19(34)",
+          "Covid-19(21)",
+          "F-14(13)",
+          "K-12(11)",
+          "F-16(11)",
+          "F-35(10)",
+          "Pac-12(10)",
+          "B-52(7)",
+          "uranium-235(7)",
+          "U-2(7)",
+          "AK-47(6)",
+          "SG-1(6)"
+        ]
+      },
+      {
+        "shape": "D-L-L",
+        "missedTokens": 710,
+        "shareOfAllWords": 0.00017901130292494383,
+        "missRateInShape": 0.9428950863213812,
+        "examples": [
+          "17-year-old(22)",
+          "14-year-old(20)",
+          "16-year-old(20)",
+          "22-year-old(20)",
+          "19-year-old(19)",
+          "20-year-old(19)",
+          "29-year-old(19)",
+          "24-year-old(19)",
+          "15-year-old(18)",
+          "30-year-old(18)",
+          "18-year-old(17)",
+          "23-year-old(17)"
+        ]
+      },
+      {
+        "shape": "L-L-L",
+        "missedTokens": 667,
+        "shareOfAllWords": 0.00016816977331117963,
+        "missRateInShape": 0.37641083521444696,
+        "examples": [
+          "price-to-earnings(61)",
+          "debt-to-equity(51)",
+          "day-to-day(36)",
+          "back-to-back(28)",
+          "face-to-face(17)",
+          "head-to-head(12)",
+          "air-to-air(12)",
+          "up-to-date(10)",
+          "Port-au-Prince(9)",
+          "one-to-one(9)",
+          "non-life-threatening(7)",
+          "end-to-end(6)"
+        ]
+      },
+      {
+        "shape": "\"L'L",
+        "missedTokens": 588,
+        "shareOfAllWords": 0.00014825161425333376,
+        "missRateInShape": 1,
+        "examples": [
+          "\"It's(129)",
+          "\"I'm(71)",
+          "\"We're(35)",
+          "\"There's(26)",
+          "\"I've(26)",
+          "\"That's(23)",
+          "\"He's(22)",
+          "\"Don't(14)",
+          "\"I'll(12)",
+          "\"We've(12)",
+          "\"I'd(10)",
+          "\"They're(7)"
+        ]
+      }
+    ]
+  },
   "sweep": [
     {
       "parameter": "EnglishToKoreanMargin",
       "value": 0,
       "isDefault": false,
-      "enModeFalsePositive": 0.001279884370511862,
+      "enModeFalsePositive": 0.0012806698969258423,
       "enModeFixed": 0.9988744652984328,
       "koModeFalsePositive": 1.7742736768757298E-05,
       "koModeFixed": 0.9172159896519987
@@ -801,7 +1814,7 @@
       "parameter": "EnglishToKoreanMargin",
       "value": 0.5,
       "isDefault": false,
-      "enModeFalsePositive": 0.00012673159478881777,
+      "enModeFalsePositive": 0.00012751712120279805,
       "enModeFixed": 0.9980428148367991,
       "koModeFalsePositive": 1.7742736768757298E-05,
       "koModeFixed": 0.9172159896519987
@@ -810,7 +1823,7 @@
       "parameter": "EnglishToKoreanMargin",
       "value": 1,
       "isDefault": true,
-      "enModeFalsePositive": 7.960000995000124E-05,
+      "enModeFalsePositive": 8.038553636398152E-05,
       "enModeFixed": 0.9973611711496648,
       "koModeFalsePositive": 1.7742736768757298E-05,
       "koModeFixed": 0.9172159896519987
@@ -819,7 +1832,7 @@
       "parameter": "EnglishToKoreanMargin",
       "value": 1.5,
       "isDefault": false,
-      "enModeFalsePositive": 4.320395276891515E-05,
+      "enModeFalsePositive": 4.3989479182895425E-05,
       "enModeFixed": 0.9940006968056622,
       "koModeFalsePositive": 1.7742736768757298E-05,
       "koModeFixed": 0.9172159896519987
@@ -828,7 +1841,7 @@
       "parameter": "EnglishToKoreanMargin",
       "value": 2,
       "isDefault": false,
-      "enModeFalsePositive": 1.7019738969572634E-05,
+      "enModeFalsePositive": 1.7805265383552908E-05,
       "enModeFixed": 0.8436868116624622,
       "koModeFalsePositive": 1.7742736768757298E-05,
       "koModeFixed": 0.9172159896519987
@@ -837,7 +1850,7 @@
       "parameter": "EnglishToKoreanMargin",
       "value": 3,
       "isDefault": false,
-      "enModeFalsePositive": 1.1259211933717282E-05,
+      "enModeFalsePositive": 1.2044738347697557E-05,
       "enModeFixed": 0.7764757118063397,
       "koModeFalsePositive": 1.7742736768757298E-05,
       "koModeFixed": 0.9172159896519987
@@ -846,7 +1859,7 @@
       "parameter": "UnseenKorean",
       "value": 0.5,
       "isDefault": false,
-      "enModeFalsePositive": 6.0747376014474636E-05,
+      "enModeFalsePositive": 6.153290242845491E-05,
       "enModeFixed": 0.8484163800945849,
       "koModeFalsePositive": 1.7742736768757298E-05,
       "koModeFixed": 0.9172159896519987
@@ -855,7 +1868,7 @@
       "parameter": "UnseenKorean",
       "value": 1,
       "isDefault": false,
-      "enModeFalsePositive": 7.960000995000124E-05,
+      "enModeFalsePositive": 8.038553636398152E-05,
       "enModeFixed": 0.9973611711496648,
       "koModeFalsePositive": 1.7742736768757298E-05,
       "koModeFixed": 0.9172159896519987
@@ -864,7 +1877,7 @@
       "parameter": "UnseenKorean",
       "value": 1.5,
       "isDefault": true,
-      "enModeFalsePositive": 7.960000995000124E-05,
+      "enModeFalsePositive": 8.038553636398152E-05,
       "enModeFixed": 0.9973611711496648,
       "koModeFalsePositive": 1.7742736768757298E-05,
       "koModeFixed": 0.9172159896519987
@@ -873,7 +1886,7 @@
       "parameter": "UnseenKorean",
       "value": 2,
       "isDefault": false,
-      "enModeFalsePositive": 8.195658919194207E-05,
+      "enModeFalsePositive": 8.274211560592235E-05,
       "enModeFixed": 0.9973611711496648,
       "koModeFalsePositive": 1.7742736768757298E-05,
       "koModeFixed": 0.9172159896519987
@@ -882,7 +1895,7 @@
       "parameter": "UnseenKorean",
       "value": 2.5,
       "isDefault": false,
-      "enModeFalsePositive": 8.95500111937514E-05,
+      "enModeFalsePositive": 9.033553760773167E-05,
       "enModeFixed": 0.9973676230539443,
       "koModeFalsePositive": 1.7742736768757298E-05,
       "koModeFixed": 0.9172159896519987
@@ -891,7 +1904,7 @@
       "parameter": "KoreanToEnglishMargin",
       "value": 1,
       "isDefault": false,
-      "enModeFalsePositive": 7.960000995000124E-05,
+      "enModeFalsePositive": 8.038553636398152E-05,
       "enModeFixed": 0.9973611711496648,
       "koModeFalsePositive": 6.774499493525513E-05,
       "koModeFixed": 0.9179048963170594
@@ -900,7 +1913,7 @@
       "parameter": "KoreanToEnglishMargin",
       "value": 1.5,
       "isDefault": false,
-      "enModeFalsePositive": 7.960000995000124E-05,
+      "enModeFalsePositive": 8.038553636398152E-05,
       "enModeFixed": 0.9973611711496648,
       "koModeFalsePositive": 5.35508055202493E-05,
       "koModeFixed": 0.9177472673499874
@@ -909,7 +1922,7 @@
       "parameter": "KoreanToEnglishMargin",
       "value": 2,
       "isDefault": false,
-      "enModeFalsePositive": 7.960000995000124E-05,
+      "enModeFalsePositive": 8.038553636398152E-05,
       "enModeFixed": 0.9973611711496648,
       "koModeFalsePositive": 3.742104482137903E-05,
       "koModeFixed": 0.917602730489815
@@ -918,7 +1931,7 @@
       "parameter": "KoreanToEnglishMargin",
       "value": 2.5,
       "isDefault": false,
-      "enModeFalsePositive": 7.960000995000124E-05,
+      "enModeFalsePositive": 8.038553636398152E-05,
       "enModeFixed": 0.9973611711496648,
       "koModeFalsePositive": 2.6452807546147245E-05,
       "koModeFixed": 0.9174608120510226
@@ -927,7 +1940,7 @@
       "parameter": "KoreanToEnglishMargin",
       "value": 3,
       "isDefault": true,
-      "enModeFalsePositive": 7.960000995000124E-05,
+      "enModeFalsePositive": 8.038553636398152E-05,
       "enModeFixed": 0.9973611711496648,
       "koModeFalsePositive": 1.7742736768757298E-05,
       "koModeFixed": 0.9172159896519987
@@ -936,7 +1949,7 @@
       "parameter": "CommonKorean",
       "value": 2.5,
       "isDefault": false,
-      "enModeFalsePositive": 7.960000995000124E-05,
+      "enModeFalsePositive": 8.038553636398152E-05,
       "enModeFixed": 0.9973611711496648,
       "koModeFalsePositive": 1.3548998987051029E-05,
       "koModeFixed": 0.9045527801743607
@@ -945,7 +1958,7 @@
       "parameter": "CommonKorean",
       "value": 3,
       "isDefault": false,
-      "enModeFalsePositive": 7.960000995000124E-05,
+      "enModeFalsePositive": 8.038553636398152E-05,
       "enModeFixed": 0.9973611711496648,
       "koModeFalsePositive": 1.3871594201028433E-05,
       "koModeFixed": 0.9060337593068515
@@ -954,7 +1967,7 @@
       "parameter": "CommonKorean",
       "value": 3.5,
       "isDefault": true,
-      "enModeFalsePositive": 7.960000995000124E-05,
+      "enModeFalsePositive": 8.038553636398152E-05,
       "enModeFixed": 0.9973611711496648,
       "koModeFalsePositive": 1.7742736768757298E-05,
       "koModeFixed": 0.9172159896519987
@@ -963,7 +1976,7 @@
       "parameter": "CommonKorean",
       "value": 4,
       "isDefault": false,
-      "enModeFalsePositive": 7.960000995000124E-05,
+      "enModeFalsePositive": 8.038553636398152E-05,
       "enModeFixed": 0.9973611711496648,
       "koModeFalsePositive": 1.7742736768757298E-05,
       "koModeFixed": 0.9172159896519987
@@ -972,7 +1985,7 @@
       "parameter": "CommonKorean",
       "value": 4.5,
       "isDefault": false,
-      "enModeFalsePositive": 7.960000995000124E-05,
+      "enModeFalsePositive": 8.038553636398152E-05,
       "enModeFixed": 0.9973611711496648,
       "koModeFalsePositive": 1.7742736768757298E-05,
       "koModeFixed": 0.9172159896519987
@@ -981,7 +1994,7 @@
       "parameter": "KnownEnglish",
       "value": 1,
       "isDefault": false,
-      "enModeFalsePositive": 7.750527284605384E-05,
+      "enModeFalsePositive": 7.829079926003412E-05,
       "enModeFixed": 0.9973611711496648,
       "koModeFalsePositive": 1.7742736768757298E-05,
       "koModeFixed": 0.9184819963891969
@@ -990,7 +2003,7 @@
       "parameter": "KnownEnglish",
       "value": 1.5,
       "isDefault": true,
-      "enModeFalsePositive": 7.960000995000124E-05,
+      "enModeFalsePositive": 8.038553636398152E-05,
       "enModeFixed": 0.9973611711496648,
       "koModeFalsePositive": 1.7742736768757298E-05,
       "koModeFixed": 0.9172159896519987
@@ -999,7 +2012,7 @@
       "parameter": "KnownEnglish",
       "value": 2,
       "isDefault": false,
-      "enModeFalsePositive": 9.243027471167907E-05,
+      "enModeFalsePositive": 9.504869609161332E-05,
       "enModeFixed": 0.9973611711496648,
       "koModeFalsePositive": 1.709754634080249E-05,
       "koModeFixed": 0.9128170417337091
@@ -1008,7 +2021,7 @@
       "parameter": "KnownEnglish",
       "value": 2.5,
       "isDefault": false,
-      "enModeFalsePositive": 0.00011468685644112022,
+      "enModeFalsePositive": 0.00011625790926908076,
       "enModeFixed": 0.9973611711496648,
       "koModeFalsePositive": 1.709754634080249E-05,
       "koModeFixed": 0.9054844145013413
@@ -1017,14 +2030,14 @@
       "parameter": "KnownEnglish",
       "value": 3,
       "isDefault": false,
-      "enModeFalsePositive": 0.00015108291362220632,
+      "enModeFalsePositive": 0.0001531776507261537,
       "enModeFixed": 0.9973611711496648,
       "koModeFalsePositive": 1.677495112682508E-05,
       "koModeFixed": 0.8914342272187521
     }
   ],
   "nonsense": {
-    "randomLowercaseInEnglishMode": 0.02427,
+    "randomLowercaseInEnglishMode": 0.02446,
     "randomLowercaseFormsValidHangul": 0.02649,
     "randomKeysInKoreanMode": 0.05758,
     "idLikeLettersDigits": 0,
@@ -1063,6 +2076,6 @@
   },
   "speed": {
     "checks": 200000,
-    "microsecondsPerCheck": 0.362979
+    "microsecondsPerCheck": 0.3756765
   }
 }

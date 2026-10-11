@@ -78,8 +78,10 @@ public sealed class AutoDetector
     public string? Check(string word, Layout typedIn)
     {
         if (_isException(word)) return null;
-        return word.IndexOfAny(Joiners) >= 0 ? CheckJoined(word, typedIn) : CheckPart(word, typedIn);
+        return word.All(IsLetter) ? CheckPart(word, typedIn) : CheckJoined(word, typedIn);
     }
+
+    static bool IsLetter(char c) => char.IsAsciiLetter(c) || Jamo.IsHangul(c);
 
     string? CheckPart(string word, Layout typedIn)
     {
@@ -91,25 +93,38 @@ public sealed class AutoDetector
 
     static int KeyCount(string word, Layout typedIn) => typedIn == Layout.English ? word.Length : LayoutConverter.ToEnglish(word).Length;
 
-    // Characters that join words without ending them: power-consumption, and/or, don't.
-    static readonly char[] Joiners = ['-', '/', '\''];
-
     /// <summary>
-    /// A joined word converts as a whole when some part would convert and no other part is a real word as typed
-    /// (ㅔ걏ㄷ-채ㅜ녀ㅡㅔ샤ㅐㅜ → power-consumption; 애ㅜ'ㅅ → don't, where the one-key "t" just follows).
+    /// A word with anything besides letters in it (power-consumption, don't, "이번, 것"이라고, 시·군, 제2차, 5%로)
+    /// is judged part by part, the other characters being the same key in both modes. It converts as a whole when
+    /// some part converts and no other part is a real word as typed; one-key parts (the t of don't) just follow.
+    /// A part right after a number is judged as what follows numbers: a particle, counter or common word (2차, 30분).
     /// </summary>
     string? CheckJoined(string word, Layout typedIn)
     {
         bool anyConverts = false;
-        foreach (string part in word.Split(Joiners))
+        for (int i = 0; i < word.Length;)
         {
-            if (part.Length == 0) continue;
-            if (CheckPart(part, typedIn) is not null) anyConverts = true;
+            if (!IsLetter(word[i])) { i++; continue; }
+            int start = i;
+            while (i < word.Length && IsLetter(word[i])) i++;
+            string part = word[start..i];
+            bool afterNumber = typedIn == Layout.English && start > 0 && (char.IsAsciiDigit(word[start - 1]) || word[start - 1] == '%');
+            bool converts = afterNumber ? IsNumberSuffix(part) : CheckPart(part, typedIn) is not null;
+            if (converts) anyConverts = true;
             else if (KeyCount(part, typedIn) >= _o.MinKeys) return null;
         }
         if (!anyConverts) return null;
-        // The joiners are the same key in both modes, so the whole word converts as typed.
+        // The other characters are the same key in both modes, so the whole word converts as typed.
         return typedIn == Layout.English ? LayoutConverter.ToKorean(word) : LayoutConverter.ToEnglish(word);
+    }
+
+    /// <summary>Keys typed in English mode right after a number: 6보다, 3개, 1분기, 65세 — not 3rd, 4th, 10kg.</summary>
+    bool IsNumberSuffix(string keys)
+    {
+        if (!keys.All(char.IsAsciiLetter) || HasEnglishOnlyShift(keys)) return false;
+        string korean = LayoutConverter.ToKorean(keys);
+        if (IsParticleChain(korean) || IsCounterChain(korean)) return true;
+        return korean.Length >= 2 && IsWellFormed(korean) && _korean(korean) >= _o.MixedKoreanRest && _english(keys) < _o.KnownEnglish;
     }
 
     string? CheckEnglish(string word)
@@ -191,13 +206,18 @@ public sealed class AutoDetector
 
         // Longest English prefix first. A code (mp3, ch4) ends at its last digit, so there the shortest prefix
         // that includes it goes first: mp3 + 파일, not mp3vk + 일.
+        // One capital followed by lowercase (A씨는, K리그) is a common Korean way of writing and goes first,
+        // so A씨는 does not become Atl + 는.
         int lastDigit = keys.LastIndexOfAny("0123456789".ToCharArray());
+        bool isCapitalThenLower = IsEnglishOnlyCapital(keys[0]) && char.IsAsciiLetter(keys[1]) && !IsEnglishOnlyCapital(keys[1]);
         var splits = lastDigit >= 0
             ? Enumerable.Range(lastDigit + 1, keys.Length - lastDigit - 1)
-            : Enumerable.Range(2, keys.Length - 2).Reverse();
+            : (isCapitalThenLower ? [1] : Enumerable.Empty<int>()).Concat(Enumerable.Range(2, keys.Length - 2).Reverse());
         foreach (int split in splits)
         {
             string prefix = keys[..split], rest = keys[split..];
+            // A single letter only as a capital (A씨는); a single digit is a number (6보다).
+            if (prefix.Length == 1 && char.IsAsciiLetter(prefix[0]) && !IsEnglishOnlyCapital(prefix[0])) continue;
             // A particle typed by mistake is plain lowercase letters (Shift only for ㄲㄸㅃㅆㅉㅒㅖ); INGKA is not IN + 함.
             if (!rest.All(char.IsAsciiLetter) || HasEnglishOnlyShift(rest)) continue;
             // Korean mode: English typed there shows up as broken Hangul (놳ㅁㅎㄷ). Proper syllables mean
@@ -241,6 +261,10 @@ public sealed class AutoDetector
         "개", "명", "번", "분", "초", "시", "일", "월", "년", "원", "살", "층", "장", "권", "등", "점", "회", "배", "차",
         "대", "쪽", "편", "곡", "병", "잔", "벌", "주", "개월", "시간", "주일", "주년", "년생", "학년", "만원", "천원",
         "퍼센트", "프로", "위", "조", "억", "만", "천", "백", "인", "명씩", "개씩", "번째", "째", "줄", "칸", "판", "골",
+        "세", "여", "년간", "분기", "인당", "개국", "일간", "주간", "개월간", "년대", "회째", "차례", "가지", "마리",
+        "평", "달러", "유로", "엔", "위안", "경기", "승", "패", "타", "건", "곳", "채", "표", "석", "쌍", "통", "포인트",
+        "도", "킬로", "미터", "톤", "리터", "그램", "바퀴", "군데", "페이지", "호", "동", "실", "기", "학기", "강", "부",
+        "화", "년도", "선", "단", "급", "번지", "만명", "억원", "조원", "시즌", "라운드", "홀", "이닝",
     ];
 
     // A counter, optionally followed by particles: 개, 개가, 분에서.
@@ -254,6 +278,8 @@ public sealed class AutoDetector
         }
         return false;
     }
+
+    static bool IsEnglishOnlyCapital(char c) => char.IsAsciiLetterUpper(c) && !KoreanShiftKeys.Contains(c);
 
     static bool HasEnglishOnlyShift(string keys) => keys.Any(c => char.IsAsciiLetterUpper(c) && !KoreanShiftKeys.Contains(c));
 
