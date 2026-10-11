@@ -1,6 +1,6 @@
 {
   "load": {
-    "ms": 193,
+    "ms": 187,
     "managedMB": 15.6,
     "englishWords": 477661,
     "koreanWords": 486868
@@ -754,9 +754,13 @@
     "english": {
       "distinctWords": 24104,
       "tokens": 51881,
-      "falsePositive": 9.637439525066981E-05,
+      "falsePositive": 0.0001349241533509377,
       "fixedWhenTypedInOtherMode": 0.8491933463117519,
       "falsePositiveExamples": [
+        {
+          "change": "TCL/Tk→TCL/싸",
+          "count": 2
+        },
         {
           "change": "Eufy's→뗘료'ㄴ",
           "count": 1
@@ -857,46 +861,6 @@
         ]
       },
       {
-        "shape": "H(L",
-        "missedTokens": 2210,
-        "shareOfAllWords": 0.0006401384784632505,
-        "missRateInShape": 1,
-        "examples": [
-          "홈페이지(www(75)",
-          "목포투데이(www(18)",
-          "홈페이지(http(13)",
-          "웹사이트(www(10)",
-          "뉴욕타임스(N(10)",
-          "세가지(feat(9)",
-          "증후군(Burning(9)",
-          "페이스북(www(6)",
-          "사이트(www(6)",
-          "인터넷(www(5)",
-          "중동호흡기증후군(MERS(5)",
-          "메디컬투데이(www(5)"
-        ]
-      },
-      {
-        "shape": "H(L)H",
-        "missedTokens": 2173,
-        "shareOfAllWords": 0.0006294212279188432,
-        "missRateInShape": 1,
-        "examples": [
-          "국제빙상경기연맹(ISU)은(34)",
-          "양해각서(MOU)를(18)",
-          "소셜네트워크서비스(SNS)를(10)",
-          "업무협약(MOU)을(10)",
-          "뉴욕증권거래소(NYSE)에서(9)",
-          "월스트리트저널(WSJ)은(7)",
-          "한국야구위원회(KBO)는(7)",
-          "국내총생산(GDP)의(6)",
-          "항공우주국(NASA)이(5)",
-          "파이낸셜타임스(FT)는(5)",
-          "최고경영자(CEO)로(4)",
-          "상장지수펀드(ETF)를(4)"
-        ]
-      },
-      {
         "shape": "H)H",
         "missedTokens": 2036,
         "shareOfAllWords": 0.000589738435362524,
@@ -917,43 +881,23 @@
         ]
       },
       {
-        "shape": "H(L)",
-        "missedTokens": 1692,
-        "shareOfAllWords": 0.0004900969708415474,
-        "missRateInShape": 1,
+        "shape": "H(L",
+        "missedTokens": 1891,
+        "shareOfAllWords": 0.0005477383994452519,
+        "missRateInShape": 0.855656108597285,
         "examples": [
-          "미국여자프로골프(LPGA)(23)",
-          "국제축구연맹(FIFA)(21)",
-          "유럽연합(EU)(20)",
-          "아시아축구연맹(AFC)(20)",
-          "경제협력개발기구(OECD)(19)",
-          "사물인터넷(IoT)(16)",
-          "정보기술(IT)(14)",
-          "한국여자프로골프(KLPGA)(12)",
-          "유럽축구연맹(UEFA)(12)",
-          "자유무역협정(FTA)(10)",
-          "조류인플루엔자(AI)(10)",
-          "연방공개시장위원회(FOMC)(9)"
-        ]
-      },
-      {
-        "shape": "L)H",
-        "missedTokens": 1352,
-        "shareOfAllWords": 0.0003916141280010474,
-        "missRateInShape": 1,
-        "examples": [
-          "kr)가(5)",
-          "Center)에서(4)",
-          "kr)은(4)",
-          "Center)의(3)",
-          "Index)는(3)",
-          "Officer)가(3)",
-          "IJASS)를(3)",
-          "Service)를(3)",
-          "kr)는(3)",
-          "Lake)가(2)",
-          "kr)의(2)",
-          "Market)을(2)"
+          "홈페이지(www(75)",
+          "목포투데이(www(18)",
+          "홈페이지(http(13)",
+          "웹사이트(www(10)",
+          "뉴욕타임스(N(10)",
+          "세가지(feat(9)",
+          "증후군(Burning(9)",
+          "페이스북(www(6)",
+          "사이트(www(6)",
+          "인터넷(www(5)",
+          "메디컬투데이(www(5)",
+          "목포투데이신문(www(4)"
         ]
       },
       {
@@ -974,6 +918,66 @@
           "길’은(5)",
           "아니냐’는(5)",
           "달라’는(5)"
+        ]
+      },
+      {
+        "shape": "L)H",
+        "missedTokens": 1243,
+        "shareOfAllWords": 0.00036004168720806353,
+        "missRateInShape": 0.9193786982248521,
+        "examples": [
+          "kr)가(5)",
+          "Center)에서(4)",
+          "kr)은(4)",
+          "Center)의(3)",
+          "Index)는(3)",
+          "Officer)가(3)",
+          "Service)를(3)",
+          "kr)는(3)",
+          "Lake)가(2)",
+          "kr)의(2)",
+          "Market)을(2)",
+          "approach)을(2)"
+        ]
+      },
+      {
+        "shape": "H(D",
+        "missedTokens": 1118,
+        "shareOfAllWords": 0.0003238347596931738,
+        "missRateInShape": 1,
+        "examples": [
+          "주스(0(4)",
+          "이상(51(3)",
+          "수도권(0(2)",
+          "회의(3(2)",
+          "생태교통체험(9(2)",
+          "기준(1(2)",
+          "평균(5(2)",
+          "입주자모집공고일(2015(2)",
+          "비율(72(2)",
+          "롯데제과(8(2)",
+          "롯데칠성음료(6(2)",
+          "도로(1(2)"
+        ]
+      },
+      {
+        "shape": "H(L)H",
+        "missedTokens": 995,
+        "shareOfAllWords": 0.00028820714301852233,
+        "missRateInShape": 0.4578923147722043,
+        "examples": [
+          "국제빙상경기연맹(ISU)은(34)",
+          "월스트리트저널(WSJ)은(7)",
+          "한국야구위원회(KBO)는(7)",
+          "파이낸셜타임스(FT)는(5)",
+          "최고경영자(CEO)는(4)",
+          "뉴욕타임스(NYT)는(4)",
+          "국제축구연맹(FIFA)은(3)",
+          "국내총생산(GDP)은(3)",
+          "국제통화기금(IMF)은(3)",
+          "연방준비제도이사회(FRB)는(3)",
+          "해양환경관리공단(KOEM)은(2)",
+          "기업경기실사지수(BSI)는(2)"
         ]
       },
       {
@@ -1077,6 +1081,26 @@
         ]
       },
       {
+        "shape": "HD",
+        "missedTokens": 618,
+        "shareOfAllWords": 0.00017900704963361486,
+        "missRateInShape": 1,
+        "examples": [
+          "제2(41)",
+          "고3(23)",
+          "정부3(18)",
+          "갤럭시노트7(14)",
+          "제1(13)",
+          "시즌2(11)",
+          "갤노트7(11)",
+          "제3(9)",
+          "탑10(6)",
+          "고1(5)",
+          "예스24(5)",
+          "아이폰6(5)"
+        ]
+      },
+      {
         "shape": "‘H’H",
         "missedTokens": 603,
         "shareOfAllWords": 0.00017466221833182808,
@@ -1094,6 +1118,46 @@
           "‘아가씨’는(2)",
           "‘국제시장’은(2)",
           "‘슈스케’는(2)"
+        ]
+      },
+      {
+        "shape": "H(L)",
+        "missedTokens": 502,
+        "shareOfAllWords": 0.00014540702089979718,
+        "missRateInShape": 0.2966903073286052,
+        "examples": [
+          "사물인터넷(IoT)(16)",
+          "논문(RiCH)(6)",
+          "세계무역기구(WTO)(5)",
+          "환태평양경제동반자협정(TPP)(3)",
+          "비자(Visa)(3)",
+          "연방준비제도(Fed)(2)",
+          "엘(L)(2)",
+          "양적완화(QE)(2)",
+          "임파워먼트(Empowerment)(2)",
+          "마이크로어레이(microarray)(2)",
+          "키넥트(Kinect)(2)",
+          "폴리에틸렌(PE)(2)"
+        ]
+      },
+      {
+        "shape": "DHD",
+        "missedTokens": 479,
+        "shareOfAllWords": 0.00013874494623705748,
+        "missRateInShape": 1,
+        "examples": [
+          "1대1(28)",
+          "1만3(8)",
+          "1만5(8)",
+          "1억3(7)",
+          "1만7(6)",
+          "1억1(6)",
+          "1만2(6)",
+          "1만4(6)",
+          "2만5(6)",
+          "1만8(5)",
+          "3만9(5)",
+          "5만5(5)"
         ]
       },
       {
@@ -1177,23 +1241,23 @@
         ]
       },
       {
-        "shape": "LDH",
-        "missedTokens": 270,
-        "shareOfAllWords": 7.820696343216184E-05,
-        "missRateInShape": 0.6650246305418719,
+        "shape": "DH(D",
+        "missedTokens": 324,
+        "shareOfAllWords": 9.38483561185942E-05,
+        "missRateInShape": 1,
         "examples": [
-          "K5의(5)",
-          "A4용지(5)",
-          "K5는(4)",
-          "G3와(3)",
-          "MWC2015에서(2)",
-          "A7과(2)",
-          "S6의(2)",
-          "F1대회(2)",
-          "G20에서(2)",
-          "G20이(2)",
-          "K5가(2)",
-          "x86서버와(2)"
+          "47포인트(0(3)",
+          "39포인트(1(3)",
+          "01포인트(0(2)",
+          "8개(6(2)",
+          "360억원(3(2)",
+          "2주간(2015(2)",
+          "86포인트(0(2)",
+          "85포인트(0(2)",
+          "25포인트(2(2)",
+          "7000명(8(2)",
+          "23점(1(1)",
+          "6명(5(1)"
         ]
       },
       {
@@ -1217,83 +1281,23 @@
         ]
       },
       {
-        "shape": "L’H",
-        "missedTokens": 211,
-        "shareOfAllWords": 6.111729364513388E-05,
-        "missRateInShape": 1,
+        "shape": "LDH",
+        "missedTokens": 247,
+        "shareOfAllWords": 7.154488876942212E-05,
+        "missRateInShape": 0.6083743842364532,
         "examples": [
-          "Korea’를(3)",
-          "Fight’에(2)",
-          "LTE’를(2)",
-          "DAY’는(2)",
-          "Kakao’가(2)",
-          "Project’를(1)",
-          "B’에(1)",
-          "SHOW’의(1)",
-          "Orthodontics’를(1)",
-          "Arirang’이(1)",
-          "SH’에서(1)",
-          "library’의(1)"
-        ]
-      },
-      {
-        "shape": "L)’H",
-        "missedTokens": 196,
-        "shareOfAllWords": 5.6772462343347104E-05,
-        "missRateInShape": 1,
-        "examples": [
-          "Madness)’으로(2)",
-          "X)’를(2)",
-          "Partnership)’을(1)",
-          "festival)’에서(1)",
-          "Mall)’점을(1)",
-          "Leader)’을(1)",
-          "Vega)’를(1)",
-          "MEMORY)’로(1)",
-          "DX)’를(1)",
-          "Jones)’에서(1)",
-          "Day)’로(1)",
-          "School)’가(1)"
-        ]
-      },
-      {
-        "shape": "H(D)H",
-        "missedTokens": 188,
-        "shareOfAllWords": 5.445521898239416E-05,
-        "missRateInShape": 0.18024928092042186,
-        "examples": [
-          "빈(42)은(2)",
-          "윤혜정씨(23)는(1)",
-          "이사(58)는(1)",
-          "셋째딸(13)도(1)",
-          "펑샨샨(25)는(1)",
-          "모(37)씨에(1)",
-          "나이(23)는(1)",
-          "씨(24)는(1)",
-          "류윤식(25)은(1)",
-          "모(42)씨가(1)",
-          "양희영(26)도(1)",
-          "보로토브(26)는(1)"
-        ]
-      },
-      {
-        "shape": "L(H",
-        "missedTokens": 184,
-        "shareOfAllWords": 5.329659730191769E-05,
-        "missRateInShape": 1,
-        "examples": [
-          "AI(조류(6)",
-          "NFC(축구대표팀(3)",
-          "PD(맨(2)",
-          "Awards(이하(2)",
-          "KOG(대표(2)",
-          "CSR(사회적(2)",
-          "Kakao(이하(2)",
-          "KT(회장(2)",
-          "SNS(사회(2)",
-          "ORC(외양경기위원회가(1)",
-          "UPH(시간당(1)",
-          "MAB(인간과(1)"
+          "K5의(5)",
+          "A4용지(5)",
+          "K5는(4)",
+          "G3와(3)",
+          "A7과(2)",
+          "S6의(2)",
+          "F1대회(2)",
+          "G20에서(2)",
+          "G20이(2)",
+          "K5가(2)",
+          "x86서버와(2)",
+          "Z360은(2)"
         ]
       }
     ],
@@ -2040,8 +2044,8 @@
     "randomLowercaseInEnglishMode": 0.02446,
     "randomLowercaseFormsValidHangul": 0.02649,
     "randomKeysInKoreanMode": 0.05758,
-    "idLikeLettersDigits": 0.02986,
-    "passwordLike": 0.00079,
+    "idLikeLettersDigits": 0,
+    "passwordLike": 0.0011,
     "randomSyllablesTypedInEnglish": 0.9996
   },
   "hotkey": {
@@ -2076,6 +2080,6 @@
   },
   "speed": {
     "checks": 200000,
-    "microsecondsPerCheck": 0.369195
+    "microsecondsPerCheck": 0.36716099999999996
   }
 }

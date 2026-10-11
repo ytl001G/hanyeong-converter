@@ -105,7 +105,8 @@ try {
   }
   Case 'Ctrl+Space on composing ㅑ (reported bug)' 'KO' 'hi' { Hotkey } 'hi'
   Case 'auto KO->EN, English + Korean noun' 'KO' 'engelrhrtjs ' $null 'engel곡선 '
-  Case 'auto on Enter' 'EN' ("dkssud" + [char]10) $null ("안녕" + [char]13 + [char]10)
+  Case 'auto on Enter after other words' 'EN' ("dkssud gktpdy" + [char]10) $null ("안녕 하세요" + [char]13 + [char]10)
+  Case 'one word + Enter stays (ID fields)' 'EN' ("rlaalswn" + [char]10) $null ("rlaalswn" + [char]13 + [char]10)
   Clear-Doc
   $np.CloseMainWindow() | Out-Null
 } finally {

@@ -78,8 +78,21 @@ public sealed class AutoDetector
     public string? Check(string word, Layout typedIn)
     {
         if (_isException(word)) return null;
-        return word.All(IsLetter) ? CheckPart(word, typedIn) : CheckJoined(word, typedIn);
+        if (!word.All(IsLetter)) return CheckJoined(word, typedIn);
+        // All letters, but with an acronym inside (삼성SDS가, 비타민C가): judged in parts like a joined word.
+        return CheckPart(word, typedIn)
+            ?? (typedIn == Layout.English && word.Any(char.IsAsciiLetterLower) && word.Any(IsEnglishOnlyCapital)
+                ? CheckJoined(word, typedIn) : null);
     }
+
+    // Contractions typed in Korean mode come out as stray jamo around an apostrophe (I'm → ㅑ'ㅡ).
+    static readonly HashSet<string> Contractions =
+    [
+        "i'm", "i've", "i'd", "i'll", "you're", "you've", "you'd", "you'll", "we're", "we've", "we'd", "we'll",
+        "they're", "they've", "they'd", "they'll", "he's", "she's", "it's", "that's", "there's", "what's", "who's",
+        "here's", "where's", "let's", "isn't", "aren't", "wasn't", "weren't", "don't", "doesn't", "didn't", "can't",
+        "couldn't", "won't", "wouldn't", "shouldn't", "haven't", "hasn't", "hadn't", "he'd", "she'd", "he'll", "she'll",
+    ];
 
     static bool IsLetter(char c) => char.IsAsciiLetter(c) || Jamo.IsHangul(c);
 
@@ -101,41 +114,76 @@ public sealed class AutoDetector
     /// </summary>
     string? CheckJoined(string word, Layout typedIn)
     {
-        // English mode, letters then trailing digits: an ID (rlaalswn12 is 김민주 typed as an ID), not Korean.
-        if (typedIn == Layout.English && char.IsAsciiDigit(word[^1])) return null;
+        // English mode, letters then digits only: an ID (rlaalswn12 is 김민주 typed as an ID), not Korean.
+        int trailingDigits = word.Length - word.TrimEnd("0123456789".ToCharArray()).Length;
+        if (typedIn == Layout.English && trailingDigits > 0 && word[..^trailingDigits].All(char.IsAsciiLetter)) return null;
+        if (typedIn == Layout.Korean && word.IndexOfAny(['\'', '’']) >= 0)
+        {
+            string english = LayoutConverter.ToEnglish(word);
+            if (Contractions.Contains(english.Replace('’', '\'').ToLowerInvariant())) return english;
+        }
 
         var result = new System.Text.StringBuilder(word.Length);
         bool anyConverts = false;
-        int copied = 0;
+        // What came right before the current piece: a number (2차), or something typed as meant that a particle
+        // may follow (SDS가, )는, ’는).
+        bool afterNumber = false, afterKept = false;
         for (int i = 0; i < word.Length;)
         {
-            if (!IsLetter(word[i])) { i++; continue; }
             int start = i;
-            while (i < word.Length && IsLetter(word[i])) i++;
+            if (!IsLetter(word[i]))
+            {
+                // The other characters are the same key in both modes and stay as they are.
+                while (i < word.Length && !IsLetter(word[i])) i++;
+                string other = word[start..i];
+                result.Append(other);
+                afterNumber = char.IsAsciiDigit(other[^1]) || other[^1] == '%';
+                afterKept = ")]}”’\"'".Contains(other[^1]);
+                continue;
+            }
+            if (typedIn == Layout.English && AcronymLength(word, i) is > 0 and var length)
+            {
+                // An acronym typed as meant stays English: 양해각서(MOU)를, 삼성SDS가, 비타민C가.
+                result.Append(word, i, length);
+                i += length;
+                afterNumber = false;
+                afterKept = true;
+                continue;
+            }
+            while (i < word.Length && IsLetter(word[i]) && !(typedIn == Layout.English && AcronymLength(word, i) > 0)) i++;
             string part = word[start..i];
-            // The other characters are the same key in both modes and stay as they are.
-            result.Append(word, copied, start - copied);
-            copied = i;
-
-            bool afterNumber = typedIn == Layout.English && start > 0 && (char.IsAsciiDigit(word[start - 1]) || word[start - 1] == '%');
             string converted = typedIn == Layout.English ? LayoutConverter.ToKorean(part) : LayoutConverter.ToEnglish(part);
-            if (afterNumber ? IsNumberSuffix(part) : CheckPart(part, typedIn) is not null)
+            bool converts = typedIn == Layout.English && afterNumber ? IsNumberSuffix(part)
+                : typedIn == Layout.English && afterKept && IsParticleChain(converted) || CheckPart(part, typedIn) is not null;
+            if (converts)
             {
                 anyConverts = true;
                 result.Append(converted);
             }
-            // An acronym typed as meant stays English: 양해각서(MOU)를, 유럽연합(EU).
-            else if (typedIn == Layout.English && part.Length >= 2 && part.All(char.IsAsciiLetterUpper) && part.Any(IsEnglishOnlyCapital))
+            // English typed as meant stays too: Center)에서, 홈페이지(www.
+            else if (typedIn == Layout.English && _english(part) >= _o.KnownEnglish)
                 result.Append(part);
             // One-key parts just follow (the t of don't).
             else if (KeyCount(part, typedIn) < _o.MinKeys)
                 result.Append(converted);
             else
                 return null;
+            afterNumber = afterKept = false;
         }
-        if (!anyConverts) return null;
-        result.Append(word, copied, word.Length - copied);
-        return result.ToString();
+        return anyConverts ? result.ToString() : null;
+    }
+
+    /// <summary>
+    /// Length of an acronym starting at <paramref name="i"/>: two or more capitals, or one capital that is not a
+    /// Korean shift key (the T of Tl is ㅆ, the C of 비타민C is English). 0 if none starts there.
+    /// </summary>
+    static int AcronymLength(string word, int i)
+    {
+        if (i > 0 && char.IsAsciiLetterUpper(word[i - 1])) return 0;
+        int end = i;
+        while (end < word.Length && char.IsAsciiLetterUpper(word[end])) end++;
+        int length = end - i;
+        return length >= 2 || (length == 1 && IsEnglishOnlyCapital(word[i])) ? length : 0;
     }
 
     /// <summary>Keys typed in English mode right after a number: 6보다, 3개, 1분기, 65세 — not 3rd, 4th, 10kg.</summary>
@@ -285,16 +333,17 @@ public sealed class AutoDetector
         "평", "달러", "유로", "엔", "위안", "경기", "승", "패", "타", "건", "곳", "채", "표", "석", "쌍", "통", "포인트",
         "도", "킬로", "미터", "톤", "리터", "그램", "바퀴", "군데", "페이지", "호", "동", "실", "기", "학기", "강", "부",
         "화", "년도", "선", "단", "급", "번지", "만명", "억원", "조원", "시즌", "라운드", "홀", "이닝",
+        "박", "사", "항", "자", "국", "년제", "인분", "인승", "종", "명이", "관", "조항",
     ];
 
-    // A counter, optionally followed by particles: 개, 개가, 분에서.
-    static bool IsCounterChain(string text)
+    // One or two counters, optionally followed by particles: 개, 개가, 분에서, 여명이 (여 + 명 + 이).
+    static bool IsCounterChain(string text, int depth = 0)
     {
         for (int length = Math.Min(3, text.Length); length >= 1; length--)
         {
             if (!Counters.Contains(text[..length])) continue;
             string after = text[length..];
-            if (after.Length == 0 || IsParticleChain(after)) return true;
+            if (after.Length == 0 || IsParticleChain(after) || (depth == 0 && IsCounterChain(after, 1))) return true;
         }
         return false;
     }

@@ -215,6 +215,9 @@ sealed class Controller : IDisposable
         string text = _segment.Text;
         string word = text[(text.LastIndexOfAny(WordEnds) + 1)..];
         if (word.Length == 0) return false;
+        // A single word and then Enter is how IDs and search terms are entered (rlaalswn is someone's ID, not 김민주);
+        // with nothing else typed since the last click, Enter leaves it alone.
+        if (endKey == VK_RETURN && word.Length == text.Length) return false;
         bool isInContext = _settings.SentenceContext && _contextFrom == _segment.Layout;
         var detector = isInContext ? _contextDetector : _detector;
         string? replacement = detector.Check(word, _segment.Layout);

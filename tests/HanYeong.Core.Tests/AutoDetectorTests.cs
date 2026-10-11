@@ -161,14 +161,23 @@ public class JoinedWordTests
     [InlineData("65세")]
     [InlineData("양해각서(MOU)를")]   // acronym typed as meant stays
     [InlineData("유럽연합(EU)")]
+    [InlineData("삼성SDS가")]         // acronym inside, no separator
+    [InlineData("비타민C가")]
+    [InlineData("부장판사)는")]       // particle after a closing bracket
+    [InlineData("홈페이지(www")]      // English typed as meant stays
+    [InlineData("주스(0")]
+    [InlineData("1박2일")]
+    [InlineData("100여명이")]
     public void KoreanTypedInEnglishMode(string korean) =>
         Assert.Equal(korean, Detector.Check(KeysOf(korean), Layout.English));
 
     [Theory]
     [InlineData("it’s")]
     [InlineData("(or")]
-    public void EnglishTypedInKoreanMode(string english) =>
-        Assert.Equal(english, Detector.Check(LayoutConverter.ToKorean(english), Layout.Korean));
+    [InlineData("I'm")]               // contraction: stray jamo around the apostrophe
+    [InlineData("you’re")]
+    public void EnglishTypedInKoreanMode(string english) =>   // the app restores capitals from the typed keys
+        Assert.Equal(english.ToLowerInvariant(), Detector.Check(LayoutConverter.ToKorean(english), Layout.Korean)?.ToLowerInvariant());
 
     static string KeysOf(string text) => string.Concat(text.Select(c => Jamo.IsHangul(c) ? LayoutConverter.ToEnglish(c.ToString()) : c.ToString()));
 
@@ -179,6 +188,9 @@ public class JoinedWordTests
     [InlineData("20th", Layout.English)]      // ordinals stay
     [InlineData("1980s", Layout.English)]
     [InlineData("abc1", Layout.English)]
+    [InlineData("Seoul's", Layout.English)]   // English typed right, with an apostrophe
+    [InlineData("McDonald", Layout.English)]  // capitals inside an English name
+    [InlineData("YouTube", Layout.English)]
     [InlineData("rlaalswn12", Layout.English)] // an ID: 김민주 typed as letters, then digits
     public void LeavesAlone(string typed, Layout layout) => Assert.Null(Detector.Check(typed, layout));
 }
