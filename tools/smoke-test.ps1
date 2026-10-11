@@ -40,6 +40,15 @@ function Type-Text($s) {
   foreach ($ch in $s.ToCharArray()) {
     Guard
     if ($ch -eq ' ') { Tap 0x20; Pump 120; continue }
+    if ($ch -eq [char]10) { Tap 0x0D; Pump 120; continue }
+    $punct = @{ '.' = @(0xBE, $false); ',' = @(0xBC, $false); '?' = @(0xBF, $true); '!' = @(0x31, $true) }
+    if ($punct.ContainsKey([string]$ch)) {
+      $p = $punct[[string]$ch]
+      if ($p[1]) { [K]::Key(0x10, $false) }
+      [K]::Key([uint16]$p[0], $false); [K]::Key([uint16]$p[0], $true)
+      if ($p[1]) { [K]::Key(0x10, $true) }
+      Pump 120; continue
+    }
     $isUpper = [char]::IsUpper($ch)
     if ($isUpper) { [K]::Key(0x10, $false) }
     [K]::Key([uint16][char]::ToUpper($ch), $false); [K]::Key([uint16][char]::ToUpper($ch), $true)
@@ -95,6 +104,8 @@ try {
   Back; Record 'Backspace undoes' 'rk ' $tb.Text
   Type-Text 'rk '; Record 'undo adds no exception' 'rk 가 ' $tb.Text
   Fresh 'EN'; Type-Text 'qkqh '; Record 'manual exception respected' 'qkqh ' $tb.Text
+  Fresh 'EN'; Type-Text 'dkssud. gktpdy?'; Record 'auto on . and ?' '안녕. 하세요?' $tb.Text
+  Fresh 'KO'; Type-Text 'Hello, world!'; Record 'auto on , and ! (KO)' 'Hello, world!' $tb.Text
   $form.Close(); $script:pumpForm = $false
 
   # ================= Windows Notepad (TSF) =================
@@ -120,6 +131,8 @@ try {
     Case 'auto KO "hi "'               'KO' 'hi '            $null 'hi '
     Case 'auto KO "Hello world "'      'KO' 'Hello world '   $null 'Hello world '
     Case 'auto EN "dkssud gktpdy "'    'EN' 'dkssud gktpdy ' $null '안녕 하세요 '
+    Case 'auto EN "dkssud." '          'EN' 'dkssud.'        $null '안녕.'
+    Case 'auto on Enter'               'EN' ("dkssud" + [char]10) $null ("안녕" + [char]13 + [char]10)
     Clear-Doc
     $np.CloseMainWindow() | Out-Null
   }

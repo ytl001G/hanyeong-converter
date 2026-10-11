@@ -19,7 +19,7 @@
     <ApplicationIcon>Assets\app.ico</ApplicationIcon>
     <Product>한영 변환기</Product>
     <AssemblyTitle>한영 변환기</AssemblyTitle>
-    <Version>0.1.0</Version>
+    <Version>0.2.0</Version>
   </PropertyGroup>
 
 </Project>

@@ -12,7 +12,7 @@ namespace HanYeong;
 sealed class Controller : IDisposable
 {
     const int VK_SHIFT = 0x10, VK_CONTROL = 0x11, VK_MENU = 0x12, VK_LWIN = 0x5B, VK_RWIN = 0x5C;
-    const int VK_BACK = 0x08, VK_CAPITAL = 0x14;
+    const int VK_BACK = 0x08, VK_RETURN = 0x0D, VK_CAPITAL = 0x14;
 
     record Conversion(string Before, Layout BeforeLayout, string After, Layout AfterLayout)
     {
@@ -186,7 +186,7 @@ sealed class Controller : IDisposable
         }
         if (KeyMap.ToChar(vk, shift, capsLock) is { } c)
         {
-            if (c == ' ' && TryAutoConvert()) return true;
+            if (WordEnds.Contains(c) && TryAutoConvert(c)) return true;
             if (_segment is null)
             {
                 var layout = Ime.GetLayout();
@@ -198,28 +198,44 @@ sealed class Controller : IDisposable
             _last = null;
             return false;
         }
+        if (vk == VK_RETURN && TryAutoConvert(null))
+        {
+            Reset();
+            return true;
+        }
         Reset();
         return false;
     }
 
-    /// <summary>On Space: replaces the last word if it was typed in the wrong mode. The Space itself is swallowed and retyped.</summary>
-    bool TryAutoConvert()
+    // Characters that end a word and trigger the auto mode (Enter does too).
+    static readonly char[] WordEnds = [' ', '.', ',', '?', '!', ';', ':'];
+
+    /// <summary>
+    /// When a word ends (<paramref name="end"/> = Space/punctuation, or null for Enter), replaces it if it was typed
+    /// in the wrong mode. The ending key is swallowed and retyped after the replacement.
+    /// </summary>
+    bool TryAutoConvert(char? end)
     {
         if (!AutoMode || !_isDictionaryReady || _segment is null || CurrentRule?.AutoMode == false) return false;
 
         string text = _segment.Text;
-        string word = text[(text.LastIndexOf(' ') + 1)..];
+        string word = text[(text.LastIndexOfAny(WordEnds) + 1)..];
         if (word.Length == 0 || _detector.Check(word, _segment.Layout) is not { } replacement) return false;
         // The user may list either side: what they typed (rk) or what it would become (and).
         if (_settings.ExceptionWords.Contains(replacement)) return false;
         if (_segment.Layout == Layout.Korean) replacement = _segment.RestoreCase(replacement);
 
-        var conversion = new Conversion(word + " ", _segment.Layout, replacement + " ", _segment.Other);
-        // The Space has not reached the app, so only the word is deleted.
-        Replace(_segment.BackspacesFor(word.Length), conversion.After, _segment.Layout);
+        string ending = end?.ToString() ?? "";
+        var conversion = new Conversion(word + ending, _segment.Layout, replacement + ending, _segment.Other);
+        // The ending key has not reached the app, so only the word is deleted.
+        var input = new InputSender().Key(InputSender.VK_BACK, _segment.BackspacesFor(word.Length)).Text(conversion.After);
+        if (end is null) input.Key(InputSender.VK_RETURN);
+        Send(input);
+        _segment = new TypedSegment(conversion.BeforeLayout);
         _last = conversion;
-        _autoUndo = conversion;
-        Log.Write($"auto {conversion.BeforeLayout}->{conversion.AfterLayout} len={word.Length}->{replacement.Length}");
+        // Undoing across a line break is not offered; Enter is a reset point anyway.
+        _autoUndo = end is null ? null : conversion;
+        Log.Write($"auto {conversion.BeforeLayout}->{conversion.AfterLayout} len={word.Length}->{replacement.Length} end={(end is null ? "enter" : "char")}");
         return true;
     }
 
@@ -228,7 +244,7 @@ sealed class Controller : IDisposable
         // The IME mode was never changed, so it is still the one the word was typed in.
         Replace(conversion.After.Length, conversion.Before, conversion.BeforeLayout);
         _last = conversion.Reversed;
-        Log.Write($"auto undone len={conversion.Before.Length - 1}");
+        Log.Write($"auto undone len={conversion.Before.Length}");
     }
 
     void QueueConvert()
