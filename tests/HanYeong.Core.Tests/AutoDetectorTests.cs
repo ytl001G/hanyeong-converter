@@ -145,3 +145,37 @@ public class AutoDetectorDataTests
         Assert.Null(Detector.Check(typed, layout));
     }
 }
+
+/// <summary>English word + Korean particle typed in one mode.</summary>
+public class MixedWordTests
+{
+    static readonly AutoDetector Detector = new();
+
+    [Theory]
+    [InlineData("shortagedlek", "shortage이다")]       // particle typed in English mode
+    [InlineData("updategoTek", "update했다")]
+    [InlineData("githubdptjsms", "github에서는")]
+    [InlineData("APIfmf", "API를")]
+    [InlineData("serverrk", "server가")]
+    [InlineData("emaildmf", "email을")]
+    public void EnglishMode(string keys, string expected) =>
+        Assert.Equal(expected, Detector.CheckMixed(keys, Layout.English));
+
+    [Theory]
+    [InlineData("shortagedlek", "shortage이다")]       // English part typed in Korean mode
+    [InlineData("Githubdp", "Github에")]
+    [InlineData("updategkrh", "update하고")]
+    public void KoreanMode(string keys, string expected) =>
+        Assert.Equal(expected, Detector.CheckMixed(keys, Layout.Korean));
+
+    [Theory]
+    [InlineData("work", Layout.English)]        // a real English word
+    [InlineData("hello", Layout.English)]
+    [InlineData("seems", Layout.English)]
+    [InlineData("speak", Layout.English)]
+    [InlineData("gkrrysdp", Layout.Korean)]     // 학교에: real Korean
+    [InlineData("dkssudgktpdy", Layout.Korean)] // 안녕하세요
+    [InlineData("qwerty", Layout.English)]
+    public void LeavesAlone(string keys, Layout layout) =>
+        Assert.Null(Detector.CheckMixed(keys, layout));
+}

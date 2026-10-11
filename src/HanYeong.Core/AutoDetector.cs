@@ -17,6 +17,8 @@ public sealed record AutoDetectorOptions
     public float KnownEnglish { get; init; } = 2.0f;
     /// <summary>Consonant-only/vowel-only input needs very common English (ㅈㄷ → we).</summary>
     public float CommonEnglish { get; init; } = 4.5f;
+    /// <summary>English part of a mixed word (shortage + 이다) must be at least this common.</summary>
+    public float MixedEnglishPrefix { get; init; } = 3.0f;
 }
 
 /// <summary>
@@ -100,6 +102,55 @@ public sealed class AutoDetector
 
         float ko = _korean(word);
         return ko < _o.CommonKorean && en - ko >= _o.KoreanToEnglishMargin ? english : null;
+    }
+
+    // Particles and endings that get attached straight to an English word (shortage이다, update했다, Github에서는).
+    static readonly HashSet<string> Particles =
+    [
+        "이", "가", "은", "는", "을", "를", "에", "에서", "에게", "한테", "께", "의", "도", "만", "와", "과",
+        "랑", "이랑", "하고", "로", "으로", "로서", "으로서", "로써", "처럼", "보다", "까지", "부터", "마다", "조차",
+        "이나", "나", "이든", "든", "이라도", "라도", "밖에", "뿐", "같은", "같이",
+        "이다", "다", "이야", "야", "이에요", "예요", "입니다", "이고", "고", "이며", "며", "이라서", "라서",
+        "인데", "인가", "인지", "이라는", "라는", "이라고", "라고", "이면", "면", "이었다", "였다", "이지", "지",
+        "이니까", "니까", "이랑은", "임", "인", "일",
+        "하다", "한", "하는", "할", "함", "해", "해요", "했다", "했어", "했어요", "했는데", "해서", "하고", "하면",
+        "하게", "하지", "합니다", "했습니다", "하려고", "하는데", "됨", "된", "되는", "될", "되다", "됐다", "돼",
+        "되면", "되고", "됩니다", "적", "적인", "적으로", "스러운", "스럽다", "들", "님", "씨", "용", "식", "급",
+    ];
+
+    /// <summary>
+    /// A word that mixes an English word with a Korean particle, typed in one mode: "shortagedlek" in English
+    /// mode or "놳ㅁㅎㄷ이다" in Korean mode both become "shortage이다". Only tried when the whole word is not
+    /// already a real word. <paramref name="keys"/> are the keys as typed, capitals included.
+    /// </summary>
+    public string? CheckMixed(string keys, Layout typedIn)
+    {
+        if (keys.Length < 3 || !keys.All(char.IsAsciiLetter)) return null;
+        string display = typedIn == Layout.English ? keys : LayoutConverter.ToKorean(keys);
+        if (_isException(display)) return null;
+        if (typedIn == Layout.English ? _english(keys) >= _o.KnownEnglish : _korean(display) > 0) return null;
+
+        // Longest English prefix first: "updated" + "다" loses to "update" + "했다" only if both are real.
+        for (int split = keys.Length - 1; split >= 2; split--)
+        {
+            string prefix = keys[..split];
+            if (_english(prefix) < _o.MixedEnglishPrefix) continue;
+            string particle = LayoutConverter.ToKorean(keys[split..]);
+            if (IsParticleChain(particle)) return prefix + particle;
+        }
+        return null;
+    }
+
+    // One to three particles in a row: 에서는 = 에서 + 는.
+    static bool IsParticleChain(string text, int depth = 0)
+    {
+        if (text.Length == 0) return depth > 0;
+        if (depth == 3) return false;
+        for (int length = Math.Min(4, text.Length); length >= 1; length--)
+        {
+            if (Particles.Contains(text[..length]) && IsParticleChain(text[length..], depth + 1)) return true;
+        }
+        return false;
     }
 
     /// <summary>Only complete, everyday syllables (no stray jamo, nothing outside KS X 1001).</summary>

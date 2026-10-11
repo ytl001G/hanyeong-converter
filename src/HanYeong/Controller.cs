@@ -220,10 +220,14 @@ sealed class Controller : IDisposable
 
         string text = _segment.Text;
         string word = text[(text.LastIndexOfAny(WordEnds) + 1)..];
-        if (word.Length == 0 || _detector.Check(word, _segment.Layout) is not { } replacement) return false;
+        if (word.Length == 0) return false;
+        string? replacement = _detector.Check(word, _segment.Layout);
+        if (replacement is not null && _segment.Layout == Layout.Korean) replacement = _segment.RestoreCase(replacement);
+        // English word + Korean particle in one mode (shortagedlek, 놳ㅁㅎㄷ이다); keys carry the typed capitals.
+        replacement ??= _detector.CheckMixed(
+            _segment.Layout == Layout.English ? word : _segment.RestoreCase(LayoutConverter.ToEnglish(word)), _segment.Layout);
         // The user may list either side: what they typed (rk) or what it would become (and).
-        if (_settings.ExceptionWords.Contains(replacement)) return false;
-        if (_segment.Layout == Layout.Korean) replacement = _segment.RestoreCase(replacement);
+        if (replacement is null || _settings.ExceptionWords.Contains(replacement)) return false;
 
         string ending = end?.ToString() ?? "";
         var conversion = new Conversion(word + ending, _segment.Layout, replacement + ending, _segment.Other);
