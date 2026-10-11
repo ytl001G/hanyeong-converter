@@ -101,8 +101,8 @@ try {
   Fresh 'EN'; Type-Text 'dkssud gktpdy '; Record 'auto: each word on Space, mode stays' '안녕 하세요 ' $tb.Text
   Fresh 'KO'; Type-Text 'hi Hello '; Record 'auto KO->EN keeps capitals' 'hi Hello ' $tb.Text
   Fresh 'EN'; Type-Text 'rk '; Record 'auto rk' '가 ' $tb.Text
-  Back; Record 'Backspace undoes' 'rk ' $tb.Text
-  Type-Text 'rk '; Record 'undo adds no exception' 'rk 가 ' $tb.Text
+  Back; Record 'Backspace is a plain Backspace' '가' $tb.Text
+  Fresh 'EN'; Type-Text 'rk '; Hotkey; Record 'Ctrl+Space right after reverts' 'rk ' $tb.Text
   Fresh 'EN'; Type-Text 'qkqh '; Record 'manual exception respected' 'qkqh ' $tb.Text
   Fresh 'EN'; Type-Text 'dkssud. gktpdy?'; Record 'auto on . and ?' '안녕. 하세요?' $tb.Text
   Fresh 'KO'; Type-Text 'Hello, world!'; Record 'auto on , and ! (KO)' 'Hello, world!' $tb.Text

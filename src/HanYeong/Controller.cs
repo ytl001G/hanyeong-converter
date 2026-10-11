@@ -39,10 +39,8 @@ sealed class Controller : IDisposable
 
     TypedSegment? _segment;
     IntPtr _segmentWindow;
-    // Set right after a conversion; pressing the hotkey again before typing anything reverts it.
+    // Set right after a conversion (also an automatic one); pressing the hotkey before typing anything reverts it.
     Conversion? _last;
-    // Set right after an auto conversion; an immediate Backspace undoes it.
-    Conversion? _autoUndo;
 
     public event Action<bool>? AutoModeChanged;
 
@@ -84,7 +82,6 @@ sealed class Controller : IDisposable
         {
             _settings.AutoMode = value;
             _settings.Save();
-            _autoUndo = null;
             AutoModeChanged?.Invoke(value);
         }
     }
@@ -165,9 +162,6 @@ sealed class Controller : IDisposable
         if (_segment is not null && fg != _segmentWindow) Reset();
         if (IsModifier(vk) || IsIgnorable(vk)) return false;
 
-        var autoUndo = _autoUndo;
-        _autoUndo = null;
-
         if (isCombo)
         {
             Reset();
@@ -175,11 +169,6 @@ sealed class Controller : IDisposable
         }
         if (vk == VK_BACK)
         {
-            if (autoUndo is not null)
-            {
-                UndoAuto(autoUndo);
-                return true;
-            }
             _segment?.Backspace();
             _last = null;
             return false;
@@ -238,19 +227,10 @@ sealed class Controller : IDisposable
         Send(input);
         _segment = new TypedSegment(conversion.BeforeLayout);
         _last = conversion;
-        // Undo is only offered while the cursor is still right after the word.
-        _autoUndo = endKey == 0 ? conversion : null;
         Log.Write($"auto {conversion.BeforeLayout}->{conversion.AfterLayout} len={word.Length}->{replacement.Length} end=0x{(endKey == 0 ? end!.Value : endKey):X2}");
         return true;
     }
 
-    void UndoAuto(Conversion conversion)
-    {
-        // The IME mode was never changed, so it is still the one the word was typed in.
-        Replace(conversion.After.Length, conversion.Before, conversion.BeforeLayout);
-        _last = conversion.Reversed;
-        Log.Write($"auto undone len={conversion.Before.Length}");
-    }
 
     void QueueConvert()
     {
@@ -275,7 +255,6 @@ sealed class Controller : IDisposable
         _isBusy = true;
         try
         {
-            _autoUndo = null;
             IntPtr fg = GetForegroundWindow();
             if (_segment is not null && fg == _segmentWindow)
             {
@@ -346,7 +325,6 @@ sealed class Controller : IDisposable
     {
         _segment = null;
         _last = null;
-        _autoUndo = null;
     }
 
     public void Dispose()
