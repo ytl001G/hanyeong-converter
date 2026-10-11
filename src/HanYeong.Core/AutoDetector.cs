@@ -5,20 +5,34 @@ public sealed record AutoDetectorOptions
 {
     public static readonly AutoDetectorOptions Default = new();
 
+    /// <summary>
+    /// Sentence context: an earlier word of this sentence was already fixed in the same direction, so the
+    /// user is evidently typing in the wrong mode. Ambiguous words (so/내, to/새) and one-key words (a, I) follow.
+    /// </summary>
+    public static readonly AutoDetectorOptions InContext = Default with
+    {
+        EnglishToKoreanMargin = 0f,
+        KoreanToEnglishMargin = 0f,
+        CommonKorean = float.MaxValue,
+        MinKeys = 1,
+    };
+
     /// <summary>Score given to well-formed Korean missing from the data (a new eojeol beats an unknown Latin string).</summary>
     public float UnseenKorean { get; init; } = 1.5f;
     /// <summary>English mode: convert when Korean scores at least this much higher.</summary>
     public float EnglishToKoreanMargin { get; init; } = 1.0f;
     /// <summary>Korean mode, well-formed text: convert when English scores at least this much higher.</summary>
-    public float KoreanToEnglishMargin { get; init; } = 2.0f;
+    public float KoreanToEnglishMargin { get; init; } = 3.0f;
     /// <summary>Well-formed Korean this common is never treated as a typo (내 vs "so").</summary>
     public float CommonKorean { get; init; } = 3.5f;
     /// <summary>Broken Korean still needs a real English word; rarer entries are mostly corpus noise.</summary>
-    public float KnownEnglish { get; init; } = 2.0f;
+    public float KnownEnglish { get; init; } = 1.5f;
     /// <summary>Consonant-only/vowel-only input needs very common English (ㅈㄷ → we).</summary>
     public float CommonEnglish { get; init; } = 4.5f;
     /// <summary>English part of a mixed word (shortage + 이다) must be at least this common.</summary>
     public float MixedEnglishPrefix { get; init; } = 3.5f;
+    /// <summary>Shorter words (in keystrokes) are too ambiguous to judge on their own.</summary>
+    public int MinKeys { get; init; } = 2;
 }
 
 /// <summary>
@@ -51,7 +65,8 @@ public sealed class AutoDetector
 
     public AutoDetector(Func<string, float> english, Func<string, float> korean, Func<string, bool>? isException = null, AutoDetectorOptions? options = null)
     {
-        _english = english;
+        // The word tables start at two letters; the only one-letter English words are added here.
+        _english = w => w.Length == 1 ? (w is "a" or "A" or "i" or "I" ? 7.5f : 0f) : english(w);
         _korean = korean;
         _isException = isException ?? (_ => false);
         _o = options ?? AutoDetectorOptions.Default;
@@ -63,7 +78,7 @@ public sealed class AutoDetector
         if (_isException(word)) return null;
         // Length in keystrokes: 뭉 is three keys, a single letter is too ambiguous.
         int keys = typedIn == Layout.English ? word.Length : LayoutConverter.ToEnglish(word).Length;
-        if (keys < 2) return null;
+        if (keys < _o.MinKeys) return null;
         return typedIn == Layout.English ? CheckEnglish(word) : CheckKorean(word);
     }
 

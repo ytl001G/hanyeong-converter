@@ -109,6 +109,8 @@ try {
   # Arrow keys end the word too; the cursor then moves, so the next letter lands before the last syllable.
   Fresh 'EN'; Type-Text 'dkssud'; Tap 0x25; Pump 150; Type-Text 'x'; Record 'auto on Left arrow' '안x녕' $tb.Text
   Fresh 'KO'; Type-Text 'hello'; Tap 0x25; Pump 150; Record 'auto on Left arrow (KO)' 'hello' $tb.Text
+  # Sentence context: once "want" is fixed, the ambiguous "to" (새) and "go" (해) follow.
+  Fresh 'KO'; Type-Text 'want to go '; Record 'sentence context (KO)' 'want to go ' $tb.Text
   $form.Close(); $script:pumpForm = $false
 
   # ================= Windows Notepad (TSF) =================
@@ -137,6 +139,7 @@ try {
     Case 'auto EN "dkssud." '          'EN' 'dkssud.'        $null '안녕.'
     Case 'auto on Enter'               'EN' ("dkssud" + [char]10) $null ("안녕" + [char]13 + [char]10)
     Case 'auto on Left arrow'          'EN' 'dkssud'         { Tap 0x25; Pump 150 } '안녕'
+    Case 'sentence context (KO)'       'KO' 'want to go '    $null 'want to go '
     Clear-Doc
     $np.CloseMainWindow() | Out-Null
   }

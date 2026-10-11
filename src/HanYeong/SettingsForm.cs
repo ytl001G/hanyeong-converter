@@ -13,6 +13,7 @@ sealed class SettingsForm : Form
     readonly HotkeyBox _toggleBox;
     readonly CheckBox _autoCheck;
     readonly CheckBox _startupCheck;
+    readonly CheckBox _contextCheck;
     readonly ListBox _exceptionList;
     readonly DataGridView _appGrid;
 
@@ -37,6 +38,7 @@ sealed class SettingsForm : Form
         _toggleBox = new HotkeyBox(Hotkey.Parse(settings.AutoToggleHotkey, Hotkey.DefaultAutoToggle));
         _autoCheck = new CheckBox { Text = "자동 모드 켜기", Checked = settings.AutoMode, AutoSize = true };
         _startupCheck = new CheckBox { Text = "Windows 시작 시 자동 실행", Checked = IsStartupEnabled(), AutoSize = true };
+        _contextCheck = new CheckBox { Text = "문장 맥락: 앞 단어가 바뀌었으면 to, a, I 같은 짧은 단어도 바꾸기", Checked = settings.SentenceContext, AutoSize = true };
 
         _exceptionList = new ListBox { Dock = DockStyle.Fill, IntegralHeight = false, SelectionMode = SelectionMode.MultiExtended };
         _exceptionList.Items.AddRange(settings.ExceptionWords.Cast<object>().ToArray());
@@ -65,7 +67,8 @@ sealed class SettingsForm : Form
         hotkeys.Controls.Add(Label("자동 모드 켜고 끄기"), 0, 1);
         hotkeys.Controls.Add(_toggleBox, 1, 1);
         hotkeys.Controls.Add(_autoCheck, 1, 2);
-        hotkeys.Controls.Add(_startupCheck, 1, 3);
+        hotkeys.Controls.Add(_contextCheck, 1, 3);
+        hotkeys.Controls.Add(_startupCheck, 1, 4);
 
         var newWord = new TextBox { Dock = DockStyle.Fill, PlaceholderText = "예: rk, and", Margin = new Padding(0, 3, 6, 0) };
         var addWord = new Button { Text = "추가", AutoSize = true, Margin = new Padding(0, 0, 6, 0) };
@@ -194,6 +197,7 @@ sealed class SettingsForm : Form
         _settings.ConvertHotkey = _convertBox.Value.ToString();
         _settings.AutoToggleHotkey = _toggleBox.Value.ToString();
         _settings.AutoMode = _autoCheck.Checked;
+        _settings.SentenceContext = _contextCheck.Checked;
         _settings.ExceptionWords = new SortedSet<string>(_exceptionList.Items.Cast<string>(), StringComparer.Ordinal);
         _settings.Apps.Clear();
         foreach (DataGridViewRow row in _appGrid.Rows)

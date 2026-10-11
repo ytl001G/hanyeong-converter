@@ -140,6 +140,82 @@ var perCorpus = new Dictionary<string, object>();
 foreach (var (key, _, lang) in corpora) perCorpus[key] = CorpusStats(key, lang, outcome);
 report["corpora"] = perCorpus;
 
+// ---------- sentence context (AutoDetectorOptions.InContext once a word of the sentence was fixed) ----------
+var contextOutcome = Evaluate(new AutoDetector(options: AutoDetectorOptions.InContext), allWords);
+object ContextStats(string key, Layout lang)
+{
+    // Wrong mode, whole sentence: a fixed word turns context on, a word left alone (or digits etc.) turns it off.
+    long withTarget = 0, fullyPlain = 0, fullyContext = 0;
+    foreach (var sent in sentences[key])
+    {
+        int target = 0, fixedPlain = 0, fixedContext = 0;
+        bool ctx = false;
+        foreach (string w in sent)
+        {
+            bool isTarget = lang == Layout.English ? IsLatin(w) : IsHangul(w);
+            if (!isTarget || !outcome.ContainsKey(w)) { ctx = false; continue; }
+            target++;
+            if (outcome[w].WrongFixed) fixedPlain++;
+            bool ok = (ctx ? contextOutcome[w] : outcome[w]).WrongFixed;
+            if (ok) fixedContext++;
+            ctx = ok;
+        }
+        if (target == 0) continue;
+        withTarget++;
+        if (fixedPlain == target) fullyPlain++;
+        if (fixedContext == target) fullyContext++;
+    }
+    return new { sentences = withTarget, fullyFixedWithout = (double)fullyPlain / withTarget, fullyFixedWith = (double)fullyContext / withTarget };
+}
+// Mixed writing: Korean typed in Korean mode, English words in it also typed in Korean mode (and fixed).
+// Context then reaches the following Korean words: "hello 내 친구" may turn 내 into so.
+object MixedWritingRisk(string key)
+{
+    long sentencesWithLatin = 0, koreanAfter = 0, fpPlain = 0, fpContext = 0, sentencesHitPlain = 0, sentencesHitContext = 0;
+    var examples = new Dictionary<string, int>();
+    foreach (var sent in sentences[key])
+    {
+        if (!sent.Any(IsLatin)) continue;
+        sentencesWithLatin++;
+        bool ctx = false, hitPlain = false, hitContext = false;
+        foreach (string w in sent)
+        {
+            if (!outcome.ContainsKey(w)) { ctx = false; continue; }
+            if (IsLatin(w)) { ctx = (ctx ? contextOutcome[w] : outcome[w]).WrongFixed; continue; }
+            koreanAfter++;
+            if (outcome[w].CorrectChanged) { fpPlain++; hitPlain = true; }
+            var r = ctx ? contextOutcome[w] : outcome[w];
+            if (r.CorrectChanged)
+            {
+                fpContext++; hitContext = true;
+                if (ctx && !outcome[w].CorrectChanged) examples[$"{w}→{r.CorrectResult}"] = examples.GetValueOrDefault($"{w}→{r.CorrectResult}") + 1;
+            }
+            ctx = r.CorrectChanged;
+        }
+        if (hitPlain) sentencesHitPlain++;
+        if (hitContext) sentencesHitContext++;
+    }
+    return new
+    {
+        sentencesWithEnglish = sentencesWithLatin,
+        koreanWords = koreanAfter,
+        falsePositivePerKoreanWordWithout = (double)fpPlain / koreanAfter,
+        falsePositivePerKoreanWordWith = (double)fpContext / koreanAfter,
+        sentencesWithFalsePositiveWithout = (double)sentencesHitPlain / sentencesWithLatin,
+        sentencesWithFalsePositiveWith = (double)sentencesHitContext / sentencesWithLatin,
+        topContextErrors = examples.OrderByDescending(kv => kv.Value).Take(20).Select(kv => new { change = kv.Key, count = kv.Value }).ToList(),
+    };
+}
+report["context"] = new
+{
+    en_news = ContextStats("en_news", Layout.English),
+    en_wiki = ContextStats("en_wiki", Layout.English),
+    ko_web = ContextStats("ko_web", Layout.Korean),
+    ko_news = ContextStats("ko_news", Layout.Korean),
+    mixedWriting_ko_web = MixedWritingRisk("ko_web"),
+    mixedWriting_ko_news = MixedWritingRisk("ko_news"),
+};
+
 // ---------- error examples (token frequency weighted) ----------
 var freq = allWords.Where(w => outcome.ContainsKey(w)).GroupBy(w => w).ToDictionary(g => g.Key, g => g.Count());
 object Top(Func<string, Outcome, bool> pick, Func<string, Outcome, string?> show, int n = 25) =>

@@ -24,6 +24,7 @@ sealed class Controller : IDisposable
     readonly Settings _settings;
     readonly FocusTracker _focus;
     readonly AutoDetector _detector;
+    readonly AutoDetector _contextDetector;
     readonly System.Windows.Forms.Timer _modifierReleaseTimer = new() { Interval = 30 };
 
     const ushort VK_UNASSIGNED = 0xE8;
@@ -41,6 +42,8 @@ sealed class Controller : IDisposable
     IntPtr _segmentWindow;
     // Set right after a conversion (also an automatic one); pressing the hotkey before typing anything reverts it.
     Conversion? _last;
+    // Mode of the words the auto mode fixed earlier in this sentence: the user is typing in the wrong mode.
+    Layout? _contextFrom;
 
     public event Action<bool>? AutoModeChanged;
 
@@ -50,6 +53,7 @@ sealed class Controller : IDisposable
         _settings = settings;
         _focus = focus;
         _detector = new AutoDetector(word => _settings.ExceptionWords.Contains(word));
+        _contextDetector = new AutoDetector(word => _settings.ExceptionWords.Contains(word), AutoDetectorOptions.InContext);
         _hooks = new GlobalHooks { KeyPressed = OnHookKey, MouseClicked = Reset };
         _modifierReleaseTimer.Tick += (_, _) => RunPendingWhenModifiersReleased();
         ApplySettings();
@@ -211,13 +215,20 @@ sealed class Controller : IDisposable
         string text = _segment.Text;
         string word = text[(text.LastIndexOfAny(WordEnds) + 1)..];
         if (word.Length == 0) return false;
-        string? replacement = _detector.Check(word, _segment.Layout);
+        bool isInContext = _settings.SentenceContext && _contextFrom == _segment.Layout;
+        var detector = isInContext ? _contextDetector : _detector;
+        string? replacement = detector.Check(word, _segment.Layout);
         if (replacement is not null && _segment.Layout == Layout.Korean) replacement = _segment.RestoreCase(replacement);
         // English word + Korean particle in one mode (shortagedlek, 놳ㅁㅎㄷ이다); keys carry the typed capitals.
-        replacement ??= _detector.CheckMixed(
+        replacement ??= detector.CheckMixed(
             _segment.Layout == Layout.English ? word : _segment.RestoreCase(LayoutConverter.ToEnglish(word)), _segment.Layout);
         // The user may list either side: what they typed (rk) or what it would become (and).
-        if (replacement is null || _settings.ExceptionWords.Contains(replacement)) return false;
+        if (replacement is null || _settings.ExceptionWords.Contains(replacement))
+        {
+            // A word left as typed means the user writes in this mode on purpose ("hello 친구"): context ends.
+            _contextFrom = null;
+            return false;
+        }
 
         string ending = end?.ToString() ?? "";
         var conversion = new Conversion(word + ending, _segment.Layout, replacement + ending, _segment.Other);
@@ -227,10 +238,10 @@ sealed class Controller : IDisposable
         Send(input);
         _segment = new TypedSegment(conversion.BeforeLayout);
         _last = conversion;
+        _contextFrom = end is '.' or '?' or '!' ? null : conversion.BeforeLayout;
         Log.Write($"auto {conversion.BeforeLayout}->{conversion.AfterLayout} len={word.Length}->{replacement.Length} end=0x{(endKey == 0 ? end!.Value : endKey):X2}");
         return true;
     }
-
 
     void QueueConvert()
     {
@@ -325,6 +336,7 @@ sealed class Controller : IDisposable
     {
         _segment = null;
         _last = null;
+        _contextFrom = null;
     }
 
     public void Dispose()

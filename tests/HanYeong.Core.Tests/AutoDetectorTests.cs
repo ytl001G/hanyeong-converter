@@ -188,3 +188,34 @@ public class MixedWordTests
     public void LeavesAlone(string keys, Layout layout) =>
         Assert.Null(Detector.CheckMixed(keys, layout));
 }
+
+/// <summary>Sentence context: an earlier word was already fixed in the same direction.</summary>
+public class ContextTests
+{
+    static readonly AutoDetector Normal = new();
+    static readonly AutoDetector InContext = new(options: AutoDetectorOptions.InContext);
+
+    [Theory]
+    [InlineData("새", "to")]     // ambiguous on its own
+    [InlineData("내", "so")]
+    [InlineData("ㅁ", "a")]      // one key
+    [InlineData("ㅑ", "i")]
+    public void KoreanModeFollowsContext(string typed, string expected)
+    {
+        Assert.Null(Normal.Check(typed, Layout.Korean));
+        Assert.Equal(expected, InContext.Check(typed, Layout.Korean));
+    }
+
+    [Theory]
+    [InlineData("친구")]          // clearly Korean even in context
+    [InlineData("안녕하세요")]
+    [InlineData("ㅋㅋ")]
+    public void ClearKoreanStays(string typed) => Assert.Null(InContext.Check(typed, Layout.Korean));
+
+    [Fact]
+    public void EnglishModeFollowsContext()
+    {
+        Assert.Null(Normal.Check("so", Layout.English));      // 내 vs so: tie
+        Assert.Equal("내", InContext.Check("so", Layout.English));
+    }
+}

@@ -19,6 +19,9 @@ sealed class Settings
 
     public bool AutoMode { get; set; } = true;
 
+    /// <summary>After a word of the sentence was fixed, also fix ambiguous/short words (to, a, I) the same way.</summary>
+    public bool SentenceContext { get; set; } = true;
+
     /// <summary>The "running in the tray" hint is shown once, on the first manual start.</summary>
     public bool HasShownTrayHint { get; set; }
 
