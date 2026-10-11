@@ -168,6 +168,8 @@ public class JoinedWordTests
     [InlineData("주스(0")]
     [InlineData("1박2일")]
     [InlineData("100여명이")]
+    [InlineData("늦을수도…")]
+    [InlineData("▲드라마")]
     public void KoreanTypedInEnglishMode(string korean) =>
         Assert.Equal(korean, Detector.Check(KeysOf(korean), Layout.English));
 
@@ -191,6 +193,13 @@ public class JoinedWordTests
     [InlineData("Seoul's", Layout.English)]   // English typed right, with an apostrophe
     [InlineData("McDonald", Layout.English)]  // capitals inside an English name
     [InlineData("YouTube", Layout.English)]
+    [InlineData("British", Layout.English)]       // regression: capital B taken as an acronym
+    [InlineData("Henry's", Layout.English)]
+    [InlineData("X-Men", Layout.English)]
+    [InlineData("Port-au-Prince", Layout.English)] // regression: au → 며 between kept English
+    [InlineData("pa$$rk", Layout.English)]         // password-like symbols
+    [InlineData("McVeigh's", Layout.English)]      // regression: unknown Korean next to kept English
+    [InlineData("Third-Worldism", Layout.English)]
     [InlineData("rlaalswn12", Layout.English)] // an ID: 김민주 typed as letters, then digits
     public void LeavesAlone(string typed, Layout layout) => Assert.Null(Detector.Check(typed, layout));
 }

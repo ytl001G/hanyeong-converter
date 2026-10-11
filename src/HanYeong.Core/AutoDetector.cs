@@ -81,7 +81,8 @@ public sealed class AutoDetector
         if (!word.All(IsLetter)) return CheckJoined(word, typedIn);
         // All letters, but with an acronym inside (삼성SDS가, 비타민C가): judged in parts like a joined word.
         return CheckPart(word, typedIn)
-            ?? (typedIn == Layout.English && word.Any(char.IsAsciiLetterLower) && word.Any(IsEnglishOnlyCapital)
+            ?? (typedIn == Layout.English && word.Any(char.IsAsciiLetterLower)
+                && Enumerable.Range(0, word.Length).Any(i => AcronymLength(word, i) > 0)
                 ? CheckJoined(word, typedIn) : null);
     }
 
@@ -123,8 +124,13 @@ public sealed class AutoDetector
             if (Contractions.Contains(english.Replace('’', '\'').ToLowerInvariant())) return english;
         }
 
+        // Only everyday punctuation joins parts; other symbols (@ # $ & * = + < > | _ ...) mean a password-like string.
+        if (word.Any(c => !IsLetter(c) && !char.IsAsciiDigit(c) && !JoinerPunctuation.Contains(c))) return null;
+        // % only after a number (5%로).
+        if (Enumerable.Range(0, word.Length).Any(i => word[i] == '%' && (i == 0 || !char.IsAsciiDigit(word[i - 1])))) return null;
+
         var result = new System.Text.StringBuilder(word.Length);
-        bool anyConverts = false;
+        bool anyConverts = false, anyKept = false, anyWeakConversion = false;
         // What came right before the current piece: a number (2차), or something typed as meant that a particle
         // may follow (SDS가, )는, ’는).
         bool afterNumber = false, afterKept = false;
@@ -147,22 +153,27 @@ public sealed class AutoDetector
                 result.Append(word, i, length);
                 i += length;
                 afterNumber = false;
-                afterKept = true;
+                afterKept = anyKept = true;
                 continue;
             }
             while (i < word.Length && IsLetter(word[i]) && !(typedIn == Layout.English && AcronymLength(word, i) > 0)) i++;
             string part = word[start..i];
             string converted = typedIn == Layout.English ? LayoutConverter.ToKorean(part) : LayoutConverter.ToEnglish(part);
-            bool converts = typedIn == Layout.English && afterNumber ? IsNumberSuffix(part)
-                : typedIn == Layout.English && afterKept && IsParticleChain(converted) || CheckPart(part, typedIn) is not null;
+            bool isSuffix = typedIn == Layout.English && (afterNumber ? IsNumberSuffix(part) : afterKept && IsParticleChain(converted));
+            bool converts = isSuffix || (!(typedIn == Layout.English && afterNumber) && CheckPart(part, typedIn) is not null);
             if (converts)
             {
                 anyConverts = true;
+                // Weak evidence: one syllable (au → 며 in Port-au-Prince) or Korean no corpus has (McVeigh → McV댜호).
+                if (!isSuffix && typedIn == Layout.English && (converted.Length < 2 || _korean(converted) <= 0)) anyWeakConversion = true;
                 result.Append(converted);
             }
             // English typed as meant stays too: Center)에서, 홈페이지(www.
             else if (typedIn == Layout.English && _english(part) >= _o.KnownEnglish)
+            {
+                anyKept = true;
                 result.Append(part);
+            }
             // One-key parts just follow (the t of don't).
             else if (KeyCount(part, typedIn) < _o.MinKeys)
                 result.Append(converted);
@@ -170,8 +181,12 @@ public sealed class AutoDetector
                 return null;
             afterNumber = afterKept = false;
         }
+        // Next to English typed as meant, only strong conversions count: Port-au-Prince, McVeigh stay.
+        if (anyKept && anyWeakConversion) return null;
         return anyConverts ? result.ToString() : null;
     }
+
+    static readonly HashSet<char> JoinerPunctuation = ['-', '/', '\'', '"', '“', '”', '‘', '’', '(', ')', '[', ']', '·', 'ㆍ', '%', '~', '…', '▲', '△', '—'];
 
     /// <summary>
     /// Length of an acronym starting at <paramref name="i"/>: two or more capitals, or one capital that is not a
@@ -183,7 +198,12 @@ public sealed class AutoDetector
         int end = i;
         while (end < word.Length && char.IsAsciiLetterUpper(word[end])) end++;
         int length = end - i;
-        return length >= 2 || (length == 1 && IsEnglishOnlyCapital(word[i])) ? length : 0;
+        if (length >= 2) return length;
+        // A single capital: inside a word it is one (비타민C가); at the start of a word followed by lowercase it
+        // just capitalizes the word (British, Henry's), alone it is a letter ((A)).
+        bool isWordStart = i == 0 || !IsLetter(word[i - 1]);
+        bool startsLowercaseWord = isWordStart && end < word.Length && char.IsAsciiLetterLower(word[end]);
+        return length == 1 && IsEnglishOnlyCapital(word[i]) && !startsLowercaseWord ? 1 : 0;
     }
 
     /// <summary>Keys typed in English mode right after a number: 6보다, 3개, 1분기, 65세 — not 3rd, 4th, 10kg.</summary>
