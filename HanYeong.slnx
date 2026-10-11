@@ -1,0 +1,9 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/HanYeong.Core/HanYeong.Core.csproj" />
+    <Project Path="src/HanYeong/HanYeong.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/HanYeong.Core.Tests/HanYeong.Core.Tests.csproj" />
+  </Folder>
+</Solution>
