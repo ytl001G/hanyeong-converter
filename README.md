@@ -46,6 +46,7 @@
 - Windows 시작 시 자동 실행은 트레이 우클릭 → 설정에서 켜기
 
 직접 빌드하려면 .NET 10 SDK 설치 후 `.\tools\publish.ps1` → `dist\`에 두 파일 생성.
+이어서 `.\tools\install.ps1`을 실행하면 `%LOCALAPPDATA%\Programs\HanYeong`에 설치하고 시작 메뉴 바로가기, Windows 시작 시 실행까지 등록함 (관리자 권한 불필요, 다시 실행하면 업데이트).
 
 ## 알려진 제약
 
