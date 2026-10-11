@@ -1,7 +1,7 @@
 {
   "load": {
-    "ms": 449,
-    "managedMB": 69.8,
+    "ms": 194,
+    "managedMB": 15.6,
     "englishWords": 477661,
     "koreanWords": 486868
   },
@@ -748,6 +748,43 @@
       }
     ]
   },
+  "joined": {
+    "english": {
+      "distinctWords": 24104,
+      "tokens": 51881,
+      "falsePositive": 9.637439525066981E-05,
+      "fixedWhenTypedInOtherMode": 0.8491933463117519,
+      "falsePositiveExamples": [
+        {
+          "change": "Eufy's→뗘료'ㄴ",
+          "count": 1
+        },
+        {
+          "change": "Emefiele's→뜯랴딛'ㄴ",
+          "count": 1
+        },
+        {
+          "change": "N'djamena→ㅜ'어므둠",
+          "count": 1
+        },
+        {
+          "change": "Toghto's→쌔호새'ㄴ",
+          "count": 1
+        },
+        {
+          "change": "Thalen's→쏘미두'ㄴ",
+          "count": 1
+        }
+      ]
+    },
+    "korean": {
+      "distinctWords": 5130,
+      "tokens": 5899,
+      "falsePositive": 0,
+      "fixedWhenTypedInOtherMode": 0.8743854890659434,
+      "falsePositiveExamples": []
+    }
+  },
   "sweep": [
     {
       "parameter": "EnglishToKoreanMargin",
@@ -1024,6 +1061,6 @@
   },
   "speed": {
     "checks": 200000,
-    "microsecondsPerCheck": 0.9464925
+    "microsecondsPerCheck": 0.37424199999999996
   }
 }

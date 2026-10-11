@@ -249,8 +249,20 @@ foreach (var (w, count) in mixedFreq)
     if (ko) mixedKoFixed += count;
     if (!en) mixedMisses[w] = count;
 }
+// Every Latin + Hangul token (also compounds like LG전자, PGA투어), typed entirely in one mode.
+var allMixedFreq = mixedAll.GroupBy(w => w).ToDictionary(g => g.Key, g => g.Count());
+long allMixedEn = 0, allMixedKo = 0;
+foreach (var (w, count) in allMixedFreq)
+{
+    int cut = w.TakeWhile(char.IsAsciiLetter).Count();
+    string keys = w[..cut] + LayoutConverter.ToEnglish(w[cut..]);
+    if (defaults.CheckMixed(keys, Layout.English) == w) allMixedEn += count;
+    if (defaults.CheckMixed(keys, Layout.Korean) == w) allMixedKo += count;
+}
 report["mixed"] = new
 {
+    allLatinHangulFixedEnglishMode = (double)allMixedEn / mixedAll.Count,
+    allLatinHangulFixedKoreanMode = (double)allMixedKo / mixedAll.Count,
     latinHangulTokens = mixedAll.Count,
     distinctWords = mixedFreq.Count,
     tokens = mixedTotal,

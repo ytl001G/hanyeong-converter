@@ -41,7 +41,7 @@ function Type-Text($s) {
     Guard
     if ($ch -eq ' ') { Tap 0x20; Pump 120; continue }
     if ($ch -eq [char]10) { Tap 0x0D; Pump 120; continue }
-    $punct = @{ '.' = @(0xBE, $false); ',' = @(0xBC, $false); '?' = @(0xBF, $true); '!' = @(0x31, $true) }
+    $punct = @{ '.' = @(0xBE, $false); ',' = @(0xBC, $false); '?' = @(0xBF, $true); '!' = @(0x31, $true); '-' = @(0xBD, $false); '/' = @(0xBF, $false); "'" = @(0xDE, $false) }
     if ($punct.ContainsKey([string]$ch)) {
       $p = $punct[[string]$ch]
       if ($p[1]) { [K]::Key(0x10, $false) }
@@ -111,6 +111,8 @@ try {
   Fresh 'KO'; Type-Text 'hello'; Tap 0x25; Pump 150; Record 'auto on Left arrow (KO)' 'hello' $tb.Text
   # Sentence context: once "want" is fixed, the ambiguous "to" (새) and "go" (해) follow.
   Fresh 'KO'; Type-Text 'want to go '; Record 'sentence context (KO)' 'want to go ' $tb.Text
+  Fresh 'KO'; Type-Text "well-known don't "; Record 'joined words (KO)' "well-known don't " $tb.Text
+  Fresh 'KO'; Type-Text 'engelrhrtjs '; Record 'English + Korean noun (KO)' 'engel곡선 ' $tb.Text
   $form.Close(); $script:pumpForm = $false
 
   # ================= Windows Notepad (TSF) =================
@@ -140,6 +142,8 @@ try {
     Case 'auto on Enter'               'EN' ("dkssud" + [char]10) $null ("안녕" + [char]13 + [char]10)
     Case 'auto on Left arrow'          'EN' 'dkssud'         { Tap 0x25; Pump 150 } '안녕'
     Case 'sentence context (KO)'       'KO' 'want to go '    $null 'want to go '
+    Case 'joined word (KO)'            'KO' 'price-consumption ' $null 'price-consumption '
+    Case 'English + Korean noun (KO)'  'KO' 'engelrhrtjs '   $null 'engel곡선 '
     Clear-Doc
     $np.CloseMainWindow() | Out-Null
   }

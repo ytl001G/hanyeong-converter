@@ -31,6 +31,8 @@ public sealed record AutoDetectorOptions
     public float CommonEnglish { get; init; } = 4.5f;
     /// <summary>English part of a mixed word (shortage + 이다) must be at least this common.</summary>
     public float MixedEnglishPrefix { get; init; } = 3.5f;
+    /// <summary>Korean after the English part of a mixed word, when not a particle: a common word (engel + 곡선).</summary>
+    public float MixedKoreanRest { get; init; } = 3.5f;
     /// <summary>Shorter words (in keystrokes) are too ambiguous to judge on their own.</summary>
     public int MinKeys { get; init; } = 2;
 }
@@ -194,9 +196,15 @@ public sealed class AutoDetector
             if (typedIn == Layout.Korean && !HasEnglishOnlyShift(prefix) && IsWellFormed(LayoutConverter.ToKorean(prefix))) continue;
             // An all-caps prefix is a deliberate acronym (SNS를, FTA가) even when the word lists miss it.
             bool isAcronym = prefix.All(char.IsAsciiLetterUpper);
-            if (!isAcronym && _english(prefix) < _o.MixedEnglishPrefix) continue;
-            string particle = LayoutConverter.ToKorean(rest);
-            if (IsParticleChain(particle)) return prefix + particle;
+            // In Korean mode the front already showed up as broken Hangul, which is strong evidence on its own,
+            // so a rarer English word (engel, pareto) is enough there.
+            float needed = typedIn == Layout.Korean ? _o.KnownEnglish : _o.MixedEnglishPrefix;
+            if (!isAcronym && _english(prefix) < needed) continue;
+            string korean = LayoutConverter.ToKorean(rest);
+            // A particle chain (SNS를) or a common word of two or more syllables (engel곡선, LG전자); one syllable
+            // alone is too easily the tail of a name (Durango → Duran해).
+            bool isCommonWord = korean.Length >= 2 && IsWellFormed(korean) && _korean(korean) >= _o.MixedKoreanRest;
+            if (IsParticleChain(korean) || isCommonWord) return prefix + korean;
         }
         return null;
     }

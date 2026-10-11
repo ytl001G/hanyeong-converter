@@ -160,6 +160,8 @@ public class MixedWordTests
     [InlineData("emaildmf", "email을")]
     [InlineData("SNSfmf", "SNS를")]                    // acronym missing from the word lists
     [InlineData("FTArk", "FTA가")]
+    [InlineData("LGwjswk", "LG전자")]
+    [InlineData("googlerjator", "google검색")]
     [InlineData("UNdp", "UN에")]
     [InlineData("LArk", "LA가")]
     public void EnglishMode(string keys, string expected) =>
@@ -170,6 +172,9 @@ public class MixedWordTests
     [InlineData("Githubdp", "Github에")]
     [InlineData("updategkrh", "update하고")]
     [InlineData("SNSdp", "SNS에")]
+    [InlineData("engelrhrtjs", "engel곡선")]         // user's example: 둫디곡선
+    [InlineData("LGwjswk", "LG전자")]
+    [InlineData("paretoqjqclr", "pareto법칙")]
     public void KoreanMode(string keys, string expected) =>
         Assert.Equal(expected, Detector.CheckMixed(keys, Layout.Korean));
 
@@ -187,6 +192,10 @@ public class MixedWordTests
     [InlineData("Namadi", Layout.English)]      // a name
     public void LeavesAlone(string keys, Layout layout) =>
         Assert.Null(Detector.CheckMixed(keys, layout));
+
+    [Fact]
+    public void UsersCompoundExample() =>
+        Assert.Equal("둫디곡선", LayoutConverter.ToKorean("engelrhrtjs"));
 }
 
 /// <summary>Sentence context: an earlier word was already fixed in the same direction.</summary>
