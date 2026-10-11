@@ -259,6 +259,39 @@ report["mixed"] = new
     topMisses = mixedMisses.OrderByDescending(kv => kv.Value).Take(25).Select(kv => new { word = kv.Key, count = kv.Value }).ToList(),
 };
 
+// ---------- joined words: power-consumption, don't, and/or ----------
+var joinedLatin = new System.Text.RegularExpressions.Regex("^[A-Za-z]+([-/'][A-Za-z]+)+$");
+var joinedHangul = new System.Text.RegularExpressions.Regex("^[가-힣]+([-/'][가-힣]+)+$");
+object Joined(IEnumerable<string> keys, System.Text.RegularExpressions.Regex pattern, Layout lang)
+{
+    var counts = keys.SelectMany(k => sentences[k]).SelectMany(t => t).Where(w => pattern.IsMatch(w))
+        .GroupBy(w => w).ToDictionary(g => g.Key, g => g.Count());
+    long total = counts.Values.Sum(v => (long)v), changed = 0, fixedCount = 0;
+    var fp = new Dictionary<string, int>();
+    foreach (var (w, count) in counts)
+    {
+        // Typed right: must stay. Typed in the other mode: must come back exactly (capitals restored via keys).
+        Layout other = lang == Layout.English ? Layout.Korean : Layout.English;
+        string typedWrong = lang == Layout.English ? LayoutConverter.ToKorean(w) : LayoutConverter.ToEnglish(w);
+        if (defaults.Check(w, lang) is { } c) { changed += count; fp[$"{w}→{c}"] = count; }
+        string? r = defaults.Check(typedWrong, other);
+        if (r is not null && (lang == Layout.English ? r == CaseInsensitiveForm(w) : r == w)) fixedCount += count;
+    }
+    return new
+    {
+        distinctWords = counts.Count,
+        tokens = total,
+        falsePositive = (double)changed / total,
+        fixedWhenTypedInOtherMode = (double)fixedCount / total,
+        falsePositiveExamples = fp.OrderByDescending(kv => kv.Value).Take(15).Select(kv => new { change = kv.Key, count = kv.Value }).ToList(),
+    };
+}
+report["joined"] = new
+{
+    english = Joined(["en_news", "en_wiki"], joinedLatin, Layout.English),
+    korean = Joined(["ko_web", "ko_news"], joinedHangul, Layout.Korean),
+};
+
 // ---------- threshold sweep ----------
 long Weighted(Dictionary<string, Outcome> o, Func<string, Outcome, bool> f) => freq.Where(kv => f(kv.Key, o[kv.Key])).Sum(kv => (long)kv.Value);
 long latinTotal = freq.Where(kv => IsLatin(kv.Key)).Sum(kv => (long)kv.Value);

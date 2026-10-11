@@ -76,10 +76,38 @@ public sealed class AutoDetector
     public string? Check(string word, Layout typedIn)
     {
         if (_isException(word)) return null;
+        return word.IndexOfAny(Joiners) >= 0 ? CheckJoined(word, typedIn) : CheckPart(word, typedIn);
+    }
+
+    string? CheckPart(string word, Layout typedIn)
+    {
         // Length in keystrokes: 뭉 is three keys, a single letter is too ambiguous.
-        int keys = typedIn == Layout.English ? word.Length : LayoutConverter.ToEnglish(word).Length;
+        int keys = KeyCount(word, typedIn);
         if (keys < _o.MinKeys) return null;
         return typedIn == Layout.English ? CheckEnglish(word) : CheckKorean(word);
+    }
+
+    static int KeyCount(string word, Layout typedIn) => typedIn == Layout.English ? word.Length : LayoutConverter.ToEnglish(word).Length;
+
+    // Characters that join words without ending them: power-consumption, and/or, don't.
+    static readonly char[] Joiners = ['-', '/', '\''];
+
+    /// <summary>
+    /// A joined word converts as a whole when some part would convert and no other part is a real word as typed
+    /// (ㅔ걏ㄷ-채ㅜ녀ㅡㅔ샤ㅐㅜ → power-consumption; 애ㅜ'ㅅ → don't, where the one-key "t" just follows).
+    /// </summary>
+    string? CheckJoined(string word, Layout typedIn)
+    {
+        bool anyConverts = false;
+        foreach (string part in word.Split(Joiners))
+        {
+            if (part.Length == 0) continue;
+            if (CheckPart(part, typedIn) is not null) anyConverts = true;
+            else if (KeyCount(part, typedIn) >= _o.MinKeys) return null;
+        }
+        if (!anyConverts) return null;
+        // The joiners are the same key in both modes, so the whole word converts as typed.
+        return typedIn == Layout.English ? LayoutConverter.ToKorean(word) : LayoutConverter.ToEnglish(word);
     }
 
     string? CheckEnglish(string word)

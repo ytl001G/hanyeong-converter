@@ -219,3 +219,36 @@ public class ContextTests
         Assert.Equal("내", InContext.Check("so", Layout.English));
     }
 }
+
+/// <summary>Words joined by - / ' are judged part by part and converted as a whole.</summary>
+public class JoinedWordTests
+{
+    static readonly AutoDetector Detector = new();
+
+    [Fact]
+    public void UsersExample() =>   // as reported: "price-consumption" typed in Korean mode
+        Assert.Equal("price-consumption", Detector.Check("ㅔ걏ㄷ-채ㅜ녀ㅡㅔ샤ㅐㅜ", Layout.Korean));
+
+    [Theory]
+    [InlineData("power-consumption")]
+    [InlineData("don't")]
+    [InlineData("well-known")]
+    [InlineData("and/or")]
+    public void KoreanModeConverts(string english) =>
+        Assert.Equal(english, Detector.Check(LayoutConverter.ToKorean(english), Layout.Korean));
+
+    [Theory]
+    [InlineData("dkssud-gktpdy", "안녕-하세요")]
+    public void EnglishModeConverts(string typed, string expected) =>
+        Assert.Equal(expected, Detector.Check(typed, Layout.English));
+
+    [Theory]
+    [InlineData("e-mail", Layout.English)]          // real English, typed right
+    [InlineData("well-known", Layout.English)]
+    [InlineData("don't", Layout.English)]
+    [InlineData("and/or", Layout.English)]
+    [InlineData("신-구", Layout.Korean)]             // real Korean, typed right
+    [InlineData("ㅋㅋ-ㅋㅋ", Layout.Korean)]
+    [InlineData("-", Layout.English)]
+    public void LeavesAlone(string typed, Layout layout) => Assert.Null(Detector.Check(typed, layout));
+}
