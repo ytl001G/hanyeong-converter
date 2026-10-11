@@ -304,6 +304,89 @@ report["joined"] = new
     korean = Joined(["ko_web", "ko_news"], joinedHangul, Layout.Korean),
 };
 
+// ---------- numbers: 3개, 2024년에 typed in English mode; 3rd, 10kg typed right must stay ----------
+var numberKorean = new System.Text.RegularExpressions.Regex("^[0-9]+[가-힣]+$");
+var numberLatin = new System.Text.RegularExpressions.Regex("^[0-9]+[A-Za-z]+$");
+var koNumbers = sentences["ko_web"].Concat(sentences["ko_news"]).SelectMany(t => t).Where(w => numberKorean.IsMatch(w)).ToList();
+var enNumbers = sentences["en_news"].Concat(sentences["en_wiki"]).SelectMany(t => t).Where(w => numberLatin.IsMatch(w)).ToList();
+var numberFp = new Dictionary<string, int>();
+foreach (string w in enNumbers)
+    if (defaults.CheckMixed(w, Layout.English) is { } r) numberFp[$"{w}→{r}"] = numberFp.GetValueOrDefault($"{w}→{r}") + 1;
+long numberFixed = koNumbers.LongCount(w =>
+{
+    int cut = w.TakeWhile(char.IsAsciiDigit).Count();
+    return defaults.CheckMixed(w[..cut] + LayoutConverter.ToEnglish(w[cut..]), Layout.English) == w;
+});
+report["numbers"] = new
+{
+    koreanTokens = koNumbers.Count,
+    fixedWhenTypedInEnglishMode = (double)numberFixed / koNumbers.Count,
+    englishTokens = enNumbers.Count,
+    falsePositive = (double)numberFp.Values.Sum() / enNumbers.Count,
+    falsePositiveExamples = numberFp.OrderByDescending(kv => kv.Value).Take(15).Select(kv => new { change = kv.Key, count = kv.Value }).ToList(),
+};
+
+// ---------- failure mining: every word typed in the wrong mode, grouped by shape ----------
+// Shape: H = Hangul run, L = Latin run, D = digit run, other characters as they are (LH = SNS를, H(H) = (주)삼성).
+static string Shape(string w)
+{
+    var sb = new StringBuilder();
+    char previous = ' ';
+    foreach (char c in w)
+    {
+        char k = Jamo.IsHangul(c) ? 'H' : char.IsAsciiLetter(c) ? 'L' : char.IsAsciiDigit(c) ? 'D' : c;
+        if (k != previous || k is not ('H' or 'L' or 'D')) sb.Append(k);
+        previous = k;
+    }
+    return sb.ToString();
+}
+string? AppResult(string screen, string keys, Layout mode) => defaults.Check(screen, mode) ?? defaults.CheckMixed(keys, mode);
+object MineFailures(string[] corpusKeys, Layout lang)
+{
+    var total = new Dictionary<string, long>();
+    var missed = new Dictionary<string, long>();
+    var examples = new Dictionary<string, Dictionary<string, int>>();
+    foreach (string w in corpusKeys.SelectMany(k => sentences[k]).SelectMany(t => t))
+    {
+        bool relevant = lang == Layout.Korean ? w.Any(Jamo.IsSyllable) : w.Any(char.IsAsciiLetter);
+        if (!relevant) continue;
+        bool ok;
+        if (lang == Layout.Korean)
+        {
+            // Korean sentence typed in English mode: Hangul became keys, the rest was typed as meant.
+            string keys = string.Concat(w.Select(c => Jamo.IsHangul(c) ? LayoutConverter.ToEnglish(c.ToString()) : c.ToString()));
+            ok = AppResult(keys, keys, Layout.English) == w;
+        }
+        else
+        {
+            // English sentence typed in Korean mode: the screen shows the IME's output, the keys keep capitals.
+            string screen = LayoutConverter.ToKorean(w);
+            string? r = AppResult(screen, w, Layout.Korean);
+            ok = r == w || r == CaseInsensitiveForm(w);
+        }
+        string shape = Shape(w);
+        total[shape] = total.GetValueOrDefault(shape) + 1;
+        if (ok) continue;
+        missed[shape] = missed.GetValueOrDefault(shape) + 1;
+        var ex = examples.TryGetValue(shape, out var e) ? e : examples[shape] = new Dictionary<string, int>();
+        ex[w] = ex.GetValueOrDefault(w) + 1;
+    }
+    long all = total.Values.Sum();
+    return missed.OrderByDescending(kv => kv.Value).Take(25).Select(kv => new
+    {
+        shape = kv.Key,
+        missedTokens = kv.Value,
+        shareOfAllWords = (double)kv.Value / all,
+        missRateInShape = (double)kv.Value / total[kv.Key],
+        examples = examples[kv.Key].OrderByDescending(x => x.Value).Take(12).Select(x => $"{x.Key}({x.Value})").ToList(),
+    }).ToList();
+}
+report["failureShapes"] = new
+{
+    koreanTypedInEnglishMode = MineFailures(["ko_web", "ko_news"], Layout.Korean),
+    englishTypedInKoreanMode = MineFailures(["en_news", "en_wiki"], Layout.English),
+};
+
 // ---------- threshold sweep ----------
 long Weighted(Dictionary<string, Outcome> o, Func<string, Outcome, bool> f) => freq.Where(kv => f(kv.Key, o[kv.Key])).Sum(kv => (long)kv.Value);
 long latinTotal = freq.Where(kv => IsLatin(kv.Key)).Sum(kv => (long)kv.Value);
