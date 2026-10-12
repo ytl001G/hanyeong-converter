@@ -14,6 +14,7 @@ sealed class SettingsForm : Form
     readonly CheckBox _autoCheck;
     readonly CheckBox _startupCheck;
     readonly CheckBox _contextCheck;
+    readonly CheckBox _idCheck;
     readonly ListBox _exceptionList;
     readonly DataGridView _appGrid;
 
@@ -30,7 +31,7 @@ sealed class SettingsForm : Form
         MaximizeBox = MinimizeBox = false;
         ShowIcon = false;
         StartPosition = FormStartPosition.CenterScreen;
-        ClientSize = new Size(580, 610);
+        ClientSize = new Size(580, 640);
         MinimumSize = new Size(500, 540);
         Padding = new Padding(12);
 
@@ -41,6 +42,11 @@ sealed class SettingsForm : Form
         _contextCheck = new CheckBox { Text = "문장 맥락으로 짧은 단어도 바꾸기", Checked = settings.SentenceContext, AutoSize = true };
         new ToolTip { AutoPopDelay = 15000 }.SetToolTip(_contextCheck,
             "같은 문장에서 이미 자동으로 바뀐 단어가 있으면\nto(새), so(내), a, I처럼 애매하거나 짧은 단어도 같은 방향으로 바꿉니다.\n문장 끝(. ? ! Enter)이나 그대로 둔 단어가 나오면 끝납니다.");
+
+        _idCheck = new CheckBox { Text = "로그인 칸 아이디 보호", Checked = settings.ProtectIds, AutoSize = true };
+        new ToolTip { AutoPopDelay = 15000 }.SetToolTip(_idCheck,
+            "빈 칸에 단어 하나만 치고 Enter를 누를 때, 바뀔 결과가 사람 이름처럼 보이면(rlaalswn → 김민주)\n" +
+            "아이디로 보고 바꾸지 않습니다. 꺼 두면 다른 단어처럼 바꾸고, 잘못 바뀌면 Ctrl+Space로 되돌릴 수 있습니다.");
 
         _exceptionList = new ListBox { Dock = DockStyle.Fill, IntegralHeight = false, SelectionMode = SelectionMode.MultiExtended };
         _exceptionList.Items.AddRange(settings.ExceptionWords.Cast<object>().ToArray());
@@ -70,7 +76,8 @@ sealed class SettingsForm : Form
         hotkeys.Controls.Add(_toggleBox, 1, 1);
         hotkeys.Controls.Add(_autoCheck, 1, 2);
         hotkeys.Controls.Add(_contextCheck, 1, 3);
-        hotkeys.Controls.Add(_startupCheck, 1, 4);
+        hotkeys.Controls.Add(_idCheck, 1, 4);
+        hotkeys.Controls.Add(_startupCheck, 1, 5);
 
         var newWord = new TextBox { Dock = DockStyle.Fill, PlaceholderText = "예: rk, and", Margin = new Padding(0, 3, 6, 0) };
         var addWord = new Button { Text = "추가", AutoSize = true, Margin = new Padding(0, 0, 6, 0) };
@@ -200,6 +207,7 @@ sealed class SettingsForm : Form
         _settings.AutoToggleHotkey = _toggleBox.Value.ToString();
         _settings.AutoMode = _autoCheck.Checked;
         _settings.SentenceContext = _contextCheck.Checked;
+        _settings.ProtectIds = _idCheck.Checked;
         _settings.ExceptionWords = new SortedSet<string>(_exceptionList.Items.Cast<string>(), StringComparer.Ordinal);
         _settings.Apps.Clear();
         foreach (DataGridViewRow row in _appGrid.Rows)

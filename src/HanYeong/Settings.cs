@@ -22,6 +22,12 @@ sealed class Settings
     /// <summary>After a word of the sentence was fixed, also fix ambiguous/short words (to, a, I) the same way.</summary>
     public bool SentenceContext { get; set; } = true;
 
+    /// <summary>
+    /// One word typed into an empty field and then Enter, in English mode, is left alone when it reads as a Korean
+    /// name (rlaalswn = 김민주, a login ID). Off by default: Ctrl+Space puts a converted ID back.
+    /// </summary>
+    public bool ProtectIds { get; set; }
+
     /// <summary>The "running in the tray" hint is shown once, on the first manual start.</summary>
     public bool HasShownTrayHint { get; set; }
 

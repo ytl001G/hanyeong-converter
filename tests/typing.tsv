@@ -26,7 +26,8 @@ KO	autocompact	autocompact
 KO	I want to go	I want to go
 KO	an apple⏎	an apple
 EN	ekdma⏎	다음
-EN	rlaalswn⏎	rlaalswn
+# ID protection is off by default (Settings.ProtectIds): a name-like single word + Enter converts too
+EN	rlaalswn⏎	김민주
 EN	dksehlsek⏎	안된다
 EN	qnstjrqnxj go	분석부터 해
 KO	suffixfkejsrk	suffix라던가
@@ -86,3 +87,35 @@ KO	fMRIsms	fMRI는
 KO	so apple	내 apple
 EN	www.kt.com	www.kt.com
 EN	naver.co.kr	naver.co.kr
+EN	rTlsms djWjrh wjWjrh	ㄱ씨는 어쩌고 저쩌고
+# mirrored: the same shapes typed in the other mode
+KO	www.naver.com	www.naver.com
+KO	www.kt.com	www.kt.com
+KO	mp3	mp3
+KO	3rd	3rd
+KO	10kg	10kg
+KO	Dobbekdprptj	Dobbek에게서
+KO	gyrusdp	=
+# Korean mode, proper syllables and an English part of four letters or less: kept as typed (해미면 is not goal면)
+KO	gyrisms	=
+KO	workgkfurh	=
+KO	quantityrk	quantity가
+KO	rebaterk	rebate가
+# Korean mode keeps 초4가 (a 4th grader); ch4 is English-mode only
+KO	ch4rk	초4가
+KO	Aaocl	A매치
+KO	FAzjq	FA컵
+KO	so clsrn	내 친구
+EN	dkssud so wlq	안녕 내 집
+KO	tcpviewfmf	tcpview를
+KO	Dikeh said	Dikeh said
+KO	Upwork	Upwork
+KO	Seoul's	Seoul's
+KO	gyrus⏎	=
+KO	gothtlzu	해소시켜
+KO	cjflehlqslek	=
+EN	qlrygkslRK	비교하니까
+EN	dkssUD	안녕
+EN	Hello	Hello
+EN	znlwm⏎	퀴즈
+EN	shxmqnr⏎	노트북

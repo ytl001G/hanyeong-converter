@@ -294,9 +294,9 @@ sealed class Controller : IDisposable
             _contextOnly = null;
             return false;
         }
-        // A single word and then Enter, with nothing else typed since the last click, may be an ID (rlaalswn is
-        // someone's ID, not 김민주): it only converts into a common word, as one-word chat messages are (ekdma → 다음).
-        if (endKey == VK_RETURN && !_hasEarlierWord && word.Length == text.Length && !IsMessageOnItsOwn(replacement, _segment.Layout))
+        // With the ID protection on (Settings.ProtectIds), a single word and then Enter, with nothing else typed
+        // since the last click, may be an ID (rlaalswn is someone's ID, not 김민주): it converts unless it reads as a name.
+        if (_settings.ProtectIds && endKey == VK_RETURN && !_hasEarlierWord && word.Length == text.Length && !IsMessageOnItsOwn(replacement, _segment.Layout))
             return false;
 
         // Looking back: the word right before, left alone because it was ambiguous on its own, is fixed along with
@@ -410,9 +410,18 @@ sealed class Controller : IDisposable
 
     // Chat messages of one word are everyday words (다음 5.6, 네 6.7, 수고하세요 3.7), or Korean of five syllables
     // and more, or a word + ending (진행상황에, 확인했어). IDs made of names are short and rarer (김민주 2.9, 이지은 3.4).
+    // In Korean mode the protection is not needed: an English ID typed there (ㅡㅑㅜ내ㅐ) is meant as English.
+    // In English mode it is for IDs made of names (rlaalswn = 김민주): anything that does not look like a name
+    // converts (퀴즈, 노트북), and so does a common word that does (정말).
     bool IsMessageOnItsOwn(string replacement, Layout typedIn) =>
-        (typedIn == Layout.English ? WordFrequency.Korean.Value : WordFrequency.English.Value).Score(replacement) >= 3.5f
-        || (typedIn == Layout.English && (replacement.Length >= 5 || _detector.IsWordWithEnding(replacement)));
+        typedIn == Layout.Korean || !LooksLikeKoreanName(replacement)
+        || WordFrequency.Korean.Value.Score(replacement) >= 3.5f || _detector.IsWordWithEnding(replacement);
+
+    // The most common surnames; a Korean name is two to four syllables after one of them.
+    const string Surnames = "김이박최정강조윤장임한오서신권황안송류유전홍고문양손배백허남심노하곽성차주우구민나진지엄채원천방공현함변염여추도소석선설마길연위표명기반왕금옥육인맹제모탁국어은편용예경봉사부";
+
+    static bool LooksLikeKoreanName(string text) =>
+        text.Length is >= 2 and <= 4 && text.All(Jamo.IsSyllable) && Surnames.Contains(text[0]);
 
     void QueueConvert()
     {

@@ -78,10 +78,21 @@ EN	예쁘게(PC)	예쁘게(PC)
 # Korean that stays: proper Korean even if a part reads as English
 EN	해소시켜	해소시켜
 
+EN	+와	+와
+EN	A+와	A+와
+EN	C++를	C++를
+EN	pre-stimulus가	pre-stimulus가
+KO	pre-stimulus가	pre-stimulus가
+# anonymous people and things
+EN	ㄱ씨는	ㄱ씨는
+EN	ㄴ양의	ㄴ양의
+EN	ㅅ아파트	ㅅ아파트
 # chat jamo
 EN	dd	ㅇㅇ
 EN	zz	ㅋㅋ
-EN	dz	ㅇㅋ
+EN	dz	=
+EN	FLCJ	=
+EN	swsh	=
 EN	gg	=
 
 # ---- English typed in English mode: stays ----
@@ -173,3 +184,6 @@ KO	4륜	=
 KO	1녀	=
 KO	추가됩니다	=
 KO	그떄는	=
+KO	치명적이므로	=
+KO	스쾃과	=
+KO	네트웤의	=

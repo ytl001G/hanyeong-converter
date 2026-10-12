@@ -110,7 +110,7 @@ try {
 
   # ================= Windows Notepad (TSF) =================
   $notepadSteps = 'Ctrl+Space on composing ㅑ (reported bug)', 'auto KO->EN, English + Korean noun', 'auto on Enter after other words',
-    'one word + Enter stays (ID fields)', 'one common word + Enter converts (chat)', 'context change undone (hello 내 친구)', 'Hanja key: rh -> 고 -> Hanja'
+    'one word + Enter converts (ID protection off)', 'one common word + Enter converts (chat)', 'context change undone (hello 내 친구)', 'Hanja key: rh -> 고 -> Hanja'
   if (@($notepadSteps | Where-Object { Wanted $_ }).Count -gt 0) {
   $script:where = 'notepad'
   $np = Start-Process notepad -PassThru
@@ -129,7 +129,7 @@ try {
   Case 'Ctrl+Space on composing ㅑ (reported bug)' 'KO' 'hi' { Hotkey } 'hi'
   Case 'auto KO->EN, English + Korean noun' 'KO' 'engelrhrtjs ' $null 'engel곡선 '
   Case 'auto on Enter after other words' 'EN' ("dkssud gktpdy" + [char]10) $null ("안녕 하세요" + [char]13 + [char]10)
-  Case 'one word + Enter stays (ID fields)' 'EN' ("rlaalswn" + [char]10) $null ("rlaalswn" + [char]13 + [char]10)
+  Case 'one word + Enter converts (ID protection off)' 'EN' ("rlaalswn" + [char]10) $null ("김민주" + [char]13 + [char]10)
   Case 'one common word + Enter converts (chat)' 'EN' ("ekdma" + [char]10) $null ("다음" + [char]13 + [char]10)
   Case 'context change undone (hello 내 친구)' 'KO' 'hello so clsrn ' $null 'hello 내 친구 '
   # Hanja key after English-mode typing: rh is retyped as 고 in Korean mode, the IME list opens, Enter picks the first.

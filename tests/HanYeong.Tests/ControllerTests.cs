@@ -142,6 +142,22 @@ public class ControllerTests : IDisposable
     }
 
     [Fact]
+    public void IdProtectionKeepsANameLikeWordBeforeEnter()
+    {
+        _settings.ProtectIds = true;
+        Assert.Equal("rlaalswn" + Enter, Typed(Layout.English, "rlaalswn" + Enter).Box.Text);   // 김민주: a login ID
+    }
+
+    [Fact]
+    public void IdProtectionStillConvertsWordsThatAreNoName()
+    {
+        _settings.ProtectIds = true;
+        Assert.Equal("퀴즈" + Enter, Typed(Layout.English, "znlwm" + Enter).Box.Text);
+    }
+
+    const string Enter = "\n";
+
+    [Fact]
     public void ExceptionWordIsLeftAlone()
     {
         _settings.ExceptionWords.Add("qkqh");
