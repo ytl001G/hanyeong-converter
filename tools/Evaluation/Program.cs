@@ -195,23 +195,36 @@ object MixedWritingRisk(string key)
     {
         if (!sent.Any(IsLatin)) continue;
         sentencesWithLatin++;
-        bool ctx = false, hitPlain = false, hitContext = false;
+        bool ctx = false, hitPlain = false;
+        int sentenceFp = 0;
+        string? pending = null;   // changed only because of the context; a sure Korean word next undoes it (내 친구)
         foreach (string w in sent)
         {
-            if (!outcome.ContainsKey(w)) { ctx = false; continue; }
-            if (IsLatin(w)) { ctx = (ctx ? contextOutcome[w] : outcome[w]).WrongFixed; continue; }
+            if (!outcome.ContainsKey(w)) { ctx = false; pending = null; continue; }
+            if (IsLatin(w)) { ctx = (ctx ? contextOutcome[w] : outcome[w]).WrongFixed; pending = null; continue; }
             koreanAfter++;
             if (outcome[w].CorrectChanged) { fpPlain++; hitPlain = true; }
             var r = ctx ? contextOutcome[w] : outcome[w];
             if (r.CorrectChanged)
             {
-                fpContext++; hitContext = true;
-                if (ctx && !outcome[w].CorrectChanged) examples[$"{w}→{r.CorrectResult}"] = examples.GetValueOrDefault($"{w}→{r.CorrectResult}") + 1;
+                fpContext++; sentenceFp++;
+                bool contextOnly = ctx && !outcome[w].CorrectChanged;
+                if (contextOnly) examples[$"{w}→{r.CorrectResult}"] = examples.GetValueOrDefault($"{w}→{r.CorrectResult}") + 1;
+                pending = contextOnly ? $"{w}→{r.CorrectResult}" : null;
+            }
+            else
+            {
+                if (pending is not null && !contextOutcome[w].CorrectChanged && defaults.IsKnownWord(w, Layout.Korean))
+                {
+                    fpContext--; sentenceFp--;
+                    examples[pending]--;
+                }
+                pending = null;
             }
             ctx = r.CorrectChanged;
         }
         if (hitPlain) sentencesHitPlain++;
-        if (hitContext) sentencesHitContext++;
+        if (sentenceFp > 0) sentencesHitContext++;
     }
     return new
     {
@@ -221,7 +234,7 @@ object MixedWritingRisk(string key)
         falsePositivePerKoreanWordWith = (double)fpContext / koreanAfter,
         sentencesWithFalsePositiveWithout = (double)sentencesHitPlain / sentencesWithLatin,
         sentencesWithFalsePositiveWith = (double)sentencesHitContext / sentencesWithLatin,
-        topContextErrors = examples.OrderByDescending(kv => kv.Value).Take(20).Select(kv => new { change = kv.Key, count = kv.Value }).ToList(),
+        topContextErrors = examples.Where(kv => kv.Value > 0).OrderByDescending(kv => kv.Value).Take(20).Select(kv => new { change = kv.Key, count = kv.Value }).ToList(),
     };
 }
 // The other direction: Korean typed in English mode (fixed, so context starts), with English words in it that
@@ -234,22 +247,35 @@ object EnglishWordsAfterKoreanContext(string key)
     {
         if (!sent.Any(IsLatin)) continue;
         sentencesWithLatin++;
-        bool ctx = false, hit = false;
+        bool ctx = false;
+        int sentenceFp = 0;
+        string? pending = null;   // a sure English word next undoes a change made only for the context
         foreach (string w in sent)
         {
-            if (!outcome.ContainsKey(w)) { ctx = false; continue; }
-            if (IsHangul(w)) { ctx = (ctx ? contextOutcome[w] : outcome[w]).WrongFixed; continue; }
+            if (!outcome.ContainsKey(w)) { ctx = false; pending = null; continue; }
+            if (IsHangul(w)) { ctx = (ctx ? contextOutcome[w] : outcome[w]).WrongFixed; pending = null; continue; }
             latinWords++;
             if (outcome[w].CorrectChanged) fpPlain++;
             var r = ctx ? contextOutcome[w] : outcome[w];
             if (r.CorrectChanged)
             {
-                fpContext++; hit = true;
-                if (ctx && !outcome[w].CorrectChanged) examples[$"{w}→{r.CorrectResult}"] = examples.GetValueOrDefault($"{w}→{r.CorrectResult}") + 1;
+                fpContext++; sentenceFp++;
+                bool contextOnly = ctx && !outcome[w].CorrectChanged;
+                if (contextOnly) examples[$"{w}→{r.CorrectResult}"] = examples.GetValueOrDefault($"{w}→{r.CorrectResult}") + 1;
+                pending = contextOnly ? $"{w}→{r.CorrectResult}" : null;
+            }
+            else
+            {
+                if (pending is not null && !contextOutcome[w].CorrectChanged && defaults.IsKnownWord(w, Layout.English))
+                {
+                    fpContext--; sentenceFp--;
+                    examples[pending]--;
+                }
+                pending = null;
             }
             ctx = r.CorrectChanged;
         }
-        if (hit) hitContext++;
+        if (sentenceFp > 0) hitContext++;
     }
     return new
     {
@@ -258,7 +284,7 @@ object EnglishWordsAfterKoreanContext(string key)
         falsePositivePerEnglishWordWithout = (double)fpPlain / latinWords,
         falsePositivePerEnglishWordWith = (double)fpContext / latinWords,
         sentencesWithFalsePositiveWith = (double)hitContext / sentencesWithLatin,
-        topContextErrors = examples.OrderByDescending(kv => kv.Value).Take(15).Select(kv => new { change = kv.Key, count = kv.Value }).ToList(),
+        topContextErrors = examples.Where(kv => kv.Value > 0).OrderByDescending(kv => kv.Value).Take(15).Select(kv => new { change = kv.Key, count = kv.Value }).ToList(),
     };
 }
 // Staying: after a sure word left as typed (one even the context leaves), short words of up to three keys are

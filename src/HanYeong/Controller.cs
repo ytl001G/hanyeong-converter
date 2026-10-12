@@ -64,6 +64,9 @@ sealed class Controller : IDisposable
     Layout? _contextFrom;
     // Mode of a sure word left as typed earlier in this sentence (the, 그리고): the user writes in this mode.
     Layout? _writingIn;
+    // The last word changed only because of the sentence context (내 → so after hello); a sure word of the typed
+    // mode right after it means it was meant as typed, and it goes back.
+    Conversion? _contextOnly;
     // A word was already finished since the last click/reset; the tracked segment itself restarts after conversions.
     bool _hasEarlierWord;
 
@@ -277,6 +280,18 @@ sealed class Controller : IDisposable
             // following short words too.
             bool isSure = _detector.IsKnownWord(word, _segment.Layout) && _contextDetector.Suggest(word, keys, _segment.Layout) is null;
             _writingIn = isSure && end is not ('.' or '?' or '!') ? _segment.Layout : null;
+            // hello 내 친구: 내 became so for the sentence of English, but 친구 is Korean typed as meant, so 내 was too.
+            if (isSure && _contextOnly is { } changed && word == text)
+            {
+                string ending0 = end?.ToString() ?? "";
+                SendReplacement(_segment.BackspacesFor(word.Length) + changed.After.Length, changed.Before + word + ending0, endKey);
+                _segment = new TypedSegment(changed.BeforeLayout);
+                _contextOnly = null;
+                _last = null;
+                Log.Write($"context undone len={changed.After.Length}->{changed.Before.Length}");
+                return true;
+            }
+            _contextOnly = null;
             return false;
         }
         // A single word and then Enter, with nothing else typed since the last click, may be an ID (rlaalswn is
@@ -306,17 +321,14 @@ sealed class Controller : IDisposable
         SendReplacement(_segment.BackspacesFor(word.Length), conversion.After, endKey, heldShifts);
         _segment = new TypedSegment(conversion.BeforeLayout);
         _last = conversion;
+        // Changed only because of the context, as one word: it may go back when the next word says so.
+        _contextOnly = isInContext && leadIn is null && _detector.Suggest(word, keys, conversion.BeforeLayout) is null ? conversion : null;
         _contextFrom = end is '.' or '?' or '!' ? null : conversion.BeforeLayout;
         _writingIn = null;
         Log.Write($"auto {conversion.BeforeLayout}->{conversion.AfterLayout} len={word.Length}->{replacement.Length} end=0x{(endKey == 0 ? end!.Value : endKey):X2}{(heldShifts.Length > 0 ? " shift" : "")}");
         return true;
     }
 
-    /// <summary>
-    /// The English for the word just before <paramref name="following"/> (<paramref name="textBefore"/> ends with
-    /// it) when it reads as English in a sentence: broken Hangul (ㅑ → I), a Korean word whose English is far
-    /// more common (무 → an), or a number with an English ending (20소 → 20th); otherwise null.
-    /// </summary>
     // 20소 → 20th, 1980ㄴ → 1980s: a number and an English ending that reads as Hangul.
     static string? NumberWithEnglishEnding(string word)
     {
@@ -325,6 +337,12 @@ sealed class Controller : IDisposable
         string ending = LayoutConverter.ToEnglish(word[digits..]);
         return AutoDetector.IsEnglishNumberSuffix(ending) ? word[..digits] + ending : null;
     }
+
+    /// <summary>
+    /// The English for the word just before <paramref name="following"/> (<paramref name="textBefore"/> ends with
+    /// it) when it reads as English in a sentence: broken Hangul (ㅑ → I), a Korean word whose English is far
+    /// more common (무 → an), or a number with an English ending (20소 → 20th); otherwise null.
+    /// </summary>
 
     string? LeadInFix(string textBefore, string following)
     {
@@ -530,6 +548,7 @@ sealed class Controller : IDisposable
         _last = null;
         _contextFrom = null;
         _writingIn = null;
+        _contextOnly = null;
         _hasEarlierWord = false;
     }
 
