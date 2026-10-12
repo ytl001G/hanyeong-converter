@@ -159,8 +159,7 @@ public sealed class AutoDetector
             // A capitalized word with Shift on such a key (Anaut → 무몃, Aozmendi → 매크두야): a name or a sentence start.
             // Not a word + particles (A씨: the T of ㅆ is shifted too).
             if (keys.Length >= 3 && IsEnglishOnlyCapital(keys[0]) && keys.Skip(1).All(char.IsAsciiLetterLower)
-                && !(CheckMixed(keys, typedIn) is { } split && split.TakeWhile(c => !Jamo.IsHangul(c)).Count() >= 3
-                     && IsClearEnding(split.SkipWhile(c => !Jamo.IsHangul(c)))))
+                && !(CheckMixed(keys, typedIn) is { } split && IsKeptSplit(split)))
                 return LayoutConverter.ToEnglish(word);
         }
         string? whole = Check(word, typedIn);
@@ -183,7 +182,9 @@ public sealed class AutoDetector
         float needed = particleKeys >= 3 ? _o.KnownEnglish : particles is "이" or "에" or "도" or "로" ? 2.5f : 4.0f;
         // The other side too: when that part read as Korean is a Korean word (해소시켜, 처리됩니다, 자녀들로부터:
         // goth, cjfl, wksu), the whole is Korean; gyrus → 효견 is no word.
-        bool isKoreanStem = _korean(whole[..^particles.Length]) > 0;
+        // ...unless the English is far more common (work하려고: work 5.9 beats 재가).
+        float stemScore = _korean(whole[..^particles.Length]);
+        bool isKoreanStem = stemScore > 0 && stemScore >= _english(mixed[..latin]) - 1.0f;
         // A listed name counts as well (Endrigo께서, not 뚱갸해께서).
         bool isEnglishPart = _english(mixed[..latin]) >= needed || (particleKeys >= 2 && IsKnownName(mixed[..latin]));
         bool isClearSplit = latin >= 4 && IsParticleChain(particles) && isEnglishPart && !isKoreanStem;
@@ -439,6 +440,14 @@ public sealed class AutoDetector
     bool IsUnknownSyllablesForEnglish(string prefix, string prefixKorean, string restKorean) =>
         prefix.Length >= 5 && _korean(prefixKorean) <= 0 && _english(prefix) >= _o.MixedEnglishPrefix && IsParticleChain(restKorean);
 
+    // A split of a capitalized word typed in Korean mode that is kept: capitals + Korean (K리그, B형, A씨), or a
+    // word of three letters and more + a clear ending; not Co + 구디 (Cornel) or Aj + 만 (Ajaks).
+    static bool IsKeptSplit(string split)
+    {
+        string latin = string.Concat(split.TakeWhile(c => !Jamo.IsHangul(c)));
+        return latin.All(char.IsAsciiLetterUpper) || (latin.Length >= 3 && IsClearEnding(split[latin.Length..]));
+    }
+
     // A Korean ending that English words do not end in: three keys or more, or 이 에 도 로 (Ansal + 야 is a name).
     static bool IsClearEnding(IEnumerable<char> hangul)
     {
@@ -549,8 +558,6 @@ public sealed class AutoDetector
                     && !IsUnknownSyllablesForEnglish(prefix, prefixKorean, LayoutConverter.ToKorean(rest))) continue;
                 // Letters with digits (ch4 = chapter 4, mp3, h2o) are codes, never Korean typing; no word list has them.
                 // Short only: a long letters+digits run before "rk" is more likely a password-like string.
-                // Korean mode: capitals that are all shifted Korean keys (EO is 떄) are no acronym.
-                if (typedIn == Layout.Korean && prefix.All(char.IsAsciiLetterUpper) && !HasEnglishOnlyShift(prefix)) continue;
                 bool isCode = prefix.Length <= 6 && prefix.Any(char.IsAsciiDigit) && prefix.Any(char.IsAsciiLetter);
                 bool isNumber = prefix.All(char.IsAsciiDigit);
                 if (prefix.Any(char.IsAsciiDigit) && !isCode && !isNumber) continue;
