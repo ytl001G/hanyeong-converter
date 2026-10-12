@@ -121,6 +121,8 @@ public class MixedWordTests
     [InlineData("7Bravo", Layout.English)]        // regression: code + one syllable
     [InlineData("Gwo", Layout.English)]           // regression: a name, not G + 재
     [InlineData("CyberArk", Layout.English)]      // CamelCase, not CyberA + 가
+    [InlineData("Drua", Layout.English)]          // capitalized rare word, not D + 겸
+    [InlineData("Ndidi", Layout.English)]         // on the name list, not N + 야야
     [InlineData("PowerPoint", Layout.English)]
     [InlineData("rmEOsms", Layout.Korean)]        // regression: Korean typo 그떄는
     [InlineData("INGKA", Layout.English)]         // capital particle keys

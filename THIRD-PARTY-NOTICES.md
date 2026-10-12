@@ -22,6 +22,17 @@ Leipzig Corpora Collection: From 100 to 200 Languages.* Proceedings of LREC 2012
 
 Hand-picked additions (`Data/extra-words*.txt`) are part of this project.
 
+## Name list
+
+`src/HanYeong.Core/Data/names.txt.gz` (embedded in HanYeong.exe) is a list of names built by `tools/build_names.py`
+and is licensed under [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/).
+
+| Source | License |
+|---|---|
+| Wikidata given names and family names (wikidata.org) | CC0 |
+| U.S. Census Bureau, 2010 Census surnames | Public domain |
+| GeoNames, cities1000 (geonames.org) | CC BY 4.0 |
+
 ## Runtime
 
 The standalone build bundles the .NET runtime (© .NET Foundation and contributors, MIT License).

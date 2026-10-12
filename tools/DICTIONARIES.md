@@ -16,6 +16,21 @@ merges the sources below into `src/HanYeong.Core/Data/en.tsv.gz` and `ko.tsv.gz`
 | `kor_wikipedia_2021_300K/` | Leipzig Corpora Collection — https://downloads.wortschatz-leipzig.de/corpora/kor_wikipedia_2021_300K.tar.gz | Encyclopedic Korean | CC BY 4.0 |
 | `Data/extra-words.txt`, `Data/extra-words-ko.txt` | Hand-picked (this repo) | Chat slang, brands, places, tech terms | — |
 
+### Names (`Data/names.txt.gz`, `tools/build_names.py`)
+
+A capitalized word on this list is left as English (Ndidi, Kowalczyk are names, not Korean typed in English mode).
+Only one-word Latin names of 4+ letters; common English words (score 3.0+) are left to the frequency list.
+
+| File | Source | What it adds | License |
+|---|---|---|---|
+| `wikidata-given.tsv`, `wikidata-family.tsv` | Wikidata labels of given names (Q202444) and family names (Q101352), via the QLever SPARQL endpoint (https://qlever.dev/api/wikidata, `action=tsv_export`) | Names from every country | CC0 |
+| `census/Names_2010Census.csv` | US Census 2010 surnames — https://www2.census.gov/topics/genealogy/2010surnames/names.zip | 162k US surnames | Public domain |
+| `geonames/cities1000.txt` | GeoNames — https://download.geonames.org/export/dump/cities1000.zip | Cities with 1,000+ people | CC BY 4.0 |
+
+```
+python tools/build_names.py <download-folder>
+```
+
 The CC BY-SA / CC BY sources require attribution if the app is distributed.
 
 ## Rebuild

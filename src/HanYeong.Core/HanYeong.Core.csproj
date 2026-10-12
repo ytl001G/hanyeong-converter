@@ -9,6 +9,7 @@
   <ItemGroup>
     <EmbeddedResource Include="Data\en.tsv.gz" LogicalName="en.tsv.gz" />
     <EmbeddedResource Include="Data\ko.tsv.gz" LogicalName="ko.tsv.gz" />
+    <EmbeddedResource Include="Data\names.txt.gz" LogicalName="names.txt.gz" />
   </ItemGroup>
 
 </Project>

@@ -66,6 +66,7 @@ sealed class Controller : IDisposable
         {
             _ = WordFrequency.English.Value;
             _ = WordFrequency.Korean.Value;
+            _ = NameList.Default.Value;
             _ = CommonSyllables.Count;
             _isDictionaryReady = true;
             Log.Write("dictionaries loaded");

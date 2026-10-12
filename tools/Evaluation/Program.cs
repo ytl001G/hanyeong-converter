@@ -1,6 +1,7 @@
 // Accuracy evaluation for docs/accuracy-report.md.
 // Usage: dotnet run -c Release --project tools/Evaluation -- <held-out folder> [results.json] [--quick]
 // --quick skips the threshold sweep, Ctrl+Space fidelity and speed: enough to check a detector change.
+// --edge <folder> adds edge-case statistics from more Leipzig corpora (kor*/eng* subfolders, any size).
 // The folder holds Leipzig corpora not used to build the word tables (see docs/accuracy-report.md):
 //   eng_news_2024_100K, eng_wikipedia_2016_100K, kor-kr_web_2015_100K, kor_newscrawl_2016_100K
 using System.Diagnostics;
@@ -10,7 +11,9 @@ using HanYeong.Core;
 
 Console.OutputEncoding = Encoding.UTF8;
 bool quick = args.Contains("--quick");
-var positional = args.Where(a => !a.StartsWith("--")).ToArray();
+int edgeIndex = Array.IndexOf(args, "--edge");
+string? edgeRoot = edgeIndex >= 0 ? args[edgeIndex + 1] : null;
+var positional = args.Where((a, i) => !a.StartsWith("--") && (edgeIndex < 0 || i != edgeIndex + 1)).ToArray();
 string root = positional[0];
 string outPath = positional.Length > 1 ? positional[1] : "eval-results.json";
 var report = new Dictionary<string, object>();
@@ -22,6 +25,7 @@ long memBefore = GC.GetTotalMemory(true);
 var loadTimer = Stopwatch.StartNew();
 _ = WordFrequency.English.Value;
 _ = WordFrequency.Korean.Value;
+_ = NameList.Default.Value;
 _ = CommonSyllables.Count;
 loadTimer.Stop();
 long memAfter = GC.GetTotalMemory(true);
@@ -568,6 +572,143 @@ foreach (string w in sample)
 }
 timer.Stop();
 report["speed"] = new { checks, microsecondsPerCheck = timer.Elapsed.TotalMicroseconds / checks };
+}
+
+// ---------- edge cases from more corpora: only the words of rare shapes are kept, each judged once ----------
+if (edgeRoot is not null)
+{
+    var heldOut = new HashSet<string>(raw.Values.SelectMany(l => l), StringComparer.Ordinal);
+    var mixedShape = new System.Text.RegularExpressions.Regex("^[A-Za-z][A-Za-z0-9]*[가-힣][가-힣A-Za-z0-9]*$");
+    var numberShape = new System.Text.RegularExpressions.Regex("^[+-]?[0-9][0-9,.]*[가-힣]+$");
+    var acronymShape = new System.Text.RegularExpressions.Regex("^[A-Z]{2,}s?$");
+    var camelShape = new System.Text.RegularExpressions.Regex("^([a-z]+[A-Z]|[A-Z][a-z]+[A-Z])[A-Za-z]*$");
+    var numberLatinShape = new System.Text.RegularExpressions.Regex("^[0-9]+[A-Za-z]+$");
+    const string HangulPunctuation = "“”‘’\"'()[]·-/%~";
+    bool IsPunctHangul(string w) => w.Any(Jamo.IsSyllable) && w.Any(c => HangulPunctuation.Contains(c)) && !w.Any(char.IsAsciiLetter);
+    bool IsCodeLike(string w) => w.Contains('@') || w.Contains("://") || w.StartsWith("www.") || (w.Contains('_') && w.Any(char.IsAsciiLetter));
+
+    // category -> word -> count; categories of Korean text start with "ko:", of English text with "en:"
+    var cats = new Dictionary<string, Dictionary<string, int>>();
+    void Add(string cat, string w)
+    {
+        var d = cats.TryGetValue(cat, out var x) ? x : cats[cat] = new Dictionary<string, int>(StringComparer.Ordinal);
+        d[w] = d.GetValueOrDefault(w) + 1;
+    }
+    var edgeSentences = new Dictionary<string, long>();
+    foreach (string dir in Directory.GetDirectories(edgeRoot).OrderBy(d => d))
+    {
+        string name = Path.GetFileName(dir);
+        bool isKorean = name.StartsWith("kor");
+        long kept = 0;
+        foreach (string file in Directory.GetFiles(dir, "*-sentences.txt", SearchOption.AllDirectories))
+        foreach (string line in File.ReadLines(file))
+        {
+            int tab = line.IndexOf('\t');
+            string sentence = tab >= 0 ? line[(tab + 1)..] : line;
+            if (heldOut.Contains(sentence)) continue;
+            kept++;
+            string[] spaced = sentence.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+            for (int t = 0; t < spaced.Length; t++)
+            {
+                string token = spaced[t];
+                if (IsCodeLike(token)) { Add(isKorean ? "ko:code" : "en:code", token.TrimEnd('.', ',', ')', ';', ':')); continue; }
+                foreach (string w in token.Split(wordEnds, StringSplitOptions.RemoveEmptyEntries))
+                {
+                    if (isKorean)
+                    {
+                        if (mixedShape.IsMatch(w)) Add("ko:latinHangul", w);
+                        else if (numberShape.IsMatch(w)) Add("ko:numberHangul", w);
+                        else if (w.Any(Jamo.IsJamo)) Add("ko:chatJamo", w);
+                        else if (IsPunctHangul(w)) Add("ko:punctHangul", w);
+                        else if (IsLatin(w)) Add("ko:englishInKorean", w);
+                    }
+                    else
+                    {
+                        if (acronymShape.IsMatch(w)) Add("en:acronym", w);
+                        else if (camelShape.IsMatch(w)) Add("en:camelCase", w);
+                        else if (numberLatinShape.IsMatch(w)) Add("en:numberLatin", w);
+                        // A capitalized word inside the sentence that no word list has: a name.
+                        else if (t > 0 && IsLatin(w) && char.IsAsciiLetterUpper(w[0]) && w.Skip(1).All(char.IsAsciiLetterLower)
+                            && WordFrequency.English.Value.Score(w) < AutoDetectorOptions.Default.KnownEnglish) Add("en:unknownName", w);
+                    }
+                }
+            }
+        }
+        edgeSentences[name] = kept;
+    }
+    Lap("edge: scan corpora");
+
+    // Typed as meant: any change is a false positive. A code-like run is split into the app's words at . : , etc.
+    bool CorrectChanged(string w, bool isKoreanText) => isKoreanText
+        ? AppResult(w, LayoutConverter.ToEnglish(w), Layout.Korean) is not null
+        : w.Split(wordEnds, StringSplitOptions.RemoveEmptyEntries).Any(p => AppResult(p, p, Layout.English) is not null);
+    // Typed in the other mode: Korean in English mode (the rest typed as meant), English in Korean mode.
+    bool WrongFixed(string w, bool isKoreanText)
+    {
+        if (isKoreanText)
+        {
+            string keys = string.Concat(w.Select(c => Jamo.IsHangul(c) ? LayoutConverter.ToEnglish(c.ToString()) : c.ToString()));
+            return AppResult(keys, keys, Layout.English) == w;
+        }
+        string? r = AppResult(LayoutConverter.ToKorean(w), w, Layout.Korean);
+        return r == w || r == CaseInsensitiveForm(w);
+    }
+    // Latin + Hangul typed entirely in Korean mode: the screen shows broken Hangul for the Latin part.
+    bool KoreanModeFixed(string w)
+    {
+        string keys = LayoutConverter.ToEnglish(w);
+        string? r = AppResult(LayoutConverter.ToKorean(keys), keys, Layout.Korean);
+        return r == w || (r is not null && CaseInsensitiveForm(r) == CaseInsensitiveForm(w));
+    }
+    // Per category: false positives when typed as meant, recovery when typed in the other mode, all-Korean-mode recovery.
+    var measures = new Dictionary<string, (bool Fp, bool Fix, bool KoMode)>
+    {
+        ["ko:latinHangul"] = (false, true, true),
+        ["ko:numberHangul"] = (true, true, false),
+        ["ko:punctHangul"] = (true, true, false),
+        ["ko:chatJamo"] = (true, false, false),
+        ["ko:englishInKorean"] = (true, true, false),
+        ["ko:code"] = (true, false, false),
+        ["en:unknownName"] = (true, true, false),
+        ["en:camelCase"] = (true, true, false),
+        ["en:acronym"] = (true, true, false),
+        ["en:numberLatin"] = (true, false, false),
+        ["en:code"] = (true, false, false),
+    };
+    var edge = new Dictionary<string, object>();
+    foreach (var (cat, words) in cats.OrderBy(c => c.Key))
+    {
+        var (fpOn, fixOn, koModeOn) = measures[cat];
+        bool koText = cat is not ("ko:englishInKorean" or "ko:code") && cat.StartsWith("ko:");
+        var list = words.ToArray();
+        var fp = new bool[list.Length];
+        var fix = new bool[list.Length];
+        var ko = new bool[list.Length];
+        Parallel.For(0, list.Length, i =>
+        {
+            string w = list[i].Key;
+            if (fpOn) fp[i] = CorrectChanged(w, koText);
+            if (fixOn) fix[i] = WrongFixed(w, koText);
+            if (koModeOn) ko[i] = KoreanModeFixed(w);
+        });
+        long total = list.Sum(x => (long)x.Value);
+        double EdgeRate(bool[] flags) => (double)list.Where((x, i) => flags[i]).Sum(x => (long)x.Value) / total;
+        List<string> EdgeTop(bool[] flags, bool want) => list.Select((x, i) => (x, i)).Where(p => flags[p.i] == want)
+            .OrderByDescending(p => p.x.Value).Take(20).Select(p => $"{p.x.Key}({p.x.Value})").ToList();
+        edge[cat] = new
+        {
+            tokens = total,
+            distinctWords = list.Length,
+            falsePositive = fpOn ? EdgeRate(fp) : (double?)null,
+            falsePositiveExamples = fpOn ? EdgeTop(fp, true) : null,
+            fixedWhenTypedInOtherMode = fixOn ? EdgeRate(fix) : (double?)null,
+            missedExamples = fixOn ? EdgeTop(fix, false) : null,
+            fixedWhenTypedAllInKoreanMode = koModeOn ? EdgeRate(ko) : (double?)null,
+            missedAllInKoreanModeExamples = koModeOn ? EdgeTop(ko, false) : null,
+        };
+    }
+    report["edgeCases"] = new { sentences = edgeSentences, categories = edge };
+    Lap("edge: judge");
 }
 
 File.WriteAllText(outPath, JsonSerializer.Serialize(report, new JsonSerializerOptions { WriteIndented = true, Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping }));

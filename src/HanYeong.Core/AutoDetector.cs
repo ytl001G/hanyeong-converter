@@ -59,15 +59,19 @@ public sealed class AutoDetector
     readonly Func<string, float> _english;
     readonly Func<string, float> _korean;
     readonly Func<string, bool> _isException;
+    readonly Func<string, bool> _isName;
     readonly AutoDetectorOptions _o;
 
     public AutoDetector(Func<string, bool>? isException = null, AutoDetectorOptions? options = null)
-        : this(w => WordFrequency.English.Value.Score(w), w => WordFrequency.Korean.Value.Score(w), isException, options)
+        : this(w => WordFrequency.English.Value.Score(w), w => WordFrequency.Korean.Value.Score(w), isException, options,
+            w => NameList.Default.Value.Contains(w))
     {
     }
 
-    public AutoDetector(Func<string, float> english, Func<string, float> korean, Func<string, bool>? isException = null, AutoDetectorOptions? options = null)
+    public AutoDetector(Func<string, float> english, Func<string, float> korean, Func<string, bool>? isException = null,
+        AutoDetectorOptions? options = null, Func<string, bool>? isName = null)
     {
+        _isName = isName ?? (_ => false);
         // The word tables start at two letters; the only one-letter English words are added here.
         _english = w => w.Length == 1 ? (w is "a" or "A" or "i" or "I" ? 7.5f : 0f) : english(w);
         _korean = korean;
@@ -79,6 +83,7 @@ public sealed class AutoDetector
     public string? Check(string word, Layout typedIn)
     {
         if (_isException(word)) return null;
+        if (typedIn == Layout.English && IsKnownName(word)) return null;
         if (!word.All(IsLetter)) return CheckJoined(word, typedIn);
         // All letters, but with an acronym inside (삼성SDS가, 비타민C가): judged in parts like a joined word.
         return CheckPart(word, typedIn)
@@ -104,6 +109,8 @@ public sealed class AutoDetector
     /// </summary>
     public string? Suggest(string word, string keys, Layout typedIn)
     {
+        // A name typed in Korean mode shows as broken Hangul; its keys carry the capital (Ndidi → ㅜ댜야).
+        if (typedIn == Layout.Korean && IsKnownName(keys) && !IsWellFormed(word) && !_isException(word)) return LayoutConverter.ToEnglish(word);
         string? whole = Check(word, typedIn);
         if (whole is null) return CheckMixed(keys, typedIn);
         // Only a plain Hangul word no corpus has is in doubt; new Korean words are common, so it loses only to a
@@ -289,6 +296,10 @@ public sealed class AutoDetector
         return ko < _o.CommonKorean && en - ko >= _o.KoreanToEnglishMargin ? english : null;
     }
 
+    /// <summary>A capitalized word of four letters or more on the name list (Ndidi, Kowalczyk).</summary>
+    bool IsKnownName(string word) =>
+        word.Length >= 4 && char.IsAsciiLetterUpper(word[0]) && word.Skip(1).All(char.IsAsciiLetterLower) && _isName(word);
+
     bool IsEnglishCompound(string english) =>
         english.Length >= 7 && Enumerable.Range(3, english.Length - 5)
             .Any(i => _english(english[..i]) >= _o.MixedEnglishPrefix && _english(english[i..]) >= _o.MixedEnglishPrefix);
@@ -325,6 +336,7 @@ public sealed class AutoDetector
             return CheckMixed(keys[1..], typedIn) is { } signed ? keys[0] + signed : null;
         // Digits only in English mode (ch4가, mp3파일, 6보다): in Korean mode 초4가 is real Korean ("4th grader").
         if (keys.Length < 3 || !keys.All(c => char.IsAsciiLetter(c) || (typedIn == Layout.English && char.IsAsciiDigit(c)))) return null;
+        if (typedIn == Layout.English && IsKnownName(keys)) return null;
         string display = typedIn == Layout.English ? keys : LayoutConverter.ToKorean(keys);
         if (_isException(display)) return null;
         // Korean mode: Shift on a key without a shifted jamo (S, N, ...) changes nothing in Korean, so it is
@@ -338,9 +350,9 @@ public sealed class AutoDetector
         bool isRealWord = typedIn == Layout.English
             ? !isAcronymThenLower && wholeScore >= _o.KnownEnglish
             : !isShiftedForEnglish && _korean(display) > 0;
-        // A rare listed word (asms 1.7, awh 1.5) may still be a letter + Korean (a는, A조); a real one (isms 2.0)
-        // is not split at all.
-        bool isOnlySingleLetter = isRealWord && typedIn == Layout.English && wholeScore < 2.0f;
+        // A rare listed word (asms 1.7) may still be a lowercase letter + Korean (a는); a real one (isms 2.0) is
+        // not split at all, nor a capitalized one: Drua (1.9) is a name, not D + 겸.
+        bool isOnlySingleLetter = isRealWord && typedIn == Layout.English && wholeScore < 2.0f && char.IsAsciiLetterLower(keys[0]);
         if (isRealWord && !isOnlySingleLetter) return null;
 
         // Longest English prefix first. A code (mp3, ch4) ends at its last digit, so there the shortest prefix
