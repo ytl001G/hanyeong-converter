@@ -1,6 +1,6 @@
 {
   "load": {
-    "ms": 352,
+    "ms": 382,
     "managedMB": 16.8,
     "englishWords": 477661,
     "koreanWords": 486868
@@ -14,21 +14,21 @@
       "falsePositivePerToken": 5.414645424651689E-05,
       "sentencesWithFalsePositive": 0.00098,
       "wrongModeTokens": 1846843,
-      "wrongModeFixed": 0.9320326633070597,
-      "wrongModeSentencesFullyFixed": 0.32105,
-      "wrongModeAvgShareFixedPerSentence": 0.9334436212145061
+      "wrongModeFixed": 0.9320321218425172,
+      "wrongModeSentencesFullyFixed": 0.32103,
+      "wrongModeAvgShareFixedPerSentence": 0.9334422524256863
     },
     "en_wiki": {
       "sentences": 100000,
       "tokens": 2090860,
       "letterTokens": 1950448,
-      "falsePositiveTokens": 206,
-      "falsePositivePerToken": 0.0001056167608672469,
-      "sentencesWithFalsePositive": 0.00189,
+      "falsePositiveTokens": 207,
+      "falsePositivePerToken": 0.00010612946358990344,
+      "sentencesWithFalsePositive": 0.0019,
       "wrongModeTokens": 1950435,
-      "wrongModeFixed": 0.9378246391189657,
-      "wrongModeSentencesFullyFixed": 0.33831,
-      "wrongModeAvgShareFixedPerSentence": 0.9401044151906102
+      "wrongModeFixed": 0.9378200247637065,
+      "wrongModeSentencesFullyFixed": 0.3383,
+      "wrongModeAvgShareFixedPerSentence": 0.9400998975381075
     },
     "ko_web": {
       "sentences": 100000,
@@ -59,8 +59,8 @@
     "en_news": {
       "falsePositivePerWordWithout": 5.414645424651689E-05,
       "falsePositivePerWordWith": 3.898544705749216E-05,
-      "fixedWithout": 0.9320326633070597,
-      "fixedWith": 0.9320315803779747,
+      "fixedWithout": 0.9320321218425172,
+      "fixedWith": 0.9320310389134323,
       "noLongerChanged": [
         "en(16)",
         "di(3)",
@@ -73,10 +73,10 @@
       ]
     },
     "en_wiki": {
-      "falsePositivePerWordWithout": 0.0001056167608672469,
-      "falsePositivePerWordWith": 5.8448110382845375E-05,
-      "fixedWithout": 0.9378246391189657,
-      "fixedWith": 0.9378225882944061,
+      "falsePositivePerWordWithout": 0.00010612946358990344,
+      "falsePositivePerWordWith": 5.896081310550191E-05,
+      "fixedWithout": 0.9378200247637065,
+      "fixedWith": 0.9378179739391469,
       "noLongerChanged": [
         "di(30)",
         "en(28)",
@@ -168,13 +168,13 @@
     },
     "en_news": {
       "sentences": 100000,
-      "fullyFixedWithout": 0.32105,
-      "fullyFixedWith": 0.89995
+      "fullyFixedWithout": 0.32103,
+      "fullyFixedWith": 0.89993
     },
     "en_wiki": {
       "sentences": 100000,
-      "fullyFixedWithout": 0.33831,
-      "fullyFixedWith": 0.87718
+      "fullyFixedWithout": 0.3383,
+      "fullyFixedWith": 0.87712
     },
     "ko_web": {
       "sentences": 100000,
@@ -742,13 +742,13 @@
     ]
   },
   "mixed": {
-    "allLatinHangulFixedEnglishMode": 0.9136714813570709,
-    "allLatinHangulFixedKoreanMode": 0.8815922069197178,
+    "allLatinHangulFixedEnglishMode": 0.9138394356734968,
+    "allLatinHangulFixedKoreanMode": 0.8867987907289218,
     "latinHangulTokens": 11908,
     "distinctWords": 4465,
     "tokens": 7204,
-    "fixedWhenTypedInEnglishMode": 0.9832037756801777,
-    "fixedWhenTypedInKoreanMode": 0.9325374791782343,
+    "fixedWhenTypedInEnglishMode": 0.9834813992226541,
+    "fixedWhenTypedInKoreanMode": 0.9411438089950028,
     "topMisses": [
       {
         "word": "MWC2015에서",
@@ -856,7 +856,7 @@
     "english": {
       "distinctWords": 24104,
       "tokens": 51881,
-      "falsePositive": 7.709951620053584E-05,
+      "falsePositive": 0.0001349241533509377,
       "fixedWhenTypedInOtherMode": 0.8935833927642104,
       "falsePositiveExamples": [
         {
@@ -864,7 +864,19 @@
           "count": 1
         },
         {
+          "change": "Tendi's→ㅆ두야'ㄴ",
+          "count": 1
+        },
+        {
           "change": "Emefiele's→뜯랴딛'ㄴ",
+          "count": 1
+        },
+        {
+          "change": "Tusla's→Tu님'ㄴ",
+          "count": 1
+        },
+        {
+          "change": "Kahs-wan→K몬-wan",
           "count": 1
         },
         {
@@ -896,9 +908,9 @@
     "koreanTypedInEnglishMode": [
       {
         "shape": "H",
-        "missedTokens": 8400,
-        "shareOfAllWords": 0.0024331055290005904,
-        "missRateInShape": 0.0027097036422933127,
+        "missedTokens": 8378,
+        "shareOfAllWords": 0.0024267331097579696,
+        "missRateInShape": 0.0027026067994206397,
         "examples": [
           "내(1975)",
           "해(884)",
@@ -916,9 +928,9 @@
       },
       {
         "shape": "LH",
-        "missedTokens": 859,
-        "shareOfAllWords": 0.0002488140058823223,
-        "missRateInShape": 0.06288893769675671,
+        "missedTokens": 908,
+        "shareOfAllWords": 0.00026300712146815904,
+        "missRateInShape": 0.06647631598213632,
         "examples": [
           "t당(13)",
           "A형(13)",
@@ -1216,9 +1228,9 @@
       },
       {
         "shape": "DLH",
-        "missedTokens": 192,
-        "shareOfAllWords": 5.561384066287063E-05,
-        "missRateInShape": 0.16298811544991512,
+        "missedTokens": 194,
+        "shareOfAllWords": 5.619315150310887E-05,
+        "missRateInShape": 0.16468590831918506,
         "examples": [
           "3D프린팅(13)",
           "10a당(7)",
@@ -1398,9 +1410,9 @@
     "englishTypedInKoreanMode": [
       {
         "shape": "L",
-        "missedTokens": 246794,
-        "shareOfAllWords": 0.06222382463951914,
-        "missRateInShape": 0.06499234451625611,
+        "missedTokens": 246804,
+        "shareOfAllWords": 0.06222634592547583,
+        "missRateInShape": 0.06499497798159629,
         "examples": [
           "to(106053)",
           "a(87057)",
@@ -1903,46 +1915,46 @@
       "parameter": "EnglishToKoreanMargin",
       "value": 0,
       "isDefault": false,
-      "enModeFalsePositive": 0.001282240949753803,
+      "enModeFalsePositive": 0.0012827646340297899,
       "enModeFixed": 0.9988425283722491,
       "koModeFalsePositive": 1.903311762466692E-05,
-      "koModeFixed": 0.9350780747794962
+      "koModeFixed": 0.9350749326738402
     },
     {
       "parameter": "EnglishToKoreanMargin",
       "value": 0.5,
       "isDefault": false,
-      "enModeFalsePositive": 0.00013092106899671257,
+      "enModeFalsePositive": 0.00013144475327269944,
       "enModeFixed": 0.9980108779106153,
       "koModeFalsePositive": 1.903311762466692E-05,
-      "koModeFixed": 0.9350780747794962
+      "koModeFixed": 0.9350749326738402
     },
     {
       "parameter": "EnglishToKoreanMargin",
       "value": 1,
       "isDefault": true,
-      "enModeFalsePositive": 8.378948415789605E-05,
+      "enModeFalsePositive": 8.405132629588948E-05,
       "enModeFixed": 0.9973292342234811,
       "koModeFalsePositive": 1.903311762466692E-05,
-      "koModeFixed": 0.9350780747794962
+      "koModeFixed": 0.9350749326738402
     },
     {
       "parameter": "EnglishToKoreanMargin",
       "value": 1.5,
       "isDefault": false,
-      "enModeFalsePositive": 4.739342697680995E-05,
+      "enModeFalsePositive": 4.7655269114803376E-05,
       "enModeFixed": 0.9939687598794784,
       "koModeFalsePositive": 1.903311762466692E-05,
-      "koModeFixed": 0.9350780747794962
+      "koModeFixed": 0.9350749326738402
     },
     {
       "parameter": "EnglishToKoreanMargin",
       "value": 2,
       "isDefault": false,
-      "enModeFalsePositive": 2.3565792419408264E-05,
+      "enModeFalsePositive": 2.3827634557401688E-05,
       "enModeFixed": 0.8436916505906719,
       "koModeFalsePositive": 1.903311762466692E-05,
-      "koModeFixed": 0.9350780747794962
+      "koModeFixed": 0.9350749326738402
     },
     {
       "parameter": "EnglishToKoreanMargin",
@@ -1951,195 +1963,195 @@
       "enModeFalsePositive": 1.7805265383552908E-05,
       "enModeFixed": 0.7764789377584794,
       "koModeFalsePositive": 1.903311762466692E-05,
-      "koModeFixed": 0.9350780747794962
+      "koModeFixed": 0.9350749326738402
     },
     {
       "parameter": "UnseenKorean",
       "value": 0.5,
       "isDefault": false,
-      "enModeFalsePositive": 6.729342946431026E-05,
+      "enModeFalsePositive": 6.755527160230369E-05,
       "enModeFixed": 0.8484212190227945,
       "koModeFalsePositive": 1.903311762466692E-05,
-      "koModeFixed": 0.9350780747794962
+      "koModeFixed": 0.9350749326738402
     },
     {
       "parameter": "UnseenKorean",
       "value": 1,
       "isDefault": false,
-      "enModeFalsePositive": 8.378948415789605E-05,
+      "enModeFalsePositive": 8.405132629588948E-05,
       "enModeFixed": 0.9973292342234811,
       "koModeFalsePositive": 1.903311762466692E-05,
-      "koModeFixed": 0.9350780747794962
+      "koModeFixed": 0.9350749326738402
     },
     {
       "parameter": "UnseenKorean",
       "value": 1.5,
       "isDefault": true,
-      "enModeFalsePositive": 8.378948415789605E-05,
+      "enModeFalsePositive": 8.405132629588948E-05,
       "enModeFixed": 0.9973292342234811,
       "koModeFalsePositive": 1.903311762466692E-05,
-      "koModeFixed": 0.9350780747794962
+      "koModeFixed": 0.9350749326738402
     },
     {
       "parameter": "UnseenKorean",
       "value": 2,
       "isDefault": false,
-      "enModeFalsePositive": 8.614606339983688E-05,
+      "enModeFalsePositive": 8.64079055378303E-05,
       "enModeFixed": 0.9973292342234811,
       "koModeFalsePositive": 1.903311762466692E-05,
-      "koModeFixed": 0.9350780747794962
+      "koModeFixed": 0.9350749326738402
     },
     {
       "parameter": "UnseenKorean",
       "value": 2.5,
       "isDefault": false,
-      "enModeFalsePositive": 9.190659043569222E-05,
+      "enModeFalsePositive": 9.216843257368565E-05,
       "enModeFixed": 0.9973356861277606,
       "koModeFalsePositive": 1.903311762466692E-05,
-      "koModeFixed": 0.9350780747794962
+      "koModeFixed": 0.9350749326738402
     },
     {
       "parameter": "KoreanToEnglishMargin",
       "value": 1,
       "isDefault": false,
-      "enModeFalsePositive": 8.378948415789605E-05,
+      "enModeFalsePositive": 8.405132629588948E-05,
       "enModeFixed": 0.9973292342234811,
       "koModeFalsePositive": 6.903537579116477E-05,
-      "koModeFixed": 0.9353506524451474
+      "koModeFixed": 0.9353475103394914
     },
     {
       "parameter": "KoreanToEnglishMargin",
       "value": 1.5,
       "isDefault": false,
-      "enModeFalsePositive": 8.378948415789605E-05,
+      "enModeFalsePositive": 8.405132629588948E-05,
       "enModeFixed": 0.9973292342234811,
       "koModeFalsePositive": 5.4841186376158924E-05,
-      "koModeFixed": 0.9352956655961687
+      "koModeFixed": 0.9352925234905128
     },
     {
       "parameter": "KoreanToEnglishMargin",
       "value": 2,
       "isDefault": false,
-      "enModeFalsePositive": 8.378948415789605E-05,
+      "enModeFalsePositive": 8.405132629588948E-05,
       "enModeFixed": 0.9973292342234811,
       "koModeFalsePositive": 3.8711425677288654E-05,
-      "koModeFixed": 0.9352226116396686
+      "koModeFixed": 0.9352194695340127
     },
     {
       "parameter": "KoreanToEnglishMargin",
       "value": 2.5,
       "isDefault": false,
-      "enModeFalsePositive": 8.378948415789605E-05,
+      "enModeFalsePositive": 8.405132629588948E-05,
       "enModeFixed": 0.9973292342234811,
       "koModeFalsePositive": 2.7743188402056866E-05,
-      "koModeFixed": 0.9351849063717975
+      "koModeFixed": 0.9351817642661416
     },
     {
       "parameter": "KoreanToEnglishMargin",
       "value": 3,
       "isDefault": true,
-      "enModeFalsePositive": 8.378948415789605E-05,
+      "enModeFalsePositive": 8.405132629588948E-05,
       "enModeFixed": 0.9973292342234811,
       "koModeFalsePositive": 1.903311762466692E-05,
-      "koModeFixed": 0.9350780747794962
+      "koModeFixed": 0.9350749326738402
     },
     {
       "parameter": "CommonKorean",
       "value": 2.5,
       "isDefault": false,
-      "enModeFalsePositive": 8.378948415789605E-05,
+      "enModeFalsePositive": 8.405132629588948E-05,
       "enModeFixed": 0.9973292342234811,
       "koModeFalsePositive": 1.483937984296065E-05,
-      "koModeFixed": 0.9229471903683988
+      "koModeFixed": 0.9229440482627429
     },
     {
       "parameter": "CommonKorean",
       "value": 3,
       "isDefault": false,
-      "enModeFalsePositive": 8.378948415789605E-05,
+      "enModeFalsePositive": 8.405132629588948E-05,
       "enModeFixed": 0.9973292342234811,
       "koModeFalsePositive": 1.5161975056938056E-05,
-      "koModeFixed": 0.9244281695008896
+      "koModeFixed": 0.9244250273952337
     },
     {
       "parameter": "CommonKorean",
       "value": 3.5,
       "isDefault": true,
-      "enModeFalsePositive": 8.378948415789605E-05,
+      "enModeFalsePositive": 8.405132629588948E-05,
       "enModeFixed": 0.9973292342234811,
       "koModeFalsePositive": 1.903311762466692E-05,
-      "koModeFixed": 0.9350780747794962
+      "koModeFixed": 0.9350749326738402
     },
     {
       "parameter": "CommonKorean",
       "value": 4,
       "isDefault": false,
-      "enModeFalsePositive": 8.378948415789605E-05,
+      "enModeFalsePositive": 8.405132629588948E-05,
       "enModeFixed": 0.9973292342234811,
       "koModeFalsePositive": 1.903311762466692E-05,
-      "koModeFixed": 0.9350780747794962
+      "koModeFixed": 0.9350749326738402
     },
     {
       "parameter": "CommonKorean",
       "value": 4.5,
       "isDefault": false,
-      "enModeFalsePositive": 8.378948415789605E-05,
+      "enModeFalsePositive": 8.405132629588948E-05,
       "enModeFixed": 0.9973292342234811,
       "koModeFalsePositive": 1.903311762466692E-05,
-      "koModeFixed": 0.9350780747794962
+      "koModeFixed": 0.9350749326738402
     },
     {
       "parameter": "KnownEnglish",
       "value": 1,
       "isDefault": false,
-      "enModeFalsePositive": 8.012369422598809E-05,
+      "enModeFalsePositive": 8.038553636398152E-05,
       "enModeFixed": 0.9973202015574897,
       "koModeFalsePositive": 1.903311762466692E-05,
-      "koModeFixed": 0.9356512472195638
+      "koModeFixed": 0.9356488906403219
     },
     {
       "parameter": "KnownEnglish",
       "value": 1.5,
       "isDefault": true,
-      "enModeFalsePositive": 8.378948415789605E-05,
+      "enModeFalsePositive": 8.405132629588948E-05,
       "enModeFixed": 0.9973292342234811,
       "koModeFalsePositive": 1.903311762466692E-05,
-      "koModeFixed": 0.9350780747794962
+      "koModeFixed": 0.9350749326738402
     },
     {
       "parameter": "KnownEnglish",
       "value": 2,
       "isDefault": false,
-      "enModeFalsePositive": 9.819080174753443E-05,
+      "enModeFalsePositive": 9.950001243750156E-05,
       "enModeFixed": 0.99734375100811,
       "koModeFalsePositive": 1.838792719671211E-05,
-      "koModeFixed": 0.9335078074779496
+      "koModeFixed": 0.9335041416880178
     },
     {
       "parameter": "KnownEnglish",
       "value": 2.5,
       "isDefault": false,
-      "enModeFalsePositive": 0.00011416317216513336,
+      "enModeFalsePositive": 0.00011573422499309391,
       "enModeFixed": 0.9973508481028176,
       "koModeFalsePositive": 1.838792719671211E-05,
-      "koModeFixed": 0.9306353992241617
+      "koModeFixed": 0.9306299005392639
     },
     {
       "parameter": "KnownEnglish",
       "value": 3,
       "isDefault": false,
-      "enModeFalsePositive": 0.00014532238658635096,
+      "enModeFalsePositive": 0.00014820265010427863,
       "enModeFixed": 0.9973556870310272,
-      "koModeFalsePositive": 1.8065331982734703E-05,
-      "koModeFixed": 0.9238479273230962
+      "koModeFalsePositive": 1.7742736768757298E-05,
+      "koModeFixed": 0.9238416431117843
     }
   ],
   "nonsense": {
-    "randomLowercaseInEnglishMode": 0.02714,
+    "randomLowercaseInEnglishMode": 0.02763,
     "randomLowercaseFormsValidHangul": 0.02649,
-    "randomKeysInKoreanMode": 0.05769,
+    "randomKeysInKoreanMode": 0.05847,
     "idLikeLettersDigits": 0,
-    "passwordLike": 0.00742,
+    "passwordLike": 0.00743,
     "randomSyllablesTypedInEnglish": 0.99953
   },
   "hotkey": {
@@ -2174,7 +2186,7 @@
   },
   "speed": {
     "checks": 200000,
-    "microsecondsPerCheck": 1.068945
+    "microsecondsPerCheck": 1.09758
   },
   "edgeCases": {
     "sentences": {
@@ -2302,7 +2314,7 @@
       "en:unknownName": {
         "tokens": 105343,
         "distinctWords": 38645,
-        "falsePositive": 0.0026959551180429646,
+        "falsePositive": 0.0027054479177543835,
         "falsePositiveExamples": [
           "Emefiele(16)",
           "Qorvo(4)",
@@ -2354,7 +2366,7 @@
       "ko:chatJamo": {
         "tokens": 9198,
         "distinctWords": 2882,
-        "falsePositive": 0.01913459447706023,
+        "falsePositive": 0.022722330941509022,
         "falsePositiveExamples": [
           "ㄷ업체는(3)",
           "ㅇㅇㅇ의(3)",
@@ -2365,17 +2377,17 @@
           "ㄱㅎ에서(2)",
           "ㅡ이(2)",
           "ㅁ자형을(2)",
+          "‘ㅇㅇ에(2)",
           "ㄷ제조사(1)",
+          "‘ㅇ머시기’(1)",
+          "‘ㅇㅇㅇ검사장’(1)",
           "ㄸㅗ(1)",
           "ㄷ회사의(1)",
           "ㄷ이사는(1)",
-          "ㅈ녀들의(1)",
-          "ㅡ경기(1)",
-          "ㄷ교수는(1)",
-          "ㄷ제조사도(1)",
-          "ㄷ기업(1)",
-          "ㅡ그런(1)",
-          "ㄷ재단은(1)"
+          "(“ㅇㅇ와(1)",
+          "“ㅇㅇ와함께한(1)",
+          "“ㅇㅇ로부터(1)",
+          "ㅈ녀들의(1)"
         ],
         "fixedWhenTypedInOtherMode": null,
         "missedExamples": null,
@@ -2395,13 +2407,14 @@
       "ko:englishInKorean": {
         "tokens": 259528,
         "distinctWords": 28603,
-        "falsePositive": 0.00047779045035603097,
+        "falsePositive": 0.0005086156407015813,
         "falsePositiveExamples": [
           "en(25)",
           "di(14)",
           "xls(13)",
           "Fwy(10)",
           "sp(6)",
+          "bbb(6)",
           "sns(5)",
           "au(4)",
           "sk(4)",
@@ -2415,10 +2428,9 @@
           "tp(1)",
           "Bluehaus(1)",
           "CNNgo(1)",
-          "durns(1)",
-          "sla(1)"
+          "durns(1)"
         ],
-        "fixedWhenTypedInOtherMode": 0.954409543478931,
+        "fixedWhenTypedInOtherMode": 0.9543979840325514,
         "missedExamples": [
           "Wed(1262)",
           "Q(1257)",
@@ -2449,7 +2461,7 @@
         "distinctWords": 64852,
         "falsePositive": null,
         "falsePositiveExamples": null,
-        "fixedWhenTypedInOtherMode": 0.941882914225162,
+        "fixedWhenTypedInOtherMode": 0.9387184338241342,
         "missedExamples": [
           "K리그1(303)",
           "A군은(220)",
@@ -2472,28 +2484,28 @@
           "B가(55)",
           "G마켓과(53)"
         ],
-        "fixedWhenTypedAllInKoreanMode": 0.867295046668828,
+        "fixedWhenTypedAllInKoreanMode": 0.8672611760834958,
         "missedAllInKoreanModeExamples": [
           "K리그1(303)",
+          "A군은(220)",
           "n번방(212)",
           "NH투자증권(139)",
           "K리그2(138)",
           "A형(125)",
+          "A군의(101)",
           "A군(99)",
           "C형간염(77)",
+          "A군이(74)",
           "A4용지(72)",
           "n차(72)",
+          "A군을(66)",
           "E조(64)",
           "t당(63)",
           "e편한세상(59)",
           "MBC에브리원(59)",
           "B형간염(58)",
           "SK행복드림구장에서(58)",
-          "G마켓과(53)",
-          "KGC인삼공사(52)",
-          "LS산전(52)",
-          "LG하우시스(52)",
-          "KDB대우증권(52)"
+          "G마켓과(53)"
         ]
       },
       "ko:numberHangul": {
@@ -2534,7 +2546,7 @@
       "ko:punctHangul": {
         "tokens": 2748667,
         "distinctWords": 1221139,
-        "falsePositive": 3.492602050375691E-05,
+        "falsePositive": 3.565364593091851E-05,
         "falsePositiveExamples": [
           "노딜’(10)",
           "“얘(7)",
@@ -2557,7 +2569,7 @@
           "챗’(1)",
           "밋’(1)"
         ],
-        "fixedWhenTypedInOtherMode": 0.9839893301007361,
+        "fixedWhenTypedInOtherMode": 0.9844284520460281,
         "missedExamples": [
           "“내(810)",
           "‘내(725)",
