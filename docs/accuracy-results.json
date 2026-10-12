@@ -1,6 +1,6 @@
 {
   "load": {
-    "ms": 373,
+    "ms": 352,
     "managedMB": 16.8,
     "englishWords": 477661,
     "koreanWords": 486868
@@ -190,25 +190,21 @@
       "sentencesWithEnglish": 6987,
       "koreanWords": 114709,
       "falsePositivePerKoreanWordWithout": 0,
-      "falsePositivePerKoreanWordWith": 0.0001743542355002659,
+      "falsePositivePerKoreanWordWith": 6.102398242509306E-05,
       "sentencesWithFalsePositiveWithout": 0,
-      "sentencesWithFalsePositiveWith": 0.002862458852154,
+      "sentencesWithFalsePositiveWith": 0.0010018605982539,
       "topContextErrors": [
         {
-          "change": "새→to",
-          "count": 9
-        },
-        {
           "change": "는→sms",
-          "count": 6
+          "count": 3
         },
         {
-          "change": "은→dms",
+          "change": "새→to",
           "count": 3
         },
         {
           "change": "내→so",
-          "count": 2
+          "count": 1
         }
       ]
     },
@@ -216,21 +212,17 @@
       "sentencesWithEnglish": 4701,
       "koreanWords": 80443,
       "falsePositivePerKoreanWordWithout": 3.7293487313998735E-05,
-      "falsePositivePerKoreanWordWith": 0.0002113297614459928,
+      "falsePositivePerKoreanWordWith": 7.458697462799747E-05,
       "sentencesWithFalsePositiveWithout": 0.0006381620931716656,
-      "sentencesWithFalsePositiveWith": 0.003616251861306105,
+      "sentencesWithFalsePositiveWith": 0.0012763241863433313,
       "topContextErrors": [
         {
-          "change": "새→to",
-          "count": 9
-        },
-        {
           "change": "내→so",
-          "count": 2
+          "count": 1
         },
         {
           "change": "은→dms",
-          "count": 2
+          "count": 1
         },
         {
           "change": "는→sms",
@@ -2182,7 +2174,7 @@
   },
   "speed": {
     "checks": 200000,
-    "microsecondsPerCheck": 0.77369
+    "microsecondsPerCheck": 1.068945
   },
   "edgeCases": {
     "sentences": {
