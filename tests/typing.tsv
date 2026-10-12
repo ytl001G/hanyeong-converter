@@ -115,7 +115,9 @@ KO	gyrus⏎	=
 KO	gothtlzu	해소시켜
 KO	cjflehlqslek	=
 EN	qlrygkslRK	비교하니까
-EN	dkssUD	안녕
+# Shift only slips on past a key that needs it, in a long word: not dkssUD, not RK는
+EN	dkssUD	dkssUD
+EN	RKsms	RK는
 EN	Hello	Hello
 EN	znlwm⏎	퀴즈
 EN	shxmqnr⏎	노트북

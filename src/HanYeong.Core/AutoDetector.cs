@@ -317,8 +317,9 @@ public sealed class AutoDetector
             // One-key parts just follow (the t of don't).
             else if (KeyCount(part, typedIn) < _o.MinKeys)
                 result.Append(converted);
-            // A part may be English + particle itself: pre-stimulus가 (stimulus + 가), in either mode.
-            else if (CheckMixed(typedIn == Layout.English ? part : LayoutConverter.ToEnglish(part), typedIn) is { } mixedPart)
+            // A part may be English + particle itself: pre-stimulus가 (stimulus + 가), in either mode. Only between
+            // punctuation: an acronym inside letters (ATldml) is no joined word, and CheckMixed reads it whole (A씨의).
+            else if (word.Any(JoinerPunctuation.Contains) && CheckMixed(typedIn == Layout.English ? part : LayoutConverter.ToEnglish(part), typedIn) is { } mixedPart)
             {
                 anyConverts = true;
                 result.Append(mixedPart);
@@ -381,16 +382,15 @@ public sealed class AutoDetector
     string? CheckEnglish(string word)
     {
         if (!word.All(char.IsAsciiLetter)) return null;
-        // Capitals other than Korean shift keys usually mean a real English word, name or acronym. Shift on such a
-        // key changes nothing in Korean (there is no double ㄹ or ㅏ), so a stray one in plain Korean is a slip:
-        // qlrygkslRK is 비교하니까 (R is ㄲ, the K just ㅏ), when the result is clearly Korean and no English.
+        // Capitals other than Korean shift keys usually mean a real English word, name or acronym. One slip is kept:
+        // Shift held on past a key that needs it (the R of ㄲ, then K), inside a long Korean word: qlrygkslRK is
+        // 비교하니까. Not without such a key (dkssUD), at the start (RK는, SK는), or in a short word.
         if (HasEnglishOnlyShift(word))
         {
-            // All capitals is an acronym (FLCJ, GMLS), never a slip.
-            if (!word.Any(char.IsAsciiLetterLower)) return null;
             string unshifted = new(word.Select(c => IsEnglishOnlyCapital(c) ? char.ToLowerInvariant(c) : c).ToArray());
             string reading = LayoutConverter.ToKorean(unshifted);
-            return IsWellFormed(reading) && IsKoreanWord(reading) && _english(word) < _o.KnownEnglish ? reading : null;
+            return IsShiftHeldOn(word) && reading.Length >= 4 && IsWellFormed(reading) && IsKoreanWord(reading)
+                && _english(word) < _o.KnownEnglish ? reading : null;
         }
 
         string korean = LayoutConverter.ToKorean(word);
@@ -493,13 +493,27 @@ public sealed class AutoDetector
     static bool IsChatJamo(string korean, float english, float below) =>
         korean.Length >= 2 && korean.All(c => c == korean[0]) && "ㅋㅎㅇㅠㅜㄷㄱㅂㄴ".Contains(korean[0]) && english < below;
 
+    // Every capital without a shifted jamo follows a capital, in a run that starts on a Korean shift key after
+    // lowercase: Shift was pressed for ㄲ and held (qlrygkslRK), not for the capital itself.
+    static bool IsShiftHeldOn(string word) =>
+        Enumerable.Range(0, word.Length).Where(i => IsEnglishOnlyCapital(word[i])).All(i =>
+        {
+            int start = i;
+            while (start > 0 && char.IsAsciiLetterUpper(word[start - 1])) start--;
+            return start > 0 && start < i && KoreanShiftKeys.Contains(word[start]);
+        });
+
     // Double final consonants (ㄳ ㄵ ㄶ ㄺ ...), which no anonymous initial is.
     static bool IsCluster(char jamo) => "ㄳㄵㄶㄺㄻㄼㄽㄾㄿㅀㅄ".Contains(jamo);
 
-    // English mode: everyday syllables only (a rare one there is more likely English keys); Korean mode: any
-    // complete syllable, as the IME made it from keys the user meant as Korean.
+    // English mode: everyday syllables only (a rare one there is more likely English keys). Korean mode: Korean
+    // typed with a slip still reads as Korean (신ㄱ노, 반성ㄴ), and so does a lone consonant before syllables, the
+    // way news writes anonymous things (ㄱ자형); English typed there is mostly lone jamo (ㅎㄱ메ㅗㅛ, ㅅ체퍋ㅈ).
     static bool IsReadableKorean(string korean, Layout typedIn) =>
-        typedIn == Layout.Korean ? korean.Length > 0 && korean.All(Jamo.IsSyllable) : IsWellFormed(korean);
+        typedIn == Layout.Korean
+            ? korean.Length > 0 && korean.Count(Jamo.IsJamo) < korean.Count(Jamo.IsSyllable)
+                || (korean.Length >= 2 && Jamo.IsConsonant(korean[0]) && korean[1..].All(Jamo.IsSyllable))
+            : IsWellFormed(korean);
 
     static bool IsShiftedAcronym(string keys) =>
         keys.Length is >= 1 and <= 6 && keys.All(char.IsAsciiLetterUpper) && HasEnglishOnlyShift(keys);
@@ -646,7 +660,11 @@ public sealed class AutoDetector
                     && prefix[1..].All(char.IsAsciiLetterLower)
                     && (isName || !IsReadableKorean(LayoutConverter.ToKorean(prefix), typedIn) || IsEnglishOnlyCapital(prefix[0]));
                 if (isLowerLetter && !(isLongParticle || (korean.Length >= 2 && IsWellFormed(korean) && _korean(korean) >= _o.MixedKoreanRest))) continue;
-                bool isVouched = isAcronym || isCode || (isDeliberate && isSafeParticle) || isUnknownEnglish || isLowerLetter;
+                // A long listed word, however rare, whose keys make no Korean at all, before 이 에 도 로: microphonic이
+                // (1.0). Random keys are on no list.
+                bool isRareLongWord = isSafeParticle && prefix.Length >= 6 && prefix.All(char.IsAsciiLetterLower) && _english(prefix) > 0
+                    && !IsReadableKorean(LayoutConverter.ToKorean(prefix), typedIn);
+                bool isVouched = isAcronym || isCode || (isDeliberate && isSafeParticle) || isUnknownEnglish || isLowerLetter || isRareLongWord;
                 if (!isVouched && _english(prefix) < needed) continue;
                 // In English mode the rest must not be common English itself: Upwork is not Up + 재가 ("work"),
                 // while abbreviations and slang (wh in A조, gud in B형) do not count.

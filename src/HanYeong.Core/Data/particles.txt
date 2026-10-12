@@ -199,3 +199,28 @@
 되니까
 했으니까
 하니까요
+# 라는 + 거 (conscious라는거지): 거 alone is left out, only after 라는.
+라는거
+라는거지
+라는거야
+라는거죠
+라는건
+라는걸
+라는게
+# Exclamations (electrode이구나, idea네요). 군 and 네 alone are left out: concerns, (Ja)pane.
+이구나
+구나
+이군요
+군요
+이군
+이네요
+네요
+# 인 + 거 (graphy인건가), as with 라는.
+인거
+인거지
+인거야
+인건가
+인건지
+인건데
+인게
+인걸

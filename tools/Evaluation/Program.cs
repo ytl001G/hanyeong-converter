@@ -1,6 +1,7 @@
 // Accuracy evaluation for docs/accuracy-report.md.
 // Usage: dotnet run -c Release --project tools/Evaluation -- <held-out folder> [results.json] [--quick]
-// --quick skips the threshold sweep, Ctrl+Space fidelity and speed: enough to check a detector change.
+// --quick skips Ctrl+Space fidelity and speed: enough to check a detector change.
+// --sweep adds the threshold sweep (report section 10): 26 more full passes, only needed when a threshold changes.
 // --edge <folder> adds edge-case statistics from more Leipzig corpora (kor*/eng* subfolders, any size).
 // The folder holds Leipzig corpora not used to build the word tables (see docs/accuracy-report.md):
 //   eng_news_2024_100K, eng_wikipedia_2016_100K, kor-kr_web_2015_100K, kor_newscrawl_2016_100K
@@ -11,6 +12,7 @@ using HanYeong.Core;
 
 Console.OutputEncoding = Encoding.UTF8;
 bool quick = args.Contains("--quick");
+bool runSweep = args.Contains("--sweep");
 int edgeIndex = Array.IndexOf(args, "--edge");
 string? edgeRoot = edgeIndex >= 0 ? args[edgeIndex + 1] : null;
 var positional = args.Where((a, i) => !a.StartsWith("--") && (edgeIndex < 0 || i != edgeIndex + 1)).ToArray();
@@ -552,7 +554,7 @@ object SweepPoint(string name, float value, AutoDetectorOptions opt)
 }
 var d0 = AutoDetectorOptions.Default;
 var sweep = new List<object>();
-if (!quick) {
+if (runSweep) {
 foreach (float v in new[] { 0f, 0.5f, 1.0f, 1.5f, 2.0f, 3.0f }) sweep.Add(SweepPoint("EnglishToKoreanMargin", v, d0 with { EnglishToKoreanMargin = v }));
 foreach (float v in new[] { 0.5f, 1.0f, 1.5f, 2.0f, 2.5f }) sweep.Add(SweepPoint("UnseenKorean", v, d0 with { UnseenKorean = v }));
 foreach (float v in new[] { 1.0f, 1.5f, 2.0f, 2.5f, 3.0f }) sweep.Add(SweepPoint("KoreanToEnglishMargin", v, d0 with { KoreanToEnglishMargin = v }));
@@ -662,14 +664,29 @@ if (edgeRoot is not null)
 
     // category -> word -> count; categories of Korean text start with "ko:", of English text with "en:"
     var cats = new Dictionary<string, Dictionary<string, int>>();
-    void Add(string cat, string w)
-    {
-        var d = cats.TryGetValue(cat, out var x) ? x : cats[cat] = new Dictionary<string, int>(StringComparer.Ordinal);
-        d[w] = d.GetValueOrDefault(w) + 1;
-    }
     var edgeSentences = new Dictionary<string, long>();
-    foreach (string dir in Directory.GetDirectories(edgeRoot).OrderBy(d => d))
+    // The scan does not depend on the detector: it is kept in a cache next to the corpora, keyed by their files.
+    var edgeFiles = Directory.GetDirectories(edgeRoot).OrderBy(d => d)
+        .SelectMany(d => Directory.GetFiles(d, "*-sentences.txt", SearchOption.AllDirectories)).ToList();
+    string cacheKey = string.Join("|", edgeFiles.Select(f => $"{f}:{new FileInfo(f).Length}"))
+        + "|" + string.Join("|", Directory.GetFiles(root, "*-sentences.txt", SearchOption.AllDirectories).Select(f => $"{f}:{new FileInfo(f).Length}"));
+    string cachePath = Path.Combine(edgeRoot, "edge-scan-cache.json");
+    var cached = File.Exists(cachePath) ? JsonSerializer.Deserialize<EdgeScan>(File.ReadAllText(cachePath)) : null;
+    if (cached is not null && cached.Key == cacheKey)
     {
+        cats = cached.Categories;
+        edgeSentences = cached.Sentences;
+    }
+    else
+    {
+    var scans = Directory.GetDirectories(edgeRoot).OrderBy(d => d).AsParallel().AsOrdered().Select(dir =>
+    {
+        var local = new Dictionary<string, Dictionary<string, int>>();
+        void Add(string cat, string w)
+        {
+            var d = local.TryGetValue(cat, out var x) ? x : local[cat] = new Dictionary<string, int>(StringComparer.Ordinal);
+            d[w] = d.GetValueOrDefault(w) + 1;
+        }
         string name = Path.GetFileName(dir);
         bool isKorean = name.StartsWith("kor");
         long kept = 0;
@@ -707,7 +724,18 @@ if (edgeRoot is not null)
                 }
             }
         }
-        edgeSentences[name] = kept;
+        return (Name: name, Kept: kept, Cats: local);
+    }).ToList();
+    foreach (var scan in scans)
+    {
+        edgeSentences[scan.Name] = scan.Kept;
+        foreach (var (cat, words) in scan.Cats)
+        {
+            var d = cats.TryGetValue(cat, out var x) ? x : cats[cat] = new Dictionary<string, int>(StringComparer.Ordinal);
+            foreach (var (w, n) in words) d[w] = d.GetValueOrDefault(w) + n;
+        }
+    }
+    File.WriteAllText(cachePath, JsonSerializer.Serialize(new EdgeScan(cacheKey, cats, edgeSentences)));
     }
     Lap("edge: scan corpora");
 
@@ -799,3 +827,5 @@ File.WriteAllText(outPath, JsonSerializer.Serialize(report, new JsonSerializerOp
 Console.WriteLine($"wrote {outPath}");
 
 sealed record Outcome(bool CorrectChanged, string? CorrectResult, bool WrongFixed, string? WrongResult);
+
+record EdgeScan(string Key, Dictionary<string, Dictionary<string, int>> Categories, Dictionary<string, long> Sentences);
