@@ -68,9 +68,11 @@
 ## 개발
 
 ```powershell
-dotnet test                                  # 단위 테스트 74개 (변환 엔진·자동 판단·단어 표), 약 1초
-.\tools\smoke-test.ps1 -Exe <HanYeong.exe>   # 실제 키 입력 테스트 12단계, 테스트 창 + 메모장 (약 25초간 키보드·마우스 사용 금지)
+dotnet test                                  # 단위 테스트 + 화면 없는 앱 테스트(가짜 키보드·입력창·IME), 약 3초
+.\tools\smoke-test.ps1 -Exe <HanYeong.exe>   # 실제 키 입력 테스트, 테스트 창 + 메모장 (약 1분간 키보드·마우스 사용 금지).
+                                             # 실제 IME·앱에서만 보이는 문제용이라 키 입력 처리를 바꿨을 때만 돌림
 python tools\build_dictionaries.py <폴더>     # 단어 빈도 데이터 다시 만들기
+python tools\build_names.py <폴더>            # 이름 목록 다시 만들기
 ```
 
 구조: `src/HanYeong.Core` (한글 조합·분해, 자동 판단, 단어 데이터) · `src/HanYeong` (후킹, IME 제어, 트레이·설정) · `tests/`
