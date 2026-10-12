@@ -18,6 +18,16 @@ public sealed record AutoDetectorOptions
         MinKeys = 1,
     };
 
+    /// <summary>
+    /// The opposite: an earlier word of this sentence was a sure word left as typed (the, with, 그리고), so the user
+    /// writes in this mode. A short word after it (en, di) changes only when the other reading is far more likely.
+    /// </summary>
+    public static readonly AutoDetectorOptions Staying = Default with
+    {
+        EnglishToKoreanMargin = 3f,
+        KoreanToEnglishMargin = 5f,
+    };
+
     /// <summary>Score given to well-formed Korean missing from the data (a new eojeol beats an unknown Latin string).</summary>
     public float UnseenKorean { get; init; } = 1.5f;
     /// <summary>English mode: convert when Korean scores at least this much higher.</summary>
@@ -78,6 +88,9 @@ public sealed class AutoDetector
         _isException = isException ?? (_ => false);
         _o = options ?? AutoDetectorOptions.Default;
     }
+
+    /// <summary>A word of the mode it was typed in: listed English, or Korean some corpus has.</summary>
+    public bool IsKnownWord(string word, Layout typedIn) => typedIn == Layout.English ? _english(word) >= _o.KnownEnglish : _korean(word) > 0;
 
     /// <summary>The replacement for <paramref name="word"/> (as shown on screen), or null to leave it.</summary>
     public string? Check(string word, Layout typedIn)

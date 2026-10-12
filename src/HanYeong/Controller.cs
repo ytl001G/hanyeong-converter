@@ -27,6 +27,7 @@ sealed class Controller : IDisposable
     readonly IDesktop _desktop;
     readonly AutoDetector _detector;
     readonly AutoDetector _contextDetector;
+    readonly AutoDetector _stayingDetector;
     readonly System.Windows.Forms.Timer _modifierReleaseTimer = new() { Interval = 30 };
 
     const ushort VK_UNASSIGNED = 0xE8;
@@ -61,6 +62,8 @@ sealed class Controller : IDisposable
     Conversion? _last;
     // Mode of the words the auto mode fixed earlier in this sentence: the user is typing in the wrong mode.
     Layout? _contextFrom;
+    // Mode of a sure word left as typed earlier in this sentence (the, 그리고): the user writes in this mode.
+    Layout? _writingIn;
     // A word was already finished since the last click/reset; the tracked segment itself restarts after conversions.
     bool _hasEarlierWord;
 
@@ -73,6 +76,7 @@ sealed class Controller : IDisposable
         _desktop = desktop;
         _detector = new AutoDetector(word => _settings.ExceptionWords.Contains(word));
         _contextDetector = new AutoDetector(word => _settings.ExceptionWords.Contains(word), AutoDetectorOptions.InContext);
+        _stayingDetector = new AutoDetector(word => _settings.ExceptionWords.Contains(word), AutoDetectorOptions.Staying);
         // The headless tests drive OnHookKey/OnMouseClick themselves.
         _hooks = hooks ? new GlobalHooks { KeyPressed = OnHookKey, MouseClicked = OnMouseClick } : null;
         _modifierReleaseTimer.Tick += (_, _) => RunPendingWhenModifiersReleased();
@@ -254,9 +258,11 @@ sealed class Controller : IDisposable
         if (word.Length == 0) return false;
         if (AutoDetector.IsInAddress(text[..^word.Length])) return false;
         bool isInContext = _settings.SentenceContext && _contextFrom == _segment.Layout;
-        var detector = isInContext ? _contextDetector : _detector;
         // The keys carry the typed capitals, which Korean mode does not show (Hello → ㅗ디ㅣㅐ).
         string keys = _segment.Layout == Layout.English ? word : _segment.RestoreCase(LayoutConverter.ToEnglish(word));
+        // After a sure word left as typed, a short word (en, di) keeps the mode unless the other reading is far more likely.
+        bool isStaying = !isInContext && _settings.SentenceContext && _writingIn == _segment.Layout && keys.Length <= 3;
+        var detector = isInContext ? _contextDetector : isStaying ? _stayingDetector : _detector;
         string? replacement = detector.Suggest(word, keys, _segment.Layout);
         if (replacement is not null && _segment.Layout == Layout.Korean) replacement = _segment.RestoreCase(replacement);
         // The user may list either side: what they typed (rk) or what it would become (and).
@@ -264,6 +270,10 @@ sealed class Controller : IDisposable
         {
             // A word left as typed means the user writes in this mode on purpose ("hello 친구"): context ends.
             _contextFrom = null;
+            // A sure word of this mode, one that even the sentence context leaves (the, not so), says so for the
+            // following short words too.
+            bool isSure = _detector.IsKnownWord(word, _segment.Layout) && _contextDetector.Suggest(word, keys, _segment.Layout) is null;
+            _writingIn = isSure && end is not ('.' or '?' or '!') ? _segment.Layout : null;
             return false;
         }
         // A single word and then Enter, with nothing else typed since the last click, may be an ID (rlaalswn is
@@ -294,6 +304,7 @@ sealed class Controller : IDisposable
         _segment = new TypedSegment(conversion.BeforeLayout);
         _last = conversion;
         _contextFrom = end is '.' or '?' or '!' ? null : conversion.BeforeLayout;
+        _writingIn = null;
         Log.Write($"auto {conversion.BeforeLayout}->{conversion.AfterLayout} len={word.Length}->{replacement.Length} end=0x{(endKey == 0 ? end!.Value : endKey):X2}{(heldShifts.Length > 0 ? " shift" : "")}");
         return true;
     }
@@ -510,6 +521,7 @@ sealed class Controller : IDisposable
         _segment = null;
         _last = null;
         _contextFrom = null;
+        _writingIn = null;
         _hasEarlierWord = false;
     }
 

@@ -158,6 +158,7 @@ Lap("corpus stats");
 
 // ---------- sentence context (AutoDetectorOptions.InContext once a word of the sentence was fixed) ----------
 var contextOutcome = Evaluate(new AutoDetector(options: AutoDetectorOptions.InContext), distinctWords);
+var stayingOutcome = Evaluate(new AutoDetector(options: AutoDetectorOptions.Staying), distinctWords);
 Lap("evaluate words (default + context)");
 object ContextStats(string key, Layout lang)
 {
@@ -260,6 +261,50 @@ object EnglishWordsAfterKoreanContext(string key)
         topContextErrors = examples.OrderByDescending(kv => kv.Value).Take(15).Select(kv => new { change = kv.Key, count = kv.Value }).ToList(),
     };
 }
+// Staying: after a sure word left as typed (one even the context leaves), short words of up to three keys are
+// judged with AutoDetectorOptions.Staying. Correct typing: fewer false positives; wrong mode: maybe fewer fixes.
+var known = new AutoDetector();
+object StayingStats(string key, Layout lang)
+{
+    long words = 0, fpWithout = 0, fpWith = 0, wrongWords = 0, fixedWithout = 0, fixedWith = 0;
+    var examples = new Dictionary<string, int>();
+    foreach (var sent in sentences[key])
+    {
+        bool stayCorrect = false, stayWrong = false;
+        foreach (string w in sent)
+        {
+            if (!outcome.TryGetValue(w, out var o)) { stayCorrect = stayWrong = false; continue; }
+            bool latin = IsLatin(w);
+            string keys = latin ? w : LayoutConverter.ToEnglish(w);
+            bool isShort = keys.Length <= 3;
+            // Typed as meant.
+            words++;
+            bool changed = stayCorrect && isShort ? stayingOutcome[w].CorrectChanged : o.CorrectChanged;
+            if (o.CorrectChanged) fpWithout++;
+            if (changed) fpWith++;
+            if (o.CorrectChanged && !changed) examples[w] = examples.GetValueOrDefault(w) + 1;
+            stayCorrect = !changed && !contextOutcome[w].CorrectChanged && known.IsKnownWord(w, latin ? Layout.English : Layout.Korean);
+            // Typed in the other mode: only the sentence's own language is mistyped.
+            if (latin != (lang == Layout.English)) { stayWrong = false; continue; }
+            wrongWords++;
+            bool isFixed = stayWrong && isShort ? stayingOutcome[w].WrongFixed : o.WrongFixed;
+            if (o.WrongFixed) fixedWithout++;
+            if (isFixed) fixedWith++;
+            string screen = latin ? LayoutConverter.ToKorean(w) : keys;
+            stayWrong = !isFixed && !contextOutcome[w].WrongFixed && known.IsKnownWord(screen, latin ? Layout.Korean : Layout.English);
+        }
+    }
+    return new
+    {
+        falsePositivePerWordWithout = (double)fpWithout / words,
+        falsePositivePerWordWith = (double)fpWith / words,
+        fixedWithout = (double)fixedWithout / wrongWords,
+        fixedWith = (double)fixedWith / wrongWords,
+        noLongerChanged = examples.OrderByDescending(kv => kv.Value).Take(15).Select(kv => $"{kv.Key}({kv.Value})").ToList(),
+    };
+}
+report["staying"] = corpora.AsParallel().AsOrdered().Select(c => (c.Key, Stats: StayingStats(c.Key, c.Lang))).ToList().ToDictionary(c => c.Key, c => c.Stats);
+
 var contextParts = new (string Name, Func<object> Run)[]
 {
     ("englishAfterKorean_ko_web", () => EnglishWordsAfterKoreanContext("ko_web")),
