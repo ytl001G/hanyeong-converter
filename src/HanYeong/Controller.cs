@@ -281,7 +281,7 @@ sealed class Controller : IDisposable
         }
         // A single word and then Enter, with nothing else typed since the last click, may be an ID (rlaalswn is
         // someone's ID, not 김민주): it only converts into a common word, as one-word chat messages are (ekdma → 다음).
-        if (endKey == VK_RETURN && !_hasEarlierWord && word.Length == text.Length && !IsCommonOnItsOwn(replacement, _segment.Layout))
+        if (endKey == VK_RETURN && !_hasEarlierWord && word.Length == text.Length && !IsMessageOnItsOwn(replacement, _segment.Layout))
             return false;
 
         // Looking back: the word right before, left alone because it was ambiguous on its own, is fixed along with
@@ -387,10 +387,11 @@ sealed class Controller : IDisposable
         return korean is not null && korean.All(Jamo.IsSyllable) && !_settings.ExceptionWords.Contains(korean) ? korean : null;
     }
 
-    // Chat messages of one word are everyday words (다음 5.6, 네 6.7, 수고하세요 3.7); IDs made of names are rarer
-    // (김민주 2.9, 이지은 3.4).
-    static bool IsCommonOnItsOwn(string replacement, Layout typedIn) =>
-        (typedIn == Layout.English ? WordFrequency.Korean.Value : WordFrequency.English.Value).Score(replacement) >= 3.5f;
+    // Chat messages of one word are everyday words (다음 5.6, 네 6.7, 수고하세요 3.7), or Korean of five syllables
+    // and more, or a word + ending (진행상황에, 확인했어). IDs made of names are short and rarer (김민주 2.9, 이지은 3.4).
+    bool IsMessageOnItsOwn(string replacement, Layout typedIn) =>
+        (typedIn == Layout.English ? WordFrequency.Korean.Value : WordFrequency.English.Value).Score(replacement) >= 3.5f
+        || (typedIn == Layout.English && (replacement.Length >= 5 || _detector.IsWordWithEnding(replacement)));
 
     void QueueConvert()
     {

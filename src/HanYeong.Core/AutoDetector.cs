@@ -410,6 +410,9 @@ public sealed class AutoDetector
     // One syllable that follows a single capital in Korean writing (A조, B팀, C급, A씨).
     static readonly HashSet<string> CapitalSuffixes = WordList.Load("letter-suffixes.txt");
 
+    /// <summary>A Korean word + particles or endings (진행상황에, 확인했어): a sentence word, not a name.</summary>
+    public bool IsWordWithEnding(string korean) => IsWordAndParticles(korean);
+
     bool IsWordAndParticles(string korean) => IsWellFormed(korean) && Enumerable.Range(2, Math.Max(0, korean.Length - 2))
         .Any(i => _korean(korean[..i]) >= 2.5f && IsParticleChain(korean[i..]));
 
