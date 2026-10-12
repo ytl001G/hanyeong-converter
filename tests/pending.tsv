@@ -2,3 +2,5 @@
 # Move a row to words.tsv or typing.tsv once it is fixed.
 # 2026-10-12: Korean mode, screen showed ㅕ샤ㅣㅑ쇼는
 KO	utilitysms	utility는
+# 2026-10-12: English mode, decimal number + 만큼
+EN	0.4akszma	0.4만큼
