@@ -12,6 +12,7 @@ namespace HanYeong;
 sealed class Controller : IDisposable
 {
     const int VK_SHIFT = 0x10, VK_CONTROL = 0x11, VK_MENU = 0x12, VK_LWIN = 0x5B, VK_RWIN = 0x5C;
+    const ushort VK_LSHIFT = 0xA0, VK_RSHIFT = 0xA1;
     const int VK_BACK = 0x08, VK_RETURN = 0x0D, VK_CAPITAL = 0x14, VK_LEFT = 0x25, VK_DOWN = 0x28;
 
     record Conversion(string Before, Layout BeforeLayout, string After, Layout AfterLayout)
@@ -240,17 +241,48 @@ sealed class Controller : IDisposable
         if (endKey == VK_RETURN && !_hasEarlierWord && word.Length == text.Length && !IsCommonOnItsOwn(replacement, _segment.Layout))
             return false;
 
+        // Looking back: a lone jamo right before, left alone because it was ambiguous on its own (ㅑ is I), is
+        // fixed along with this word: ㅑ ㅈ무ㅅ → I want. Proper Korean before stays (내 want may be meant).
+        string before = text[..^word.Length];
+        if (_segment.Layout == Layout.Korean && before.EndsWith(' ') && LeadInFix(before[..^1], word) is { } leadIn)
+        {
+            word = before[(before[..^1].LastIndexOfAny(WordEnds) + 1)..] + word;
+            replacement = leadIn + " " + replacement;
+        }
+
         string ending = end?.ToString() ?? "";
         var conversion = new Conversion(word + ending, _segment.Layout, replacement + ending, _segment.Other);
+        // Shift may still be held from a capital (PTE then Space): our Backspaces would arrive as Shift+Backspace,
+        // which some apps handle differently while a syllable is being composed. Released for the replacement
+        // and pressed again afterwards, as the user still holds it.
+        var heldShifts = new[] { VK_LSHIFT, VK_RSHIFT }.Where(k => IsDown(k)).ToArray();
+        var input = new InputSender();
+        foreach (var k in heldShifts) input.Up(k);
         // The ending key has not reached the app, so only the word is deleted.
-        var input = new InputSender().Key(InputSender.VK_BACK, _segment.BackspacesFor(word.Length)).Text(conversion.After);
+        input.Key(InputSender.VK_BACK, _segment.BackspacesFor(word.Length)).Text(conversion.After);
         if (endKey != 0) input.Key(endKey);
+        foreach (var k in heldShifts) input.Down(k);
         Send(input);
         _segment = new TypedSegment(conversion.BeforeLayout);
         _last = conversion;
         _contextFrom = end is '.' or '?' or '!' ? null : conversion.BeforeLayout;
-        Log.Write($"auto {conversion.BeforeLayout}->{conversion.AfterLayout} len={word.Length}->{replacement.Length} end=0x{(endKey == 0 ? end!.Value : endKey):X2}");
+        Log.Write($"auto {conversion.BeforeLayout}->{conversion.AfterLayout} len={word.Length}->{replacement.Length} end=0x{(endKey == 0 ? end!.Value : endKey):X2}{(heldShifts.Length > 0 ? " shift" : "")}");
         return true;
+    }
+
+    /// <summary>
+    /// The English for the word just before <paramref name="following"/> (<paramref name="textBefore"/> ends with
+    /// it) when it is broken Hangul that reads as English in a sentence; otherwise null.
+    /// </summary>
+    string? LeadInFix(string textBefore, string following)
+    {
+        string previous = textBefore[(textBefore.LastIndexOfAny(WordEnds) + 1)..];
+        if (previous.Length == 0 || !previous.All(Jamo.IsHangul) || AutoDetector.IsWellFormed(previous)) return null;
+        // Capitals as typed: the keys of "previous following" are the tail of the segment.
+        string keys = _segment!.RestoreCase(LayoutConverter.ToEnglish(previous + " " + following))[..LayoutConverter.ToEnglish(previous).Length];
+        string? english = _contextDetector.Suggest(previous, keys, Layout.Korean);
+        if (english is null || _settings.ExceptionWords.Contains(english) || _settings.ExceptionWords.Contains(previous)) return null;
+        return string.Equals(english, keys, StringComparison.OrdinalIgnoreCase) ? keys : english;
     }
 
     // Chat messages of one word are everyday words (다음 5.6, 네 6.7, 수고하세요 3.7); IDs made of names are rarer

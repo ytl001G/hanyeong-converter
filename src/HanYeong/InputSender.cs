@@ -24,6 +24,18 @@ sealed class InputSender
         return this;
     }
 
+    public InputSender Down(ushort vk)
+    {
+        _inputs.Add(Keyboard(vk, (char)0, 0));
+        return this;
+    }
+
+    public InputSender Up(ushort vk)
+    {
+        _inputs.Add(Keyboard(vk, (char)0, KEYEVENTF_KEYUP));
+        return this;
+    }
+
     public InputSender Chord(ushort modifier, ushort vk)
     {
         _inputs.Add(Keyboard(modifier, (char)0, 0));

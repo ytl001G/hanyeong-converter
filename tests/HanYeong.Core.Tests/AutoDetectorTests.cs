@@ -137,6 +137,12 @@ public class MixedWordTests
 /// <summary>The app's full decision between a whole-word reading and an English + Korean split.</summary>
 public class SuggestTests
 {
+    [Theory]
+    [InlineData("autocompact")]        // user's example (며새채ㅡㅔㅁㅊㅅ): two common words, broken Hangul
+    [InlineData("keyboardshortcut")]
+    public void KoreanModeCompound(string keys) =>
+        Assert.Equal(keys, Detector.Suggest(LayoutConverter.ToKorean(keys), keys, Layout.Korean));
+
     static readonly AutoDetector Detector = new();
 
     [Theory]
@@ -173,6 +179,11 @@ public class ContextTests
         Assert.Null(Normal.Check("so", Layout.English));
         Assert.Equal("내", InContext.Check("so", Layout.English));
         Assert.Equal("해", InContext.Check("go", Layout.English));   // user's example: 분석부터 해
+        // A lone jamo before a fixed word is looked back at (ㅑ ㅈ무ㅅ → I want); chat jamo stays.
+        Assert.Equal("I", InContext.Suggest("ㅑ", "I", Layout.Korean), ignoreCase: true);
+        Assert.Equal("a", InContext.Suggest("ㅁ", "a", Layout.Korean));
+        Assert.Null(InContext.Suggest("ㅇ", "d", Layout.Korean));
+        Assert.Null(InContext.Suggest("ㅋ", "z", Layout.Korean));
     }
 }
 

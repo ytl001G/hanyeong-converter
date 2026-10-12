@@ -276,7 +276,9 @@ public sealed class AutoDetector
 
         string english = LayoutConverter.ToEnglish(word);
         float en = _english(english);
-        if (en < _o.KnownEnglish) return null;
+        // A compound no list has (autocompact, keyboardshortcut) is still English when the screen shows broken
+        // Hangul and the keys are exactly two common words.
+        if (en < _o.KnownEnglish) return !IsWellFormed(word) && IsEnglishCompound(english) ? english : null;
         // Other consonant-only/vowel-only strings could still be chat shorthand; only very common
         // English (ㅈㄷ → we, ㅛㅐㅕ → you) is worth converting.
         if ((word.All(Jamo.IsConsonant) || word.All(Jamo.IsVowel)) && en < _o.CommonEnglish) return null;
@@ -286,6 +288,10 @@ public sealed class AutoDetector
         float ko = _korean(word);
         return ko < _o.CommonKorean && en - ko >= _o.KoreanToEnglishMargin ? english : null;
     }
+
+    bool IsEnglishCompound(string english) =>
+        english.Length >= 7 && Enumerable.Range(3, english.Length - 5)
+            .Any(i => _english(english[..i]) >= _o.MixedEnglishPrefix && _english(english[i..]) >= _o.MixedEnglishPrefix);
 
     // Particles and endings that get attached straight to an English word (shortage이다, update했다, Github에서는).
     static readonly HashSet<string> Particles =

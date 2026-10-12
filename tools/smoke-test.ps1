@@ -85,6 +85,10 @@ try {
   Record 'clipboard restored' 'CLIP-KEEP' (Get-Clipboard -Raw).TrimEnd()
   Fresh 'EN'; Type-Text 'dkssud. gktpdy '; Record 'auto on . and Space' '안녕. 하세요 ' $tb.Text
   Fresh 'KO'; Type-Text 'want to go '; Record 'auto KO->EN + sentence context' 'want to go ' $tb.Text
+  Fresh 'KO'; Type-Text 'I want to go '; Record 'lone jamo looked back at (ㅑ = I)' 'I want to go ' $tb.Text
+  Fresh 'KO'; Guard; [K]::Key(0x10, $false); foreach ($v in 0x50, 0x54, 0x45) { [K]::Key($v, $false); [K]::Key($v, $true); Pump 20 }
+  Tap 0x20; Pump 100; [K]::Key(0x10, $true); Pump 100
+  Record 'capitals with Shift held into Space' 'PTE ' $tb.Text
   Fresh 'EN'; Type-Text 'dkssud'; Tap 0x25; Pump 120; Type-Text 'x'; Record 'auto on arrow, cursor moved' '안x녕' $tb.Text
   Fresh 'EN'; Type-Text 'qkqh '; Record 'exception word left alone' 'qkqh ' $tb.Text
   $form.Close(); $script:pumpForm = $false
