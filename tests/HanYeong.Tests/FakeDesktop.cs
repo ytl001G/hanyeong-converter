@@ -56,18 +56,30 @@ sealed class FakeDesktop : IDesktop
     public List<Keystroke> Injected { get; } = new();
 
     public IntPtr ForegroundWindow { get; set; } = 1;
+    public string Exe { get; set; } = "test.exe";
+    /// <summary>Every Send call, as the app made it.</summary>
+    public List<List<Keystroke>> Batches { get; } = new();
     public bool IsDown(int vk) => _down.Contains(vk)
         || (vk == VK_SHIFT && (_down.Contains(VK_LSHIFT) || _down.Contains(VK_RSHIFT)))
         || (vk == VK_CONTROL && _down.Contains(VK_LCONTROL));
     public bool IsCapsLockOn => false;
     public Layout? ImeLayout => Mode;
-    public string CurrentExe => "test.exe";
+    public string CurrentExe => Exe;
     public bool IsPasswordFocused => false;
     public bool IsOwnAppForeground => false;
     public Task<string?> ReadSelectionAsync() => Task.FromResult(Selection);
 
+    public void Replay(IReadOnlyList<KeyEvent> keys)
+    {
+        foreach (var k in keys)
+        {
+            if (k.IsDown) Down(k.Vk); else Up(k.Vk);
+        }
+    }
+
     public bool Send(IReadOnlyList<Keystroke> strokes)
     {
+        if (strokes.Count > 0) Batches.Add(strokes.ToList());
         foreach (var k in strokes)
         {
             Injected.Add(k);
@@ -151,6 +163,7 @@ sealed class FakeDesktop : IDesktop
         ',' => (0xBC, false),
         '-' => (0xBD, false),
         '+' => (0xBB, true),
+        '\'' => (0xDE, false),
         _ when char.IsAsciiLetter(c) => (char.ToUpperInvariant(c), char.IsAsciiLetterUpper(c)),
         _ when char.IsAsciiDigit(c) => (c, false),
         _ => throw new ArgumentException($"no key for '{c}'"),
@@ -163,6 +176,7 @@ sealed class FakeDesktop : IDesktop
         0xBC => ',',
         0xBD => shift ? '_' : '-',
         0xBB => shift ? '+' : '=',
+        0xDE => shift ? '"' : '\'',
         >= 'A' and <= 'Z' => shift ? (char)vk : char.ToLowerInvariant((char)vk),
         >= '0' and <= '9' => (char)vk,
         _ => null,

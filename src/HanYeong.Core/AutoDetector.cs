@@ -102,6 +102,17 @@ public sealed class AutoDetector
     ];
 
     /// <summary>
+    /// Whether a word that ends right after <paramref name="textBefore"/> (what was typed before it since the last
+    /// reset) belongs to an address: www.kt.com, a@b.com, http://x. A word joined to an earlier one by . @ / : is
+    /// left alone; an earlier word that was converted starts the text over, so 안녕.하세요 still converts.
+    /// </summary>
+    public static bool IsInAddress(string textBefore)
+    {
+        string run = textBefore[(textBefore.LastIndexOfAny([' ', '\n']) + 1)..];
+        return run.Length > 0 && (".@/:".Contains(run[^1]) || run.Contains("www.") || run.Contains("://") || run.Contains('@'));
+    }
+
+    /// <summary>
     /// The full decision for a finished word, as the app makes it: the whole word read in the other mode, or an
     /// English + Korean split of the <paramref name="keys"/> as typed (capitals included). A whole-word Korean
     /// reading that no corpus has loses to a split: quantityrk is quantity가, not 벼무샤쇼가.
@@ -109,10 +120,22 @@ public sealed class AutoDetector
     /// </summary>
     public string? Suggest(string word, string keys, Layout typedIn)
     {
-        // A name typed in Korean mode shows as broken Hangul; its keys carry the capital (Ndidi → ㅜ댜야).
-        if (typedIn == Layout.Korean && IsKnownName(keys) && !IsWellFormed(word) && !_isException(word)) return LayoutConverter.ToEnglish(word);
+        if (typedIn == Layout.Korean && !_isException(word))
+        {
+            // A name typed in Korean mode shows as broken Hangul; its keys carry the capital (Ndidi → ㅜ댜야).
+            if (IsKnownName(keys) && !IsWellFormed(word)) return LayoutConverter.ToEnglish(word);
+            // An acronym even when it happens to read as a syllable: Shift on S, D, N, A ... changes nothing in
+            // Korean, so it was pressed for English (SEC → ㄴㄸㅊ, DNA → 움, a lone I → ㅑ).
+            if (IsShiftedAcronym(keys)) return LayoutConverter.ToEnglish(word);
+        }
         string? whole = Check(word, typedIn);
         if (whole is null) return CheckMixed(keys, typedIn);
+        // Korean mode, leading capitals with Shift on a key without a shifted jamo (A, KT, ESPN): a rarer English reading of the whole word
+        // (atl, ktrk, espndms) loses to capital(s) + Korean (A씨, KT가, ESPN은); a real word (Hello) stays whole.
+        int leadingCapitals = keys.TakeWhile(char.IsAsciiLetterUpper).Count();
+        if (typedIn == Layout.Korean && keys.Length >= 2 && HasEnglishOnlyShift(keys[..leadingCapitals])
+            && _english(whole) < _o.CommonEnglish && CheckMixed(keys, typedIn) is { } capitalMixed)
+            return capitalMixed;
         // Only a plain Hangul word no corpus has is in doubt; new Korean words are common, so it loses only to a
         // clear split: a common English word of four letters or more plus a particle.
         bool isDoubtful = typedIn == Layout.English && whole.All(Jamo.IsSyllable) && _korean(whole) <= 0;
@@ -156,6 +179,7 @@ public sealed class AutoDetector
         // % only after a number (5%로).
         if (Enumerable.Range(0, word.Length).Any(i => word[i] == '%' && (i == 0 || !char.IsAsciiDigit(word[i - 1])))) return null;
 
+        bool isKoreanJoin = typedIn == Layout.English && word.Any(c => c is '·' or 'ㆍ');
         var result = new System.Text.StringBuilder(word.Length);
         bool anyConverts = false, anyKept = false, anyWeakConversion = false;
         // What came right before the current piece: a number (2차), or something typed as meant that a particle
@@ -191,13 +215,28 @@ public sealed class AutoDetector
             string part = word[start..i];
             string converted = typedIn == Layout.English ? LayoutConverter.ToKorean(part) : LayoutConverter.ToEnglish(part);
             bool isSuffix = typedIn == Layout.English && (afterNumber ? IsNumberSuffix(part) : afterKept && IsParticleChain(converted));
-            bool converts = isSuffix || (!(typedIn == Layout.English && afterNumber) && CheckPart(part, typedIn) is not null);
+            // The middle dot joins Korean words only (시·도, 한·미): every part that reads as proper Hangul converts.
+            bool isDotJoined = isKoreanJoin && IsWellFormed(converted);
+            // Korean mode: proper Hangul after a number is Korean typed on purpose (4륜, 1녀).
+            bool isKoreanAfterNumber = typedIn == Layout.Korean && afterNumber && IsWellFormed(part);
+            // Letters right before a digit are a code (ch4가, mp3파일): English as typed. Between numbers they are
+            // a Korean unit (1박2일, 7시30분).
+            // Korean written before a number on purpose (제2차, 고3) is in Data/number-prefixes.txt.
+            bool isCode = typedIn == Layout.English && !afterNumber && part.Length <= 4 && i < word.Length && char.IsAsciiDigit(word[i])
+                && !NumberPrefixes.Contains(converted);
+            bool converts = !isCode && (isSuffix || isDotJoined
+                || (!(typedIn == Layout.English && afterNumber) && !isKoreanAfterNumber && CheckPart(part, typedIn) is not null));
             if (converts)
             {
                 anyConverts = true;
                 // Weak evidence: one syllable (au → 며 in Port-au-Prince) or Korean no corpus has (McVeigh → McV댜호).
-                if (!isSuffix && typedIn == Layout.English && (converted.Length < 2 || _korean(converted) <= 0)) anyWeakConversion = true;
+                if (!isSuffix && !isDotJoined && typedIn == Layout.English && (converted.Length < 2 || _korean(converted) <= 0)) anyWeakConversion = true;
                 result.Append(converted);
+            }
+            else if (isCode)
+            {
+                anyKept = true;
+                result.Append(part);
             }
             // English typed as meant stays too: Center)에서, 홈페이지(www.
             else if (typedIn == Layout.English && _english(part) >= _o.KnownEnglish)
@@ -226,7 +265,7 @@ public sealed class AutoDetector
         return anyConverts ? result.ToString() : null;
     }
 
-    static readonly HashSet<char> JoinerPunctuation = ['-', '/', '\'', '"', '“', '”', '‘', '’', '(', ')', '[', ']', '·', 'ㆍ', '%', '~', '…', '▲', '△', '—'];
+    static readonly HashSet<char> JoinerPunctuation = ['-', '/', '\'', '"', '“', '”', '‘', '’', '`', '(', ')', '[', ']', '·', 'ㆍ', '%', '~', '…', '▲', '△', '—'];
 
     /// <summary>
     /// Length of an acronym starting at <paramref name="i"/>: two or more capitals, or one capital that is not a
@@ -254,8 +293,17 @@ public sealed class AutoDetector
         if (IsParticleChain(korean) || IsCounterChain(korean)) return true;
         // Any proper Korean that is not English (1차전에서, 2년전, 6자회담): English suffixes after numbers
         // (st, nd, rd, kg, pm, fps) read as broken jamo, and th (소) is English.
-        return IsWellFormed(korean) && _english(keys) < _o.KnownEnglish;
+        if (!IsWellFormed(korean) || NumberSuffixes.Contains(keys.ToLowerInvariant())) return false;
+        // One syllable: common in Korean and not common English (1심, 3루, 2군; not 4to → 4새). Capitals after a
+        // number are English (222Rn, 1The).
+        if (korean.Length == 1) return !keys.Any(char.IsAsciiLetterUpper) && _korean(korean) >= 4.0f && _english(keys) < 4.0f;
+        // Longer: anything that is not English (1차전에서, 6자회담; not 4chan).
+        return _english(keys) < _o.KnownEnglish;
     }
+
+    // The hand-kept lists live in Data/*.txt so they can grow without code changes.
+    static readonly HashSet<string> NumberSuffixes = WordList.Load("number-suffixes-en.txt");
+    static readonly HashSet<string> NumberPrefixes = WordList.Load("number-prefixes.txt");
 
     string? CheckEnglish(string word)
     {
@@ -279,7 +327,7 @@ public sealed class AutoDetector
         if (!word.All(Jamo.IsHangul)) return null;
         // ㅋㅋㅋ, ㅠㅠ, ㅇㅋ, ㄱㅅ: chat expressions, not typos.
         bool isRepeatedJamo = word.Length >= 2 && Jamo.IsJamo(word[0]) && word.All(c => c == word[0]);
-        if (isRepeatedJamo || ChatAbbreviations.Contains(word)) return null;
+        if (isRepeatedJamo || ChatAbbreviations.Contains(word) || IsAnonymized(word)) return null;
 
         string english = LayoutConverter.ToEnglish(word);
         float en = _english(english);
@@ -296,6 +344,41 @@ public sealed class AutoDetector
         return ko < _o.CommonKorean && en - ko >= _o.KoreanToEnglishMargin ? english : null;
     }
 
+    /// <summary>Capitals only (one to six), at least one of them on a key without a shifted jamo.</summary>
+    // One syllable that follows a single capital in Korean writing (A조, B팀, C급, A씨).
+    static readonly HashSet<string> CapitalSuffixes = WordList.Load("letter-suffixes.txt");
+
+    bool IsWordAndParticles(string korean) => IsWellFormed(korean) && Enumerable.Range(2, Math.Max(0, korean.Length - 2))
+        .Any(i => _korean(korean[..i]) >= 2.5f && IsParticleChain(korean[i..]));
+
+    // How Korean writes an anonymous person or thing: a lone consonant, then 씨/양/군/사... and particles
+    // (ㄱ씨는, ㄴ양, ㄷ사의) or particles alone (ㄱ이). A letter before a real word (e스포츠) is not this.
+    static readonly HashSet<string> AnonymousHeads = WordList.Load("anonymous-heads.txt");
+
+    bool IsAnonymized(string korean)
+    {
+        if (korean.Length < 2 || !Jamo.IsConsonant(korean[0])) return false;
+        string rest = korean[1..];
+        if (!IsWellFormed(rest)) return false;
+        if (IsParticleChain(rest) || (AnonymousHeads.Contains(rest[..1]) && (rest.Length == 1 || IsParticleChain(rest[1..])))) return true;
+        // Before a common word too (ㅅ아파트, ㄱ업체는, ㅇ교회), when the keys are no English word (ㅈ뭇 is want)
+        // and the letter is not e or x, which English puts before words (e스포츠).
+        return korean[0] is not ('ㄷ' or 'ㅌ') && _english(LayoutConverter.ToEnglish(korean)) < _o.KnownEnglish
+            && (_korean(rest) >= _o.MixedKoreanRest || Enumerable.Range(1, rest.Length - 1)
+                .Any(i => _korean(rest[..i]) >= _o.MixedKoreanRest && IsParticleChain(rest[i..])));
+    }
+
+    /// <summary>
+    /// Korean mode: the English prefix happens to read as full syllables (suffix → 녈럍). Proper Korean wins
+    /// unless those syllables are no Korean at all, the English word is long and common, and a particle
+    /// follows: 녈럍라던가 is suffix라던가, while 갯녹음, 해미면 (rot, goal) stay Korean.
+    /// </summary>
+    bool IsUnknownSyllablesForEnglish(string prefix, string prefixKorean, string restKorean) =>
+        prefix.Length >= 5 && _korean(prefixKorean) <= 0 && _english(prefix) >= _o.MixedEnglishPrefix && IsParticleChain(restKorean);
+
+    static bool IsShiftedAcronym(string keys) =>
+        keys.Length is >= 1 and <= 6 && keys.All(char.IsAsciiLetterUpper) && HasEnglishOnlyShift(keys);
+
     /// <summary>A capitalized word of four letters or more on the name list (Ndidi, Kowalczyk).</summary>
     bool IsKnownName(string word) =>
         word.Length >= 4 && char.IsAsciiLetterUpper(word[0]) && word.Skip(1).All(char.IsAsciiLetterLower) && _isName(word);
@@ -305,24 +388,7 @@ public sealed class AutoDetector
             .Any(i => _english(english[..i]) >= _o.MixedEnglishPrefix && _english(english[i..]) >= _o.MixedEnglishPrefix);
 
     // Particles and endings that get attached straight to an English word (shortage이다, update했다, Github에서는).
-    static readonly HashSet<string> Particles =
-    [
-        "이", "가", "은", "는", "을", "를", "에", "에서", "에게", "한테", "께", "의", "도", "만", "와", "과",
-        "랑", "이랑", "하고", "로", "으로", "로서", "으로서", "로써", "처럼", "보다", "까지", "부터", "마다", "조차",
-        "이나", "나", "이든", "든", "이라도", "라도", "밖에", "뿐", "같은", "같이",
-        "이다", "다", "이야", "야", "이에요", "예요", "입니다", "이고", "고", "이며", "며", "이라서", "라서",
-        "인데", "인가", "인지", "이라는", "라는", "이라고", "라고", "이면", "면", "이었다", "였다", "이지", "지",
-        "이니까", "니까", "이랑은", "임", "인", "일",
-        "하다", "한", "하는", "할", "함", "해", "해요", "했다", "했어", "했어요", "했는데", "해서", "하고", "하면",
-        "하게", "하지", "합니다", "했습니다", "하려고", "하는데", "됨", "된", "되는", "될", "되다", "됐다", "돼",
-        "되면", "되고", "됩니다", "적", "적인", "적으로", "스러운", "스럽다", "들", "님", "씨", "용", "식", "급",
-        "만큼", "대로", "마저", "커녕", "에다", "에다가", "한테서", "에게서", "께서", "로부터", "으로부터", "치고",
-        "이야말로", "야말로", "에선", "엔", "이란", "란", "이라면", "라면", "이므로", "므로", "이네", "이죠", "죠",
-        "이잖아", "이던", "던", "이었던", "였던", "이어서", "여서", "이어도", "여도", "이자", "같다",
-        "한다", "했고", "하며", "하여", "해도", "해야", "했던", "하던", "했을", "하기", "할까", "합시다", "하자",
-        "됐고", "되어", "되었다", "된다", "되지", "시키다", "시킨", "시켜", "시켰다", "스럽게",
-        // Not 요 (dy), 서 (tj), 자 (wk), 아 (dk): too many English words end in those keys (body, lady).
-    ];
+    static readonly HashSet<string> Particles = WordList.Load("particles.txt");
 
     /// <summary>
     /// A word that mixes an English word with a Korean particle, typed in one mode: "shortagedlek" in English
@@ -352,7 +418,9 @@ public sealed class AutoDetector
             : !isShiftedForEnglish && _korean(display) > 0;
         // A rare listed word (asms 1.7) may still be a lowercase letter + Korean (a는); a real one (isms 2.0) is
         // not split at all, nor a capitalized one: Drua (1.9) is a name, not D + 겸.
-        bool isOnlySingleLetter = isRealWord && typedIn == Layout.English && wholeScore < 2.0f && char.IsAsciiLetterLower(keys[0]);
+        string afterFirst = LayoutConverter.ToKorean(keys[1..]);
+        bool isOnlySingleLetter = isRealWord && typedIn == Layout.English && wholeScore < 2.0f
+            && (char.IsAsciiLetterLower(keys[0]) || (keys.Length >= 4 && IsParticleChain(afterFirst)) || CapitalSuffixes.Contains(afterFirst));
         if (isRealWord && !isOnlySingleLetter) return null;
 
         // Longest English prefix first. A code (mp3, ch4) ends at its last digit, so there the shortest prefix
@@ -381,11 +449,17 @@ public sealed class AutoDetector
                 bool isLowerLetter = prefix.Length == 1 && char.IsAsciiLetter(prefix[0]) && !IsEnglishOnlyCapital(prefix[0]);
                 if (isOnlySingleLetter && prefix.Length != 1) continue;
                 if (isLowerLetter && rest.Length < 3) continue;
+                // Korean mode: a lone jamo before Korean is how news writes anonymous people (ㄱ씨는, ㄴ양); only a
+                // capital on a key without a shifted jamo (A씨) is English.
+                if (typedIn == Layout.Korean && !HasEnglishOnlyShift(prefix) && IsAnonymized(LayoutConverter.ToKorean(prefix) + LayoutConverter.ToKorean(rest))) continue;
                 // A particle typed by mistake is plain lowercase letters (Shift only for ㄲㄸㅃㅆㅉㅒㅖ); INGKA is not IN + 함.
                 if (!rest.All(char.IsAsciiLetter) || HasEnglishOnlyShift(rest)) continue;
                 // Korean mode: English typed there shows up as broken Hangul (놳ㅁㅎㄷ). Proper syllables mean
                 // the user was typing Korean on purpose: 추가됩니다 is not "cn" + 가됩니다.
-                if (typedIn == Layout.Korean && !HasEnglishOnlyShift(prefix) && IsWellFormed(LayoutConverter.ToKorean(prefix))) continue;
+                // A syllable reading that no corpus has, of a common English word, is still English (suffix → 녈럍라던가).
+                string prefixKorean = LayoutConverter.ToKorean(prefix);
+                if (typedIn == Layout.Korean && !HasEnglishOnlyShift(prefix) && IsWellFormed(prefixKorean)
+                    && !IsUnknownSyllablesForEnglish(prefix, prefixKorean, LayoutConverter.ToKorean(rest))) continue;
                 // Letters with digits (ch4 = chapter 4, mp3, h2o) are codes, never Korean typing; no word list has them.
                 // Short only: a long letters+digits run before "rk" is more likely a password-like string.
                 bool isCode = prefix.Length <= 6 && prefix.Any(char.IsAsciiDigit) && prefix.Any(char.IsAsciiLetter);
@@ -430,7 +504,9 @@ public sealed class AutoDetector
                 bool isCommonWord = IsWellFormed(korean) && !isRestEnglish
                     && (korean.Length >= 2 ? _korean(korean) >= _o.MixedKoreanRest
                         // after a single capital only a full syllable of three keys (B형, B팀), not Gwo → G재
-                        : isAcronym && (prefix.Length >= 2 || rest.Length >= 3) && _korean(korean) >= 3.0f);
+                        : isAcronym && (prefix.Length >= 2 || rest.Length >= 3 || CapitalSuffixes.Contains(korean)) && _korean(korean) >= 3.0f)
+                    // After an acronym also a rarer word + particle: SK텔레콤은, LG유플러스는 (텔레콤 2.6).
+                    || (isAcronym && prefix.Length >= 2 && (IsWordAndParticles(korean) || (korean.Length >= 2 && IsWellFormed(korean) && _korean(korean) >= 2.5f)));
                 if (isParticle || isCommonWord) return prefix + korean;
             }
             return null;
@@ -438,17 +514,7 @@ public sealed class AutoDetector
     }
 
     // Counters that follow a number (3개, 10분, 2024년).
-    static readonly HashSet<string> Counters =
-    [
-        "개", "명", "번", "분", "초", "시", "일", "월", "년", "원", "살", "층", "장", "권", "등", "점", "회", "배", "차",
-        "대", "쪽", "편", "곡", "병", "잔", "벌", "주", "개월", "시간", "주일", "주년", "년생", "학년", "만원", "천원",
-        "퍼센트", "프로", "위", "조", "억", "만", "천", "백", "인", "명씩", "개씩", "번째", "째", "줄", "칸", "판", "골",
-        "세", "여", "년간", "분기", "인당", "개국", "일간", "주간", "개월간", "년대", "회째", "차례", "가지", "마리",
-        "평", "달러", "유로", "엔", "위안", "경기", "승", "패", "타", "건", "곳", "채", "표", "석", "쌍", "통", "포인트",
-        "도", "킬로", "미터", "톤", "리터", "그램", "바퀴", "군데", "페이지", "호", "동", "실", "기", "학기", "강", "부",
-        "화", "년도", "선", "단", "급", "번지", "만명", "억원", "조원", "시즌", "라운드", "홀", "이닝",
-        "박", "사", "항", "자", "국", "년제", "인분", "인승", "종", "명이", "관", "조항",
-    ];
+    static readonly HashSet<string> Counters = WordList.Load("counters.txt");
 
     // One or two counters, optionally followed by particles: 개, 개가, 분에서, 여명이 (여 + 명 + 이).
     static bool IsCounterChain(string text, int depth = 0)

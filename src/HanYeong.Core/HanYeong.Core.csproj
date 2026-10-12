@@ -10,6 +10,13 @@
     <EmbeddedResource Include="Data\en.tsv.gz" LogicalName="en.tsv.gz" />
     <EmbeddedResource Include="Data\ko.tsv.gz" LogicalName="ko.tsv.gz" />
     <EmbeddedResource Include="Data\names.txt.gz" LogicalName="names.txt.gz" />
+    <!-- Hand-kept lists, one entry per line (see WordList). -->
+    <EmbeddedResource Include="Data\particles.txt" LogicalName="particles.txt" />
+    <EmbeddedResource Include="Data\counters.txt" LogicalName="counters.txt" />
+    <EmbeddedResource Include="Data\number-prefixes.txt" LogicalName="number-prefixes.txt" />
+    <EmbeddedResource Include="Data\number-suffixes-en.txt" LogicalName="number-suffixes-en.txt" />
+    <EmbeddedResource Include="Data\letter-suffixes.txt" LogicalName="letter-suffixes.txt" />
+    <EmbeddedResource Include="Data\anonymous-heads.txt" LogicalName="anonymous-heads.txt" />
   </ItemGroup>
 
 </Project>

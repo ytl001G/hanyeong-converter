@@ -1,0 +1,25 @@
+# Korean written right before a number (제2차, 고3, 중2, 약3배). Letters before a digit are otherwise a code
+# kept as English (ch4 = chapter 4, mp3). 초 is left out: ch4가 is meant as chapter 4.
+제
+고
+중
+약
+총
+매
+각
+단
+전
+연
+최
+대
+소
+근
+만
+무
+월
+주
+일
+년
+단
+평
+시

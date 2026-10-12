@@ -80,9 +80,19 @@ sealed class InputSender
         return SendInput((uint)array.Length, array, Marshal.SizeOf<INPUT>()) == array.Length;
     }
 
-    static INPUT Keyboard(ushort vk, char scan, uint flags) => new()
+    /// <summary>Keys without our signature: the hook treats them as typed by the user.</summary>
+    public static void SendAsUser(IReadOnlyList<KeyEvent> keys)
+    {
+        if (keys.Count == 0) return;
+        var array = keys.Select(k => Keyboard((ushort)k.Vk, '\0', k.IsDown ? 0 : KEYEVENTF_KEYUP, IntPtr.Zero)).ToArray();
+        SendInput((uint)array.Length, array, Marshal.SizeOf<INPUT>());
+    }
+
+    static INPUT Keyboard(ushort vk, char scan, uint flags) => Keyboard(vk, scan, flags, Signature);
+
+    static INPUT Keyboard(ushort vk, char scan, uint flags, IntPtr extra) => new()
     {
         type = INPUT_KEYBOARD,
-        u = new InputUnion { ki = new KEYBDINPUT { wVk = vk, wScan = scan, dwFlags = flags, dwExtraInfo = Signature } },
+        u = new InputUnion { ki = new KEYBDINPUT { wVk = vk, wScan = scan, dwFlags = flags, dwExtraInfo = extra } },
     };
 }

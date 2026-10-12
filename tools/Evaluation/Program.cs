@@ -584,7 +584,9 @@ if (edgeRoot is not null)
     var camelShape = new System.Text.RegularExpressions.Regex("^([a-z]+[A-Z]|[A-Z][a-z]+[A-Z])[A-Za-z]*$");
     var numberLatinShape = new System.Text.RegularExpressions.Regex("^[0-9]+[A-Za-z]+$");
     const string HangulPunctuation = "“”‘’\"'()[]·-/%~";
-    bool IsPunctHangul(string w) => w.Any(Jamo.IsSyllable) && w.Any(c => HangulPunctuation.Contains(c)) && !w.Any(char.IsAsciiLetter);
+    // Hanja (고(故)) cannot be typed in either mode, so such words are left out.
+    bool IsPunctHangul(string w) => w.Any(Jamo.IsSyllable) && w.Any(c => HangulPunctuation.Contains(c)) && !w.Any(char.IsAsciiLetter)
+        && !w.Any(c => c is >= '\u4E00' and <= '\u9FFF');
     bool IsCodeLike(string w) => w.Contains('@') || w.Contains("://") || w.StartsWith("www.") || (w.Contains('_') && w.Any(char.IsAsciiLetter));
 
     // category -> word -> count; categories of Korean text start with "ko:", of English text with "en:"
@@ -639,9 +641,20 @@ if (edgeRoot is not null)
     Lap("edge: scan corpora");
 
     // Typed as meant: any change is a false positive. A code-like run is split into the app's words at . : , etc.
-    bool CorrectChanged(string w, bool isKoreanText) => isKoreanText
-        ? AppResult(w, LayoutConverter.ToEnglish(w), Layout.Korean) is not null
-        : w.Split(wordEnds, StringSplitOptions.RemoveEmptyEntries).Any(p => AppResult(p, p, Layout.English) is not null);
+    bool CorrectChanged(string w, bool isKoreanText)
+    {
+        if (isKoreanText) return AppResult(w, LayoutConverter.ToEnglish(w), Layout.Korean) is not null;
+        // Word by word as the app sees them, with what was typed before each (www.kt.com: www, then kt after "www.").
+        int start = 0;
+        for (int i = 0; i <= w.Length; i++)
+        {
+            if (i < w.Length && !wordEnds.Contains(w[i])) continue;
+            string piece = w[start..i];
+            if (piece.Length > 0 && !AutoDetector.IsInAddress(w[..start]) && AppResult(piece, piece, Layout.English) is not null) return true;
+            start = i + 1;
+        }
+        return false;
+    }
     // Typed in the other mode: Korean in English mode (the rest typed as meant), English in Korean mode.
     bool WrongFixed(string w, bool isKoreanText)
     {

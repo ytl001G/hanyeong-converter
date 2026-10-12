@@ -21,6 +21,8 @@ interface IDesktop
     bool IsOwnAppForeground { get; }
     /// <returns>false when Windows blocked the input (an elevated window).</returns>
     bool Send(IReadOnlyList<Keystroke> strokes);
+    /// <summary>Puts the user's own keys back into the input stream, to go through the hook again as typed.</summary>
+    void Replay(IReadOnlyList<KeyEvent> keys);
     Task<string?> ReadSelectionAsync();
 }
 
@@ -36,5 +38,6 @@ sealed class WindowsDesktop(FocusTracker focus) : IDesktop
     public bool IsPasswordFocused => focus.IsPasswordFocused;
     public bool IsOwnAppForeground => focus.IsOwnAppForeground;
     public bool Send(IReadOnlyList<Keystroke> strokes) => InputSender.SendNow(strokes);
+    public void Replay(IReadOnlyList<KeyEvent> keys) => InputSender.SendAsUser(keys);
     public Task<string?> ReadSelectionAsync() => SelectionReader.ReadAsync();
 }

@@ -39,6 +39,21 @@ sealed class Controller : IDisposable
     bool _isBusy;
     volatile bool _isDictionaryReady;
 
+    // Terminals read input in chunks, and a Backspace or Enter arriving in one chunk with text is taken as part of
+    // a paste: Claude Code in cmd dropped the Backspaces and made Enter a new line. There every Backspace goes out
+    // alone, then the text, then Enter, a few milliseconds apart.
+    static readonly HashSet<string> Terminals = new(StringComparer.OrdinalIgnoreCase)
+    {
+        "WindowsTerminal.exe", "cmd.exe", "conhost.exe", "OpenConsole.exe", "powershell.exe", "pwsh.exe", "node.exe",
+        "claude.exe", "wsl.exe", "bash.exe", "mintty.exe", "alacritty.exe", "wezterm-gui.exe", "ConEmu64.exe", "Tabby.exe",
+    };
+    const int TerminalGapMs = 15, TerminalEnterGapMs = 40;
+    // Keys the user typed while a replacement was still going out slowly; they follow it.
+    readonly Queue<KeyEvent> _heldKeys = new();
+
+    /// <summary>Completes when no replacement is going out (slowly, in a terminal).</summary>
+    internal Task Sending { get; private set; } = Task.CompletedTask;
+
     TypedSegment? _segment;
     IntPtr _segmentWindow;
     // Set right after a conversion (also an automatic one); pressing the hotkey before typing anything reverts it.
@@ -111,6 +126,11 @@ sealed class Controller : IDisposable
     /// <returns>true to swallow the key.</returns>
     internal bool OnHookKey(KeyEvent e)
     {
+        if (!Sending.IsCompleted)
+        {
+            _heldKeys.Enqueue(e);
+            return true;
+        }
         // Leave our own settings window alone, so the hotkey boxes can record any combination.
         if (_desktop.IsOwnAppForeground)
         {
@@ -230,6 +250,7 @@ sealed class Controller : IDisposable
         string text = _segment.Text;
         string word = text[(text.LastIndexOfAny(WordEnds) + 1)..];
         if (word.Length == 0) return false;
+        if (AutoDetector.IsInAddress(text[..^word.Length])) return false;
         bool isInContext = _settings.SentenceContext && _contextFrom == _segment.Layout;
         var detector = isInContext ? _contextDetector : _detector;
         // The keys carry the typed capitals, which Korean mode does not show (Hello → ㅗ디ㅣㅐ).
@@ -248,8 +269,8 @@ sealed class Controller : IDisposable
         if (endKey == VK_RETURN && !_hasEarlierWord && word.Length == text.Length && !IsCommonOnItsOwn(replacement, _segment.Layout))
             return false;
 
-        // Looking back: a lone jamo right before, left alone because it was ambiguous on its own (ㅑ is I), is
-        // fixed along with this word: ㅑ ㅈ무ㅅ → I want. Proper Korean before stays (내 want may be meant).
+        // Looking back: the word right before, left alone because it was ambiguous on its own, is fixed along with
+        // this one: ㅑ ㅈ무ㅅ → I want, 무 메ㅔㅣㄷ → an apple (see LeadInFix).
         string before = text[..^word.Length];
         if (_segment.Layout == Layout.Korean && before.EndsWith(' ') && LeadInFix(before[..^1], word) is { } leadIn)
         {
@@ -263,13 +284,8 @@ sealed class Controller : IDisposable
         // which some apps handle differently while a syllable is being composed. Released for the replacement
         // and pressed again afterwards, as the user still holds it.
         var heldShifts = new[] { VK_LSHIFT, VK_RSHIFT }.Where(k => _desktop.IsDown(k)).ToArray();
-        var input = new InputSender();
-        foreach (var k in heldShifts) input.Up(k);
         // The ending key has not reached the app, so only the word is deleted.
-        input.Key(InputSender.VK_BACK, _segment.BackspacesFor(word.Length)).Text(conversion.After);
-        if (endKey != 0) input.Key(endKey);
-        foreach (var k in heldShifts) input.Down(k);
-        Send(input);
+        SendReplacement(_segment.BackspacesFor(word.Length), conversion.After, endKey, heldShifts);
         _segment = new TypedSegment(conversion.BeforeLayout);
         _last = conversion;
         _contextFrom = end is '.' or '?' or '!' ? null : conversion.BeforeLayout;
@@ -279,15 +295,21 @@ sealed class Controller : IDisposable
 
     /// <summary>
     /// The English for the word just before <paramref name="following"/> (<paramref name="textBefore"/> ends with
-    /// it) when it is broken Hangul that reads as English in a sentence; otherwise null.
+    /// it) when it reads as English in a sentence: broken Hangul (ㅑ → I), or a Korean word whose English is far
+    /// more common (무 → an); otherwise null.
     /// </summary>
     string? LeadInFix(string textBefore, string following)
     {
         string previous = textBefore[(textBefore.LastIndexOfAny(WordEnds) + 1)..];
-        if (previous.Length == 0 || !previous.All(Jamo.IsHangul) || AutoDetector.IsWellFormed(previous)) return null;
+        if (previous.Length == 0 || !previous.All(Jamo.IsHangul)) return null;
         // Capitals as typed: the keys of "previous following" are the tail of the segment.
         string keys = _segment!.RestoreCase(LayoutConverter.ToEnglish(previous + " " + following))[..LayoutConverter.ToEnglish(previous).Length];
-        string? english = _contextDetector.Suggest(previous, keys, Layout.Korean);
+        string? english = AutoDetector.IsWellFormed(previous)
+            // Proper Korean only when the English is far more common: 무 → an (6.6 vs 4.4), 새 → to; not 내 (so,
+            // both 6.7) or 해 (go), which may be Korean before an English word on purpose.
+            ? WordFrequency.English.Value.Score(keys) is var en && en >= 6.0f && en - WordFrequency.Korean.Value.Score(previous) >= 1.5f
+                ? LayoutConverter.ToEnglish(previous) : null
+            : _contextDetector.Suggest(previous, keys, Layout.Korean);
         if (english is null || _settings.ExceptionWords.Contains(english) || _settings.ExceptionWords.Contains(previous)) return null;
         return string.Equals(english, keys, StringComparison.OrdinalIgnoreCase) ? keys : english;
     }
@@ -376,9 +398,51 @@ sealed class Controller : IDisposable
     /// </summary>
     void Replace(int backspaces, string newText, Layout imeLayout)
     {
-        Send(new InputSender().Key(InputSender.VK_BACK, backspaces).Text(newText));
+        SendReplacement(backspaces, newText);
         // Further typing happens in the unchanged mode, so tracking starts over from here.
         _segment = new TypedSegment(imeLayout);
+    }
+
+    /// <summary>Backspaces, then the text, then the ending key; with any held Shift released around them.</summary>
+    void SendReplacement(int backspaces, string text, ushort endKey = 0, ushort[]? heldShifts = null)
+    {
+        heldShifts ??= [];
+        var steps = new List<(InputSender Input, int GapAfterMs)>();
+        if (!Terminals.Contains(_desktop.CurrentExe))
+        {
+            var all = new InputSender().Key(InputSender.VK_BACK, backspaces).Text(text);
+            if (endKey != 0) all.Key(endKey);
+            steps.Add((all, 0));
+        }
+        else
+        {
+            for (int i = 0; i < backspaces; i++) steps.Add((new InputSender().Key(InputSender.VK_BACK), TerminalGapMs));
+            steps.Add((new InputSender().Text(text), TerminalEnterGapMs));
+            if (endKey != 0) steps.Add((new InputSender().Key(endKey), 0));
+        }
+        Sending = SendStepsAsync(steps, heldShifts);
+    }
+
+    async Task SendStepsAsync(List<(InputSender Input, int GapAfterMs)> steps, ushort[] heldShifts)
+    {
+        var release = new InputSender();
+        foreach (var k in heldShifts) release.Up(k);
+        Send(release);
+        for (int i = 0; i < steps.Count; i++)
+        {
+            Send(steps[i].Input);
+            if (i < steps.Count - 1 && steps[i].GapAfterMs > 0) await Task.Delay(steps[i].GapAfterMs);
+        }
+        var press = new InputSender();
+        foreach (var k in heldShifts) press.Down(k);
+        Send(press);
+        if (_heldKeys.Count > 0)
+        {
+            var keys = _heldKeys.ToList();
+            _heldKeys.Clear();
+            // Marked as done first, so the replayed keys go through the hook as typed.
+            _ui.Post(_ => _desktop.Replay(keys), null);
+        }
     }
 
     void Send(InputSender input)

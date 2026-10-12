@@ -3,8 +3,10 @@ namespace HanYeong;
 /// <summary>Diagnostic log. Never write typed text here — only lengths, modes and events.</summary>
 static class Log
 {
-    static readonly string Dir = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "HanYeong");
-    public static readonly string FilePath = Path.Combine(Dir, "hanyeong.log");
+    // HANYEONG_LOG lets tests write somewhere else than the user's log.
+    public static readonly string FilePath = Environment.GetEnvironmentVariable("HANYEONG_LOG")
+        ?? Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "HanYeong", "hanyeong.log");
+    static readonly string Dir = Path.GetDirectoryName(FilePath)!;
 
     public static void Write(string message)
     {

@@ -1,0 +1,30 @@
+# Words users reported, checked through the whole app (keyboard hook → controller → simulated text box and IME).
+# One case per line, tab-separated:  mode (EN/KO, the IME mode while typing) | keys as typed | ending key | expected text
+# ending key: space, enter or . — the expected text is shown without it. Add a line for every new report.
+EN	shortagedlek	space	shortage이다
+KO	shortagedlek	space	shortage이다
+KO	power-consumption	space	power-consumption
+KO	engelrhrtjs	space	engel곡선
+EN	ch4rk	space	ch4가
+EN	giffendms	space	giffen은
+EN	-6qhek	space	-6보다
+KO	don't	space	don't
+EN	1ckwjsdptj	space	1차전에서
+EN	6wkghleka	space	6자회담
+EN	Bgud	space	B형
+EN	FAzjq	space	FA컵
+EN	asms	space	a는
+EN	quantityrk	space	quantity가
+EN	rebaterk	space	rebate가
+EN	+2akszma	space	+2만큼
+EN	fMRIsms	space	fMRI는
+KO	autocompact	space	autocompact
+KO	I want to go	space	I want to go
+KO	an apple	enter	an apple
+EN	ekdma	enter	다음
+EN	rlaalswn	enter	rlaalswn
+EN	dksehlsek	enter	안된다
+EN	qnstjrqnxj go	space	분석부터 해
+KO	suffixfkejsrk	space	suffix라던가
+EN	prefixsms	space	prefix는
+EN	5chs	space	5촌

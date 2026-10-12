@@ -145,6 +145,56 @@ public class SuggestTests
     public void KoreanModeCompound(string keys) =>
         Assert.Equal(keys, Detector.Suggest(LayoutConverter.ToKorean(keys), keys, Layout.Korean));
 
+    // Found in 3.7 million more sentences (docs/accuracy-report.md, edge cases).
+    [Theory]
+    [InlineData("SEC")]          // acronym typed in Korean mode: Shift on S, C changes nothing in Korean
+    [InlineData("DNA")]
+    [InlineData("I")]
+    public void KoreanModeAcronym(string keys) =>
+        Assert.Equal(keys, Detector.Suggest(LayoutConverter.ToKorean(keys), keys, Layout.Korean), ignoreCase: true);
+
+    [Theory]
+    [InlineData("ㄱ씨는")]       // anonymous person in news, not r + 씨는
+    [InlineData("ㄱ씨")]
+    [InlineData("ㄴ양의")]
+    [InlineData("ㄱ업체는")]
+    [InlineData("ㅅ아파트")]
+    [InlineData("갯녹음")]       // proper Korean stays even if a part reads as English (rot)
+    [InlineData("해미면")]
+    [InlineData("4륜")]          // Korean typed on purpose after a number
+    [InlineData("1녀")]
+    public void KoreanModeStays(string screen) => Assert.Null(Detector.Suggest(screen, LayoutConverter.ToEnglish(screen), Layout.Korean));
+
+    [Theory]
+    [InlineData("1tla", "1심")]
+    [InlineData("3fn", "3루")]
+    [InlineData("tl·eh", "시·도")]
+    [InlineData("`chdlsrkwhr’", "`초인가족’")]
+    [InlineData("SKxpffpzhadms", "SK텔레콤은")]
+    [InlineData("Asms", "A는")]
+    [InlineData("Awh", "A조")]
+    public void EnglishModeEdge(string keys, string expected) => Assert.Equal(expected, Detector.Suggest(keys, keys, Layout.English));
+
+    [Theory]
+    [InlineData("5th")]
+    [InlineData("10cm")]
+    [InlineData("9am")]
+    [InlineData("4to")]
+    [InlineData("75cl")]
+    [InlineData("4chan")]
+    [InlineData("222Rn")]
+    public void EnglishNumberSuffixStays(string keys) => Assert.Null(Detector.Suggest(keys, keys, Layout.English));
+
+    [Fact]
+    public void AddressPieces()
+    {
+        Assert.True(AutoDetector.IsInAddress("www."));
+        Assert.True(AutoDetector.IsInAddress("naver.co."));
+        Assert.True(AutoDetector.IsInAddress("me@"));
+        Assert.False(AutoDetector.IsInAddress("안녕 "));
+        Assert.False(AutoDetector.IsInAddress(""));
+    }
+
     static readonly AutoDetector Detector = new();
 
     [Theory]
@@ -253,4 +303,24 @@ public class JoinedWordTests
     [InlineData("Third-Worldism", Layout.English)]
     [InlineData("rlaalswn12", Layout.English)] // an ID: 김민주 typed as letters, then digits
     public void LeavesAlone(string typed, Layout layout) => Assert.Null(Detector.Check(typed, layout));
+}
+
+/// <summary>English + Korean typed entirely in Korean mode; the keys carry the Shift presses.</summary>
+public class KoreanModeMixedTests
+{
+    static readonly AutoDetector Detector = new();
+
+    [Theory]
+    [InlineData("A씨")]
+    [InlineData("KT가")]
+    [InlineData("LG전자는")]
+    [InlineData("SK텔레콤")]
+    [InlineData("ESPN은")]
+    [InlineData("e스포츠")]
+    [InlineData("suffix라던가")]    // user's example: 녈럍라던가 (녈럍 is no Korean word)
+    public void Converts(string word)
+    {
+        string keys = LayoutConverter.ToEnglish(word);
+        Assert.Equal(word, Detector.Suggest(LayoutConverter.ToKorean(keys), keys, Layout.Korean));
+    }
 }

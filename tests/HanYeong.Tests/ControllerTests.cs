@@ -11,23 +11,28 @@ public class ControllerTests : IDisposable
 {
     static ControllerTests()
     {
-        // Settings saves on every change; keep the user's file out of it.
+        // Settings saves on every change and the controller logs; keep the user's files out of it.
         Environment.SetEnvironmentVariable("HANYEONG_SETTINGS", Path.Combine(Path.GetTempPath(), $"hanyeong-test-{Environment.ProcessId}.json"));
+        Environment.SetEnvironmentVariable("HANYEONG_LOG", Path.Combine(Path.GetTempPath(), $"hanyeong-test-{Environment.ProcessId}.log"));
     }
 
     readonly FakeDesktop _desktop = new();
+    readonly ManualContext _context = new();
     readonly Settings _settings = new();
     readonly Controller _controller;
 
     public ControllerTests()
     {
-        SynchronizationContext.SetSynchronizationContext(new SynchronizationContext());
+        SynchronizationContext.SetSynchronizationContext(_context);
         _controller = new Controller(_settings, _desktop, hooks: false);
         _desktop.Attach(_controller);
         _controller.Ready.Wait();
     }
 
     public void Dispose() => _controller.Dispose();
+
+    /// <summary>Types into a fresh text box and returns what it shows.</summary>
+    internal string Type(Layout mode, string keys) => Typed(mode, keys).Box.Text;
 
     FakeDesktop Typed(Layout mode, string keys)
     {
@@ -70,6 +75,11 @@ public class ControllerTests : IDisposable
     [InlineData(Layout.English, "ekdma\n", "다음\n")]                         // ...unless it is a common word (chat)
     [InlineData(Layout.Korean, "fMRIsms ", "fMRI는 ")]
     [InlineData(Layout.English, "+2akszma ", "+2만큼 ")]
+    [InlineData(Layout.Korean, "an apple\n", "an apple\n")]                  // user's example: 무 메ㅔㅣㄷ + Enter
+    [InlineData(Layout.English, "dksehlsek\n", "안된다\n")]
+    [InlineData(Layout.Korean, "so apple ", "내 apple ")]                     // 내 is as common as so: may be meant
+    [InlineData(Layout.English, "www.kt.com ", "www.kt.com ")]              // address pieces stay
+    [InlineData(Layout.English, "naver.co.kr ", "naver.co.kr ")]
     public void AutoMode(Layout mode, string keys, string expected)
     {
         Typed(mode, keys);
@@ -86,6 +96,29 @@ public class ControllerTests : IDisposable
         Assert.True(_desktop.IsDown(FakeDesktop.VK_SHIFT));   // given back to the user, who still holds it
         _desktop.Up(FakeDesktop.VK_LSHIFT);
         Assert.Equal("PTE ", _desktop.Box.Text);
+    }
+
+    [Fact]
+    public void TerminalGetsBackspacesAndEnterOneByOne() // Claude Code in cmd took a batch as a paste
+    {
+        _desktop.Exe = "cmd.exe";
+        Typed(Layout.English, "dksehlsek\n");
+        _context.RunUntil(() => _controller.Sending.IsCompleted);
+        Assert.Equal("안된다\n", _desktop.Box.Text);
+        // The replacement only: the user's own keys went through the box, not through Send.
+        var replacement = _desktop.Batches.Where(b => b.Any(k => !k.IsUp)).ToList();
+        Assert.All(replacement, b => Assert.True(b.All(k => k.Vk == 0) || b.Count(k => !k.IsUp) == 1));   // text, or one key
+        Assert.Equal(FakeDesktop.VK_RETURN, replacement[^1].Single(k => !k.IsUp).Vk);
+    }
+
+    [Fact]
+    public void KeysTypedWhileATerminalReplacementGoesOutComeAfterIt()
+    {
+        _desktop.Exe = "cmd.exe";
+        Typed(Layout.English, "dkssud ");
+        _desktop.Type("x");
+        _context.RunUntil(() => _controller.Sending.IsCompleted && _context.IsIdle);
+        Assert.Equal("안녕 x", _desktop.Box.Text);
     }
 
     [Fact]
