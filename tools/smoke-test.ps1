@@ -112,8 +112,14 @@ try {
   Case 'auto on Enter after other words' 'EN' ("dkssud gktpdy" + [char]10) $null ("안녕 하세요" + [char]13 + [char]10)
   Case 'one word + Enter stays (ID fields)' 'EN' ("rlaalswn" + [char]10) $null ("rlaalswn" + [char]13 + [char]10)
   Case 'one common word + Enter converts (chat)' 'EN' ("ekdma" + [char]10) $null ("다음" + [char]13 + [char]10)
+  # Hanja key after English-mode typing: rh is retyped as 고 in Korean mode, the IME list opens, Enter picks the first.
+  Clear-Doc; Set-Mode 'EN'; Tap 0x23; Type-Text 'rh'; Pump 80; Tap 0x19; Pump 700; Tap 0x0D; Pump 200
+  $doc = Read-Doc
+  $isHanja = $doc.Length -eq 1 -and [int][char]$doc -ge 0x4E00 -and [int][char]$doc -le 0x9FFF
+  Record 'Hanja key: rh -> 고 -> Hanja' $(if ($isHanja) { $doc } else { 'one Hanja' }) $doc
   Clear-Doc
-  $np.CloseMainWindow() | Out-Null
+  # Windows 11 Notepad hands its window to another process; close the one that was in front.
+  Stop-Process -Id $fgPid -ErrorAction SilentlyContinue
 } finally {
   if ($null -ne $savedClip) { Set-Clipboard -Value $savedClip }
   Stop-Process -Id $app.Id -ErrorAction SilentlyContinue
@@ -121,3 +127,4 @@ try {
   if ($installed) { Start-Process $installed -ArgumentList '--startup' }
 }
 $results | Format-Table -AutoSize | Out-String -Width 200
+
