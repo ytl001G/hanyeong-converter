@@ -264,6 +264,9 @@ sealed class Controller : IDisposable
         bool isStaying = !isInContext && _settings.SentenceContext && _writingIn == _segment.Layout && keys.Length <= 3;
         var detector = isInContext ? _contextDetector : isStaying ? _stayingDetector : _detector;
         string? replacement = detector.Suggest(word, keys, _segment.Layout);
+        // In an English sentence typed in Korean mode, a number with an English ending is English too (75소 → 75th).
+        if (replacement is null && isInContext && _segment.Layout == Layout.Korean && NumberWithEnglishEnding(word) is { } number)
+            replacement = number;
         if (replacement is not null && _segment.Layout == Layout.Korean) replacement = _segment.RestoreCase(replacement);
         // The user may list either side: what they typed (rk) or what it would become (and).
         if (replacement is null || _settings.ExceptionWords.Contains(replacement))
@@ -314,16 +317,20 @@ sealed class Controller : IDisposable
     /// it) when it reads as English in a sentence: broken Hangul (ㅑ → I), a Korean word whose English is far
     /// more common (무 → an), or a number with an English ending (20소 → 20th); otherwise null.
     /// </summary>
+    // 20소 → 20th, 1980ㄴ → 1980s: a number and an English ending that reads as Hangul.
+    static string? NumberWithEnglishEnding(string word)
+    {
+        int digits = word.TakeWhile(char.IsAsciiDigit).Count();
+        if (digits == 0 || digits == word.Length || !word[digits..].All(Jamo.IsHangul)) return null;
+        string ending = LayoutConverter.ToEnglish(word[digits..]);
+        return AutoDetector.IsEnglishNumberSuffix(ending) ? word[..digits] + ending : null;
+    }
+
     string? LeadInFix(string textBefore, string following)
     {
         string previous = textBefore[(textBefore.LastIndexOfAny(WordEnds) + 1)..];
         // A number with an English ending that reads as Hangul: 20소 ㅇㄱㄷ므 → 20th dream (alone, 20소 may be Korean).
-        int digits = previous.TakeWhile(char.IsAsciiDigit).Count();
-        if (digits > 0 && digits < previous.Length && previous[digits..].All(Jamo.IsHangul))
-        {
-            string ending = LayoutConverter.ToEnglish(previous[digits..]);
-            return AutoDetector.IsEnglishNumberSuffix(ending) ? previous[..digits] + ending : null;
-        }
+        if (previous.Length > 0 && char.IsAsciiDigit(previous[0])) return NumberWithEnglishEnding(previous);
         if (previous.Length == 0 || !previous.All(Jamo.IsHangul)) return null;
         // Capitals as typed: the keys of "previous following" are the tail of the segment.
         string keys = _segment!.RestoreCase(LayoutConverter.ToEnglish(previous + " " + following))[..LayoutConverter.ToEnglish(previous).Length];

@@ -7,4 +7,8 @@
     <Project Path="tests/HanYeong.Core.Tests/HanYeong.Core.Tests.csproj" />
     <Project Path="tests/HanYeong.Tests/HanYeong.Tests.csproj" />
   </Folder>
+  <Folder Name="/tools/">
+    <Project Path="tools/Evaluation/Evaluation.csproj" />
+    <Project Path="tools/Fuzz/Fuzz.csproj" />
+  </Folder>
 </Solution>

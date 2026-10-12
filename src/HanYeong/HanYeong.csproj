@@ -6,6 +6,7 @@
 
   <ItemGroup>
     <InternalsVisibleTo Include="HanYeong.Tests" />
+    <InternalsVisibleTo Include="Fuzz" />
   </ItemGroup>
 
   <ItemGroup>
