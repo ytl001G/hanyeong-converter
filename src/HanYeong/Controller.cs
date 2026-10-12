@@ -274,7 +274,10 @@ sealed class Controller : IDisposable
         // Looking back: the word right before, left alone because it was ambiguous on its own, is fixed along with
         // this one: ㅑ ㅈ무ㅅ → I want, 무 메ㅔㅣㄷ → an apple (see LeadInFix).
         string before = text[..^word.Length];
-        if (_segment.Layout == Layout.Korean && before.EndsWith(' ') && LeadInFix(before[..^1], word) is { } leadIn)
+        string? leadIn = !before.EndsWith(' ') ? null
+            : _segment.Layout == Layout.Korean ? LeadInFix(before[..^1], word)
+            : KoreanLeadIn(before[..^1]);
+        if (leadIn is not null)
         {
             word = before[(before[..^1].LastIndexOfAny(WordEnds) + 1)..] + word;
             replacement = leadIn + " " + replacement;
@@ -352,6 +355,18 @@ sealed class Controller : IDisposable
         Reset();
         Log.Write($"hanja len={word.Length}");
         return true;
+    }
+
+    /// <summary>
+    /// English mode: the Korean for the word just before (<paramref name="textBefore"/> ends with it) when a
+    /// sentence of Korean reads it so: so wlq → 내 집 (so and 내 are equally common). Clearly English stays (the, my).
+    /// </summary>
+    string? KoreanLeadIn(string textBefore)
+    {
+        string previous = textBefore[(textBefore.LastIndexOfAny(WordEnds) + 1)..];
+        if (previous.Length == 0 || !previous.All(char.IsAsciiLetter) || _settings.ExceptionWords.Contains(previous)) return null;
+        string? korean = _contextDetector.Suggest(previous, previous, Layout.English);
+        return korean is not null && korean.All(Jamo.IsSyllable) && !_settings.ExceptionWords.Contains(korean) ? korean : null;
     }
 
     // Chat messages of one word are everyday words (다음 5.6, 네 6.7, 수고하세요 3.7); IDs made of names are rarer
