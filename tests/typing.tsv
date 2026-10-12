@@ -118,6 +118,8 @@ EN	qlrygkslRK	비교하니까
 # Shift only slips on past a key that needs it, in a long word: not dkssUD, not RK는
 EN	dkssUD	dkssUD
 EN	RKsms	RK는
+# ...but Shift let go inside a syllable is a slip even at the start (the s is the 받침 of 쓴)
+EN	TMsrjdi	쓴거야
 EN	Hello	Hello
 EN	znlwm⏎	퀴즈
 EN	shxmqnr⏎	노트북

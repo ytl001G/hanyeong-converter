@@ -388,14 +388,18 @@ public sealed class AutoDetector
     {
         if (!word.All(char.IsAsciiLetter)) return null;
         // Capitals other than Korean shift keys usually mean a real English word, name or acronym. One slip is kept:
-        // Shift held on past a key that needs it (the R of ㄲ, then K), inside a long Korean word: qlrygkslRK is
-        // 비교하니까. Not without such a key (dkssUD), at the start (RK는, SK는), or in a short word.
+        // Shift held on past a key that needs it (the T of ㅆ, then M), never without one (dkssUD). Released inside
+        // a syllable, it is a slip anywhere: TMs거야 is 쓴거야 (the s is the 받침 of 쓴), as no one lets go of Shift
+        // there on purpose. Released between syllables, it may be an acronym + particle (RK는, SK는), so only inside
+        // a long word: qlrygkslRK is 비교하니까.
         if (HasEnglishOnlyShift(word))
         {
             string unshifted = new(word.Select(c => IsEnglishOnlyCapital(c) ? char.ToLowerInvariant(c) : c).ToArray());
             string reading = LayoutConverter.ToKorean(unshifted);
-            return IsShiftHeldOn(word) && reading.Length >= 4 && IsWellFormed(reading) && IsKoreanWord(reading)
-                && _english(word) < _o.KnownEnglish ? reading : null;
+            if (ShiftHeldOn(word, unshifted) is not { } held || !IsWellFormed(reading) || !IsKoreanWord(reading)
+                || _english(word) >= _o.KnownEnglish) return null;
+            return held.InsideSyllable ? (reading.Length >= 2 ? reading : null)
+                : held.AfterStart && reading.Length >= 4 ? reading : null;
         }
 
         string korean = LayoutConverter.ToKorean(word);
@@ -501,13 +505,30 @@ public sealed class AutoDetector
 
     // Every capital without a shifted jamo follows a capital, in a run that starts on a Korean shift key after
     // lowercase: Shift was pressed for ㄲ and held (qlrygkslRK), not for the capital itself.
-    static bool IsShiftHeldOn(string word) =>
-        Enumerable.Range(0, word.Length).Where(i => IsEnglishOnlyCapital(word[i])).All(i =>
+    // Each run of capitals with one on a key without a shifted jamo must start on a Korean shift key: Shift was
+    // pressed for ㄲ ㅆ ... and held. Null when one does not. InsideSyllable: Shift let go within a syllable (TM + s of
+    // 쓴); AfterStart: no run at the start of the word.
+    static (bool InsideSyllable, bool AfterStart)? ShiftHeldOn(string word, string unshifted)
+    {
+        string reading = LayoutConverter.ToKorean(unshifted);
+        bool insideSyllable = false, afterStart = true;
+        for (int i = 0; i < word.Length; i++)
         {
-            int start = i;
-            while (start > 0 && char.IsAsciiLetterUpper(word[start - 1])) start--;
-            return start > 0 && start < i && KoreanShiftKeys.Contains(word[start]);
-        });
+            if (!char.IsAsciiLetterUpper(word[i])) continue;
+            int end = i;
+            while (end < word.Length && char.IsAsciiLetterUpper(word[end])) end++;
+            bool hasEnglishOnly = word[i..end].Any(IsEnglishOnlyCapital);
+            if (hasEnglishOnly && (!KoreanShiftKeys.Contains(word[i]) || end - i < 2)) return null;
+            if (hasEnglishOnly)
+            {
+                if (i == 0) afterStart = false;
+                if (end < word.Length && !reading.StartsWith(LayoutConverter.ToKorean(unshifted[..end]), StringComparison.Ordinal))
+                    insideSyllable = true;
+            }
+            i = end - 1;
+        }
+        return (insideSyllable, afterStart);
+    }
 
     // Double final consonants (ㄳ ㄵ ㄶ ㄺ ...), which no anonymous initial is.
     static bool IsCluster(char jamo) => "ㄳㄵㄶㄺㄻㄼㄽㄾㄿㅀㅄ".Contains(jamo);
