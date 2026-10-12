@@ -49,7 +49,7 @@ sealed class Controller : IDisposable
         "WindowsTerminal.exe", "cmd.exe", "conhost.exe", "OpenConsole.exe", "powershell.exe", "pwsh.exe", "node.exe",
         "claude.exe", "wsl.exe", "bash.exe", "mintty.exe", "alacritty.exe", "wezterm-gui.exe", "ConEmu64.exe", "Tabby.exe",
     };
-    const int TerminalGapMs = 15, TerminalEnterGapMs = 40, HanjaModeGapMs = 50;
+    const int TerminalGapMs = 4, TerminalEnterGapMs = 15, HanjaModeGapMs = 50;
     // Keys the user typed while a replacement was still going out slowly; they follow it.
     readonly Queue<KeyEvent> _heldKeys = new();
 
@@ -523,10 +523,20 @@ sealed class Controller : IDisposable
         var release = new InputSender();
         foreach (var k in heldShifts) release.Up(k);
         Send(release);
-        for (int i = 0; i < steps.Count; i++)
+        bool hasGaps = steps.Count > 1;
+        // 1 ms timer resolution only while the gaps run, so a 4 ms wait is not 15.6 ms.
+        if (hasGaps) Native.timeBeginPeriod(1);
+        try
         {
-            Send(steps[i].Input);
-            if (i < steps.Count - 1 && steps[i].GapAfterMs > 0) await Task.Delay(steps[i].GapAfterMs);
+            for (int i = 0; i < steps.Count; i++)
+            {
+                Send(steps[i].Input);
+                if (i < steps.Count - 1 && steps[i].GapAfterMs > 0) await Task.Delay(steps[i].GapAfterMs);
+            }
+        }
+        finally
+        {
+            if (hasGaps) Native.timeEndPeriod(1);
         }
         var press = new InputSender();
         foreach (var k in heldShifts) press.Down(k);

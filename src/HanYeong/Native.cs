@@ -109,6 +109,13 @@ static partial class Native
         public int left, top, right, bottom;
     }
 
+    // Timer resolution: the default 15.6 ms would round every short wait up to it.
+    [LibraryImport("winmm.dll")]
+    public static partial uint timeBeginPeriod(uint period);
+
+    [LibraryImport("winmm.dll")]
+    public static partial uint timeEndPeriod(uint period);
+
     [LibraryImport("user32.dll", EntryPoint = "SetWindowsHookExW", SetLastError = true)]
     public static partial IntPtr SetWindowsHookEx(int idHook, HookProc lpfn, IntPtr hMod, uint dwThreadId);
 
