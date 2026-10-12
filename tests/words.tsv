@@ -101,10 +101,36 @@ KO	microphonicdl	microphonic이
 KO	신ㄱ노는	=
 KO	반성ㄴ하고	=
 KO	장ㅇ애의	=
+EN	E클래스	E클래스
+EN	T세포가	T세포가
+EN	t에서	t에서
+EN	day를	day를
+KO	ㅋㅋ손톱으로도	=
+KO	ㅇㅇ대교에서	=
+KO	영ㅈ으로	=
+EN	q스킬	q스킬
+EN	w쓰고	w쓰고
+KO	‘ㅇㅇ에	=
+KO	“ㅋㅋ가	=
+KO	ㅠ-ㅠ무서워요	=
+EN	effectfksmsrp	effect라는게
+KO	effectfksmsrp	effect라는게
+EN	emaildlwksgdk	email이잖아
+EN	checkgownj	check해줘
+EN	updategoTwksgdk	update했잖아
+EN	loginehoTdjdy	login됐어요
+KO	meetingEoansdp	meeting때문에
+EN	errordlrjemsdy	error이거든요
+KO	QQabwlr	QQ뮤직
+KO	ccfmf	cc를
+KO	ggfmf	gg를
+EN	ventaleh	vental도
+KO	ventaleh	vental도
 # anonymous people and things
 EN	ㄱ씨는	ㄱ씨는
 EN	ㄴ양의	ㄴ양의
-EN	ㅅ아파트	ㅅ아파트
+# English mode: a letter + a word is more often meant than an anonymous thing (q스킬)
+EN	ㅅ아파트	t아파트
 # chat jamo
 EN	dd	ㅇㅇ
 EN	zz	ㅋㅋ

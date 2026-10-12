@@ -72,18 +72,20 @@ public sealed class AutoDetector
     readonly Func<string, float> _korean;
     readonly Func<string, bool> _isException;
     readonly Func<string, bool> _isName;
+    readonly Func<string, bool> _looksEnglish;
     readonly AutoDetectorOptions _o;
 
     public AutoDetector(Func<string, bool>? isException = null, AutoDetectorOptions? options = null)
         : this(w => WordFrequency.English.Value.Score(w), w => WordFrequency.Korean.Value.Score(w), isException, options,
-            w => NameList.Default.Value.Contains(w))
+            w => NameList.Default.Value.Contains(w), w => WordFrequency.English.Value.LooksLikeWord(w))
     {
     }
 
     public AutoDetector(Func<string, float> english, Func<string, float> korean, Func<string, bool>? isException = null,
-        AutoDetectorOptions? options = null, Func<string, bool>? isName = null)
+        AutoDetectorOptions? options = null, Func<string, bool>? isName = null, Func<string, bool>? looksEnglish = null)
     {
         _isName = isName ?? (_ => false);
+        _looksEnglish = looksEnglish ?? (_ => false);
         // The word tables start at two letters; the only one-letter English words are added here.
         _english = w => w.Length == 1 ? (w is "a" or "A" or "i" or "I" ? 7.5f : 0f) : english(w);
         _korean = korean;
@@ -319,9 +321,12 @@ public sealed class AutoDetector
                 result.Append(converted);
             // A part may be English + particle itself: pre-stimulus가 (stimulus + 가), in either mode. Only between
             // punctuation: an acronym inside letters (ATldml) is no joined word, and CheckMixed reads it whole (A씨의).
-            else if (word.Any(JoinerPunctuation.Contains) && CheckMixed(typedIn == Layout.English ? part : LayoutConverter.ToEnglish(part), typedIn) is { } mixedPart)
+            // It counts as a change only when it changes something, and not from one lowercase letter (ㅠ-ㅠ무서워요 is no
+            // b + 무서워요; (A씨는 still converts).
+            else if (word.Any(JoinerPunctuation.Contains) && CheckMixed(typedIn == Layout.English ? part : LayoutConverter.ToEnglish(part), typedIn) is { } mixedPart
+                && !(mixedPart.TakeWhile(char.IsAsciiLetter).Count() == 1 && char.IsAsciiLetterLower(mixedPart[0])))
             {
-                anyConverts = true;
+                if (mixedPart != part) anyConverts = true;
                 result.Append(mixedPart);
             }
             else
@@ -397,11 +402,12 @@ public sealed class AutoDetector
         // Chat jamo typed in English mode (dd → ㅇㅇ, zz → ㅋㅋ) when the English is not common (gg 6.5 stays);
         // stricter in a sentence of English, looser in one of Korean.
         if (word.All(char.IsAsciiLetterLower) && IsChatJamo(korean, _english(word), 5.0f - _o.EnglishToKoreanMargin)) return korean;
-        // An anonymous person or thing written in Korean (rTlsms → ㄱ씨는, tdkvkxm → ㅅ아파트) when the keys are no English word.
-        // English mode asks for more: a single consonant and 씨/양/군... (ㄱ씨는) or a word of two syllables and more
-        // (ㅅ아파트); a consonant + one common syllable (ㄵ노 swsh, ㅎ더 gej) is too easily random keys.
-        if (IsAnonymized(korean) && _english(word) < _o.KnownEnglish && Jamo.IsConsonant(korean[0]) && !IsCluster(korean[0])
-            && (AnonymousHeads.Contains(korean[1..2]) || korean.Length >= 3)) return korean;
+        // An anonymous person written in Korean (rTlsms → ㄱ씨는) when the keys are no English word. English mode asks
+        // for a lowercase first key (E클래스, T세포: a capital is English, and no one writes ㄸ씨) and 씨/양/군... after
+        // it: a letter + a word is more often meant (q스킬, w쓰고, t스토어), and ㄵ노 (swsh) is random keys.
+        if (IsAnonymized(korean) && _english(word) < _o.KnownEnglish && char.IsAsciiLetterLower(word[0])
+            && Jamo.IsConsonant(korean[0]) && !IsCluster(korean[0]) && AnonymousHeads.Contains(korean[1..2]))
+            return korean;
         // Proper syllables, or a listed Korean word with a rarer one (여깄어요: 깄 is outside KS X 1001).
         if (!IsWellFormed(korean) && !(korean.All(Jamo.IsSyllable) && _korean(korean) > 0)) return null;
 
@@ -509,10 +515,19 @@ public sealed class AutoDetector
     // English mode: everyday syllables only (a rare one there is more likely English keys). Korean mode: Korean
     // typed with a slip still reads as Korean (신ㄱ노, 반성ㄴ), and so does a lone consonant before syllables, the
     // way news writes anonymous things (ㄱ자형); English typed there is mostly lone jamo (ㅎㄱ메ㅗㅛ, ㅅ체퍋ㅈ).
+    // Korean mode: the syllables of a reading, lone jamo left out, make a Korean word (신ㄱ노 → 신노 no, 반성ㄴ → 반성
+    // yes); ㅍ둣미 (vental) makes none.
+    bool IsKoreanInSyllables(string korean) =>
+        new string(korean.Where(Jamo.IsSyllable).ToArray()) is { Length: > 0 } syllables && (_korean(syllables) > 0 || IsKoreanWord(syllables));
+
+    // Chat in Korean mode reads as Korean too: a jamo doubled (ㅋㅋ손톱, ㅇㅇ대교, ㅍㅍㅅㅅ), and two characters are too
+    // few to tell (영ㅈ, 앞ㄹ).
     static bool IsReadableKorean(string korean, Layout typedIn) =>
         typedIn == Layout.Korean
-            ? korean.Length > 0 && korean.Count(Jamo.IsJamo) < korean.Count(Jamo.IsSyllable)
+            ? korean.Length > 0 && (korean.Count(Jamo.IsJamo) < korean.Count(Jamo.IsSyllable)
                 || (korean.Length >= 2 && Jamo.IsConsonant(korean[0]) && korean[1..].All(Jamo.IsSyllable))
+                || korean.Length <= 2
+                || Enumerable.Range(1, korean.Length - 1).Any(i => Jamo.IsJamo(korean[i]) && korean[i] == korean[i - 1]))
             : IsWellFormed(korean);
 
     static bool IsShiftedAcronym(string keys) =>
@@ -616,7 +631,10 @@ public sealed class AutoDetector
                 string prefixKorean = LayoutConverter.ToKorean(prefix);
                 // Any complete syllable counts here, the rarer ones too (스쾃과, 험상궃은, 네트웤의).
                 // Rarer syllables (둫디, 쾃) count only when no English word is behind them: engel곡선, not tmzhkt + 과.
-                bool isKoreanPrefix = IsWellFormed(prefixKorean) || (prefixKorean.All(Jamo.IsSyllable) && _english(prefix) < _o.KnownEnglish);
+                // ㅇㅇ (a placeholder name) and ㅋㅋ too (ㅇㅇ에, ㅋㅋ가), though dd is listed English; other repeats are
+                // English letters more often (QQ뮤직, gg를, cc를, mm로, PP를).
+                bool isKoreanPrefix = IsWellFormed(prefixKorean) || (prefixKorean.All(Jamo.IsSyllable) && _english(prefix) < _o.KnownEnglish)
+                    || (prefixKorean.Length >= 2 && prefixKorean[0] is 'ㅇ' or 'ㅋ' && prefixKorean.All(c => c == prefixKorean[0]));
                 if (typedIn == Layout.Korean && !HasEnglishOnlyShift(prefix) && isKoreanPrefix
                     && !IsEnglishBeforeParticles(prefix, prefixKorean, LayoutConverter.ToKorean(rest), isKoreanMode: true)) continue;
                 // Letters with digits (ch4 = chapter 4, mp3, h2o) are codes, never Korean typing; no word list has them.
@@ -660,10 +678,13 @@ public sealed class AutoDetector
                     && prefix[1..].All(char.IsAsciiLetterLower)
                     && (isName || !IsReadableKorean(LayoutConverter.ToKorean(prefix), typedIn) || IsEnglishOnlyCapital(prefix[0]));
                 if (isLowerLetter && !(isLongParticle || (korean.Length >= 2 && IsWellFormed(korean) && _korean(korean) >= _o.MixedKoreanRest))) continue;
-                // A long listed word, however rare, whose keys make no Korean at all, before 이 에 도 로: microphonic이
-                // (1.0). Random keys are on no list.
-                bool isRareLongWord = isSafeParticle && prefix.Length >= 6 && prefix.All(char.IsAsciiLetterLower) && _english(prefix) > 0
-                    && !IsReadableKorean(LayoutConverter.ToKorean(prefix), typedIn);
+                // A long word whose keys make no Korean at all, before 이 에 도 로: listed however rarely (microphonic이,
+                // 1.0), or shaped like English (vental도: every three letters occur in listed words), which random
+                // keys seldom are.
+                // Longer endings have their own rule (email + 이라는건, not emaildl + 라는건).
+                bool isRareLongWord = korean is "이" or "에" or "도" or "로" && prefix.Length >= 6 && prefix.All(char.IsAsciiLetterLower)
+                    && (_english(prefix) > 0 || _looksEnglish(prefix))
+                    && (!IsReadableKorean(prefixKorean, typedIn) || (typedIn == Layout.Korean && !IsKoreanInSyllables(prefixKorean)));
                 bool isVouched = isAcronym || isCode || (isDeliberate && isSafeParticle) || isUnknownEnglish || isLowerLetter || isRareLongWord;
                 if (!isVouched && _english(prefix) < needed) continue;
                 // In English mode the rest must not be common English itself: Upwork is not Up + 재가 ("work"),
