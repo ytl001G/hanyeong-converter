@@ -295,12 +295,19 @@ sealed class Controller : IDisposable
 
     /// <summary>
     /// The English for the word just before <paramref name="following"/> (<paramref name="textBefore"/> ends with
-    /// it) when it reads as English in a sentence: broken Hangul (ㅑ → I), or a Korean word whose English is far
-    /// more common (무 → an); otherwise null.
+    /// it) when it reads as English in a sentence: broken Hangul (ㅑ → I), a Korean word whose English is far
+    /// more common (무 → an), or a number with an English ending (20소 → 20th); otherwise null.
     /// </summary>
     string? LeadInFix(string textBefore, string following)
     {
         string previous = textBefore[(textBefore.LastIndexOfAny(WordEnds) + 1)..];
+        // A number with an English ending that reads as Hangul: 20소 ㅇㄱㄷ므 → 20th dream (alone, 20소 may be Korean).
+        int digits = previous.TakeWhile(char.IsAsciiDigit).Count();
+        if (digits > 0 && digits < previous.Length && previous[digits..].All(Jamo.IsHangul))
+        {
+            string ending = LayoutConverter.ToEnglish(previous[digits..]);
+            return AutoDetector.IsEnglishNumberSuffix(ending) ? previous[..digits] + ending : null;
+        }
         if (previous.Length == 0 || !previous.All(Jamo.IsHangul)) return null;
         // Capitals as typed: the keys of "previous following" are the tail of the segment.
         string keys = _segment!.RestoreCase(LayoutConverter.ToEnglish(previous + " " + following))[..LayoutConverter.ToEnglish(previous).Length];

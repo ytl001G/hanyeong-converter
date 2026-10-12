@@ -305,6 +305,9 @@ public sealed class AutoDetector
     static readonly HashSet<string> NumberSuffixes = WordList.Load("number-suffixes-en.txt");
     static readonly HashSet<string> NumberPrefixes = WordList.Load("number-prefixes.txt");
 
+    /// <summary>English written after a number (th, st, kg, s), as in Data/number-suffixes-en.txt.</summary>
+    public static bool IsEnglishNumberSuffix(string keys) => NumberSuffixes.Contains(keys.ToLowerInvariant());
+
     string? CheckEnglish(string word)
     {
         foreach (char c in word)
