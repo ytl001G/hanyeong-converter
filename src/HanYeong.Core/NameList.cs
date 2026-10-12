@@ -4,21 +4,22 @@ namespace HanYeong.Core;
 
 /// <summary>
 /// Personal and place names the word lists miss (Ndidi, Kowalczyk), from tools/build_names.py.
-/// Kept as a Bloom filter: 660k names in about 1MB instead of 10MB+ as strings. About 1 in 100 other words
+/// Kept as a Bloom filter: 660k names in about 1.3MB instead of 10MB+ as strings. About 1 in 2,000 other words
 /// also tests positive, which only matters for capitalized words (they are then left as English).
 /// </summary>
 public sealed class NameList
 {
     public static readonly Lazy<NameList> Default = new(Load);
 
-    const int HashCount = 7;
+    const int HashCount = 11;
     readonly ulong[] _bits;
     readonly ulong _bitCount;
 
     NameList(int expected)
     {
-        // 10 bits per name and 7 hashes give about 1% false positives.
-        _bitCount = (ulong)Math.Max(64, expected * 10);
+        // 16 bits per name and 11 hashes give about 0.05% false positives (10 bits gave 1%, and 꾸준한 typed as
+        // Rnwnsgks was taken for a name).
+        _bitCount = (ulong)Math.Max(64, expected * 16);
         _bits = new ulong[(_bitCount + 63) / 64];
     }
 

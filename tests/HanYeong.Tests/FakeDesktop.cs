@@ -13,6 +13,7 @@ sealed class FakeTextBox
     string _right = "";
 
     public string Text => _left.Text + _right;
+    public string Composing => _left.Composing;
 
     public void Type(char key, Layout mode)
     {
@@ -46,6 +47,7 @@ sealed class FakeTextBox
 sealed class FakeDesktop : IDesktop
 {
     public const int VK_BACK = 0x08, VK_RETURN = 0x0D, VK_SHIFT = 0x10, VK_CONTROL = 0x11, VK_SPACE = 0x20;
+    public const int VK_HANGUL = 0x15, VK_HANJA = 0x19;
     public const int VK_LEFT = 0x25, VK_RIGHT = 0x27, VK_LSHIFT = 0xA0, VK_RSHIFT = 0xA1, VK_LCONTROL = 0xA2;
 
     readonly HashSet<int> _down = new();
@@ -54,6 +56,8 @@ sealed class FakeDesktop : IDesktop
     public Layout Mode { get; set; } = Layout.English;
     public string? Selection { get; set; }
     public List<Keystroke> Injected { get; } = new();
+    /// <summary>The syllable being composed each time the Hanja key reached the IME.</summary>
+    public List<string> HanjaRequests { get; } = new();
 
     public IntPtr ForegroundWindow { get; set; } = 1;
     public string Exe { get; set; } = "test.exe";
@@ -145,6 +149,8 @@ sealed class FakeDesktop : IDesktop
         switch (vk)
         {
             case VK_BACK: Box.Backspace(); break;
+            case VK_HANGUL: Mode = Mode == Layout.Korean ? Layout.English : Layout.Korean; break;
+            case VK_HANJA: if (Mode == Layout.Korean) HanjaRequests.Add(Box.Composing); break;
             case VK_RETURN: Box.Insert('\n'); break;
             case VK_LEFT: Box.Left(); break;
             case VK_RIGHT: Box.Right(); break;
@@ -163,6 +169,8 @@ sealed class FakeDesktop : IDesktop
         ',' => (0xBC, false),
         '-' => (0xBD, false),
         '+' => (0xBB, true),
+        '(' => ('9', true),
+        ')' => ('0', true),
         '\'' => (0xDE, false),
         _ when char.IsAsciiLetter(c) => (char.ToUpperInvariant(c), char.IsAsciiLetterUpper(c)),
         _ when char.IsAsciiDigit(c) => (c, false),
@@ -178,6 +186,8 @@ sealed class FakeDesktop : IDesktop
         0xBB => shift ? '+' : '=',
         0xDE => shift ? '"' : '\'',
         >= 'A' and <= 'Z' => shift ? (char)vk : char.ToLowerInvariant((char)vk),
+        '9' when shift => '(',
+        '0' when shift => ')',
         >= '0' and <= '9' => (char)vk,
         _ => null,
     };

@@ -122,6 +122,25 @@ public class ControllerTests : IDisposable
     }
 
     [Fact]
+    public void HanjaKeyAfterEnglishModeTyping() // user's idea: rh + 한자 → 고 with the Hanja list
+    {
+        Typed(Layout.English, "rh");
+        _desktop.Tap(FakeDesktop.VK_HANJA);
+        Assert.Equal(Layout.Korean, _desktop.Mode);
+        Assert.Equal("고", _desktop.Box.Text);
+        Assert.Equal(["고"], _desktop.HanjaRequests);
+    }
+
+    [Fact]
+    public void HanjaKeyInKoreanModeIsLeftToTheIme()
+    {
+        Typed(Layout.Korean, "rh");
+        _desktop.Tap(FakeDesktop.VK_HANJA);
+        Assert.Equal(["고"], _desktop.HanjaRequests);   // the key went straight to the IME
+        Assert.DoesNotContain(_desktop.Injected, k => k.Vk == FakeDesktop.VK_HANGUL);
+    }
+
+    [Fact]
     public void ArrowKeyConvertsAndStillMoves()
     {
         Typed(Layout.English, "dkssud");
