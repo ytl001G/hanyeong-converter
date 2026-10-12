@@ -19,7 +19,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <None Include="reported-cases.tsv" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="..\typing.tsv" Link="typing.tsv" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
   <ItemGroup>

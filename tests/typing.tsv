@@ -1,0 +1,88 @@
+# What a user types into the app, checked through the whole app without a screen (keyboard hook → controller →
+# simulated text box and Korean IME). Every reported case goes here.
+# mode <TAB> typed <TAB> expected
+#   mode      EN or KO, the IME mode while typing
+#   typed     the keys, words separated by spaces; Hangul stands for the keys that type it (KO 내 = so).
+#             A space is typed at the end, or Enter when it ends in ⏎, or nothing more when it ends in .
+#   expected  what the text box shows, without that last space or Enter, or = for exactly what was typed
+EN	shortagedlek	shortage이다
+KO	shortagedlek	shortage이다
+KO	power-consumption	power-consumption
+KO	engelrhrtjs	engel곡선
+EN	ch4rk	ch4가
+EN	giffendms	giffen은
+EN	-6qhek	-6보다
+KO	don't	don't
+EN	1ckwjsdptj	1차전에서
+EN	6wkghleka	6자회담
+EN	Bgud	B형
+EN	FAzjq	FA컵
+EN	asms	a는
+EN	quantityrk	quantity가
+EN	rebaterk	rebate가
+EN	+2akszma	+2만큼
+EN	fMRIsms	fMRI는
+KO	autocompact	autocompact
+KO	I want to go	I want to go
+KO	an apple⏎	an apple
+EN	ekdma⏎	다음
+EN	rlaalswn⏎	rlaalswn
+EN	dksehlsek⏎	안된다
+EN	qnstjrqnxj go	분석부터 해
+KO	suffixfkejsrk	suffix라던가
+EN	prefixsms	prefix는
+EN	5chs	5촌
+KO	20th dream	20th dream
+KO	the 1980s music	the 1980s music
+KO	www web	www web
+EN	Aaocl	A매치
+EN	Bwh	B조
+EN	kgekd	kg당
+EN	wndehdghgmqrlwmdgnrns(MERS)	중동호흡기증후군(MERS)
+EN	djqanguqdirtlr(MOU)dmf	업무협약식(MOU)을
+EN	Dikeh	Dikeh
+EN	Rnwnsgks	꾸준한
+EN	Wlrdmf	찍을
+EN	so wlq	내 집
+EN	the dkssud	the 안녕
+EN	the en route	the en route
+EN	gyrusdp	gyrus에
+EN	gyrisms	gyri는
+KO	LG hostage feat sweater	LG hostage feat sweater
+KO	Ago award	Ago award
+KO	the usa 75th	the usa 75th
+EN	Chihuahuitadlejs	Chihuahuita이던
+KO	the fe and	the fe and
+KO	Anaut said	Anaut said
+EN	Altmejdfksl	Altmejd라니
+EN	qpf(TV)	벨(TV)
+EN	durlTdjdy	여깄어요
+EN	Dobbekdprptj	Dobbek에게서
+EN	Ersmarkwjr	Ersmark적
+KO	Ansaldi said	Ansaldi said
+EN	Dordaeh	Dorda도
+KO	Cornel said	Cornel said
+KO	the 1970s music	the 1970s music
+KO	Endeley said	Endeley said
+EN	dPQmrp(PC)	예쁘게(PC)
+EN	Ekanemdlwl	Ekanem이지
+KO	Rosl	깨니
+EN	workgkfurh	work하려고
+EN	gothtlzu	해소시켜
+KO	OTTsms	OTT는
+KO	Kflrm	K리그
+KO	Bgud	B형
+KO	ERPdml	ERP의
+EN	wlsgodtkdghkddp⏎	진행상황에
+EN	ghkrdlsgoTdj⏎	확인했어
+KO	hello so clsrn	hello 내 친구
+KO	hello so good	hello so good
+KO	rTlsms djWjrh wjWjrh	ㄱ씨는 어쩌고 저쩌고
+KO	rTlsms	ㄱ씨는
+EN	dkssud.gktpdy	안녕.하세요
+KO	want to go	want to go
+EN	dkssud gktpdy⏎	안녕 하세요
+KO	fMRIsms	fMRI는
+KO	so apple	내 apple
+EN	www.kt.com	www.kt.com
+EN	naver.co.kr	naver.co.kr

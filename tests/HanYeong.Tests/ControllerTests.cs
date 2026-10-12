@@ -21,8 +21,11 @@ public class ControllerTests : IDisposable
     readonly Settings _settings = new();
     readonly Controller _controller;
 
-    public ControllerTests()
+    public ControllerTests() : this(autoMode: true) { }
+
+    internal ControllerTests(bool autoMode)
     {
+        _settings.AutoMode = autoMode;
         SynchronizationContext.SetSynchronizationContext(_context);
         _controller = new Controller(_settings, _desktop, hooks: false);
         _desktop.Attach(_controller);
@@ -63,27 +66,6 @@ public class ControllerTests : IDisposable
     {
         Typed(Layout.Korean, "hi").Hotkey();
         Assert.Equal("hi", _desktop.Box.Text);
-    }
-
-    [Theory]
-    [InlineData(Layout.English, "dkssud.gktpdy ", "안녕.하세요 ")]
-    [InlineData(Layout.Korean, "want to go ", "want to go ")]                 // sentence context: to, go
-    [InlineData(Layout.Korean, "I want to go ", "I want to go ")]             // lone jamo looked back at
-    [InlineData(Layout.Korean, "engelrhrtjs ", "engel곡선 ")]                 // English + Korean noun
-    [InlineData(Layout.English, "dkssud gktpdy\n", "안녕 하세요\n")]          // Enter after other words
-    [InlineData(Layout.English, "rlaalswn\n", "rlaalswn\n")]                  // one word + Enter: may be an ID
-    [InlineData(Layout.English, "ekdma\n", "다음\n")]                         // ...unless it is a common word (chat)
-    [InlineData(Layout.Korean, "fMRIsms ", "fMRI는 ")]
-    [InlineData(Layout.English, "+2akszma ", "+2만큼 ")]
-    [InlineData(Layout.Korean, "an apple\n", "an apple\n")]                  // user's example: 무 메ㅔㅣㄷ + Enter
-    [InlineData(Layout.English, "dksehlsek\n", "안된다\n")]
-    [InlineData(Layout.Korean, "so apple ", "내 apple ")]                     // 내 is as common as so: may be meant
-    [InlineData(Layout.English, "www.kt.com ", "www.kt.com ")]              // address pieces stay
-    [InlineData(Layout.English, "naver.co.kr ", "naver.co.kr ")]
-    public void AutoMode(Layout mode, string keys, string expected)
-    {
-        Typed(mode, keys);
-        Assert.Equal(expected, _desktop.Box.Text);
     }
 
     [Fact]

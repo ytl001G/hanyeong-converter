@@ -1,0 +1,169 @@
+# One word judged on its own (AutoDetector.Suggest), against the shipped word tables.
+# mode <TAB> typed <TAB> expected
+#   mode      EN or KO, the IME mode while typing
+#   typed     the keys; Hangul stands for the keys that type it (EN 안녕 = dkssud, KO 내 = so)
+#   expected  what the app turns it into, or = to leave it as typed
+# Characters a keyboard cannot type directly (“ · …) can be used here; whole sentences go to typing.tsv.
+
+# ---- Korean typed in English mode ----
+EN	안녕하세요	안녕하세요
+EN	그래	그래
+EN	여깄어요	여깄어요
+EN	진행상황에	진행상황에
+# number + Korean
+EN	3개	3개
+EN	2024년에	2024년에
+EN	1차전에서	1차전에서
+EN	6자회담	6자회담
+EN	1심	1심
+EN	3루	3루
+EN	-6보다	-6보다
+EN	+2만큼	+2만큼
+EN	제2차	제2차
+EN	7시30분	7시30분
+EN	1박2일	1박2일
+EN	100여명이	100여명이
+EN	65세	65세
+EN	1분기	1분기
+EN	5%로	5%로
+# English + Korean
+EN	shortage이다	shortage이다
+EN	update했다	update했다
+EN	SNS를	SNS를
+EN	LA가	LA가
+EN	giffen은	giffen은
+EN	ch4가	ch4가
+EN	mp3파일	mp3파일
+EN	rebate가	rebate가
+EN	quantity가	quantity가
+EN	gyrus에	gyrus에
+EN	gyri는	gyri는
+EN	fMRI는	fMRI는
+EN	mRNA를	mRNA를
+EN	A씨는	A씨는
+EN	A는	A는
+EN	A조	A조
+EN	B형	B형
+EN	FA컵	FA컵
+EN	CEO들의	CEO들의
+EN	SK텔레콤은	SK텔레콤은
+EN	tcpview를	tcpview를
+EN	Lancet에	Lancet에
+EN	OpenGL이	OpenGL이
+EN	a는	a는
+EN	e스포츠	e스포츠
+EN	work하려고	work하려고
+EN	prefix는	prefix는
+EN	Dobbek에게서	Dobbek에게서
+EN	Dorda도	Dorda도
+# punctuation, brackets, middle dot
+EN	“이번	“이번
+EN	것”이라고	것”이라고
+EN	시·군	시·군
+EN	시·도	시·도
+EN	달러(약	달러(약
+EN	양해각서(MOU)를	양해각서(MOU)를
+EN	유럽연합(EU)	유럽연합(EU)
+EN	중동호흡기증후군(MERS)	중동호흡기증후군(MERS)
+EN	삼성SDS가	삼성SDS가
+EN	비타민C가	비타민C가
+EN	부장판사)는	부장판사)는
+EN	홈페이지(www	홈페이지(www
+EN	주스(0	주스(0
+EN	늦을수도…	늦을수도…
+EN	▲드라마	▲드라마
+EN	`초인가족’	`초인가족’
+EN	벨(TV)	벨(TV)
+EN	예쁘게(PC)	예쁘게(PC)
+# Korean that stays: proper Korean even if a part reads as English
+EN	해소시켜	해소시켜
+
+# ---- English typed in English mode: stays ----
+EN	so	=
+EN	sms	=
+EN	lol	=
+EN	work	=
+EN	Namadi	=
+EN	Novak	=
+EN	Han	=
+EN	isms	=
+EN	BioLargo	=
+EN	7Bravo	=
+EN	Gwo	=
+EN	CyberArk	=
+EN	PowerPoint	=
+EN	Drua	=
+EN	Ndidi	=
+EN	Dikeh	=
+EN	INGKA	=
+EN	Upwork	=
+EN	user123	=
+EN	rlaalswn12	=
+EN	3rd	=
+EN	4th	=
+EN	5th	=
+EN	20th	=
+EN	1980s	=
+EN	10kg	=
+EN	10cm	=
+EN	9am	=
+EN	4to	=
+EN	75cl	=
+EN	4chan	=
+EN	222Rn	=
+EN	e-mail	=
+EN	(see	=
+EN	abc1	=
+EN	Seoul's	=
+EN	McDonald	=
+EN	YouTube	=
+EN	British	=
+EN	Henry's	=
+EN	X-Men	=
+EN	Port-au-Prince	=
+EN	pa$$rk	=
+EN	McVeigh's	=
+EN	Third-Worldism	=
+
+# ---- English typed in Korean mode (keys as typed, capitals with Shift) ----
+KO	hello	hello
+KO	and	and
+KO	github	github
+KO	autocompact	autocompact
+KO	keyboardshortcut	keyboardshortcut
+KO	price-consumption	price-consumption
+KO	don't	don't
+KO	it’s	it’s
+KO	(or	(or
+KO	I'm	I'm
+KO	you’re	you’re
+KO	SEC	SEC
+KO	DNA	DNA
+KO	I	I
+KO	shortage이다	shortage이다
+KO	SNS에	SNS에
+KO	engel곡선	engel곡선
+KO	A씨	A씨
+KO	KT가	KT가
+KO	LG전자는	LG전자는
+KO	SK텔레콤	SK텔레콤
+KO	ESPN은	ESPN은
+KO	e스포츠	e스포츠
+KO	suffix라던가	suffix라던가
+
+# ---- Korean typed in Korean mode: stays ----
+KO	내	=
+KO	ㅋㅋㅋ	=
+KO	넵	=
+KO	신-구	=
+KO	ㄱ씨는	=
+KO	ㄱ씨	=
+KO	ㄴ양의	=
+KO	ㄱ업체는	=
+KO	ㅅ아파트	=
+KO	갯녹음	=
+KO	해미면	=
+KO	4륜	=
+KO	1녀	=
+KO	추가됩니다	=
+KO	그떄는	=
