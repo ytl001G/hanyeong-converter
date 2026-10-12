@@ -1,0 +1,4 @@
+# Cases reported but not fixed yet; not run by the tests. Same format as words.tsv (mode, typed keys, expected).
+# Move a row to words.tsv or typing.tsv once it is fixed.
+# 2026-10-12: Korean mode, screen showed ㅕ샤ㅣㅑ쇼는
+KO	utilitysms	utility는
