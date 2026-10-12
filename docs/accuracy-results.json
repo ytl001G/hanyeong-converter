@@ -1,6 +1,6 @@
 {
   "load": {
-    "ms": 398,
+    "ms": 418,
     "managedMB": 16.8,
     "englishWords": 477661,
     "koreanWords": 486868
@@ -1950,7 +1950,7 @@
   },
   "speed": {
     "checks": 200000,
-    "microsecondsPerCheck": 0.999588
+    "microsecondsPerCheck": 1.802937
   },
   "edgeCases": {
     "sentences": {
@@ -2225,7 +2225,7 @@
         "distinctWords": 64852,
         "falsePositive": null,
         "falsePositiveExamples": null,
-        "fixedWhenTypedInOtherMode": 0.9419748486710634,
+        "fixedWhenTypedInOtherMode": 0.941970010016016,
         "missedExamples": [
           "K리그1(303)",
           "A군은(220)",

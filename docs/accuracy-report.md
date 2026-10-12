@@ -1,6 +1,6 @@
 # 자동 모드 정확도 분석 보고서
 
-- 측정일: 2026-10-12 (v0.5.4)
+- 측정일: 2026-10-12 (v0.5.5)
 - 대상: 자동 모드 판단 로직 (`AutoDetector`), 문장 맥락, Ctrl+Space 변환 (`TypedSegment`)
 - 원본 수치: [accuracy-results.json](accuracy-results.json) · 측정 코드: [tools/Evaluation](../tools/Evaluation/Program.cs)
 
