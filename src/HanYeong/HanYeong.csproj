@@ -22,9 +22,9 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <ApplicationIcon>Assets\app.ico</ApplicationIcon>
-    <Product>?쒖쁺 蹂?섍린</Product>
-    <AssemblyTitle>?쒖쁺 蹂?섍린</AssemblyTitle>
-    <Version>0.5.1</Version>
+    <Product>??뽰겫 癰궰??띾┛</Product>
+    <AssemblyTitle>??뽰겫 癰궰??띾┛</AssemblyTitle>
+    <Version>0.5.2</Version>
   </PropertyGroup>
 
 </Project>

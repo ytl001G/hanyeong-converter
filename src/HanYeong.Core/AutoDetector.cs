@@ -373,6 +373,9 @@ public sealed class AutoDetector
         }
 
         string korean = LayoutConverter.ToKorean(word);
+        // Chat jamo typed in English mode (dd → ㅇㅇ, zz → ㅋㅋ) when the English is not common (gg 6.5 stays);
+        // stricter in a sentence of English, looser in one of Korean.
+        if (word.All(char.IsAsciiLetterLower) && IsChatJamo(korean, _english(word), 5.0f - _o.EnglishToKoreanMargin)) return korean;
         // Proper syllables, or a listed Korean word with a rarer one (여깄어요: 깄 is outside KS X 1001).
         if (!IsWellFormed(korean) && !(korean.All(Jamo.IsSyllable) && _korean(korean) > 0)) return null;
 
@@ -457,6 +460,13 @@ public sealed class AutoDetector
         string korean = string.Concat(hangul);
         return IsParticleChain(korean) && (LayoutConverter.ToEnglish(korean).Length >= 3 || korean is "이" or "에" or "도" or "로");
     }
+
+    // ㅋㅋ ㅎㅎ ㅇㅇ ㅠㅠ ㄷㄷ: a jamo chat repeats (not ㅔㅔ, which is pp, or ㄹㄹ); or a listed chat abbreviation
+    // (ㅇㅋ, ㄱㅅ), which needs rarer English still.
+    static bool IsChatJamo(string korean, float english, float below) =>
+        korean.Length >= 2 && korean.All(Jamo.IsJamo)
+        && (korean.All(c => c == korean[0]) && "ㅋㅎㅇㅠㅜㄷㄱㅂㄴ".Contains(korean[0]) ? english < below
+            : ChatAbbreviations.Contains(korean) && english < below - 1.0f);
 
     static bool IsShiftedAcronym(string keys) =>
         keys.Length is >= 1 and <= 6 && keys.All(char.IsAsciiLetterUpper) && HasEnglishOnlyShift(keys);

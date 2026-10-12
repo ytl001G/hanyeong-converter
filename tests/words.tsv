@@ -78,6 +78,12 @@ EN	예쁘게(PC)	예쁘게(PC)
 # Korean that stays: proper Korean even if a part reads as English
 EN	해소시켜	해소시켜
 
+# chat jamo
+EN	dd	ㅇㅇ
+EN	zz	ㅋㅋ
+EN	dz	ㅇㅋ
+EN	gg	=
+
 # ---- English typed in English mode: stays ----
 EN	so	=
 EN	sms	=
