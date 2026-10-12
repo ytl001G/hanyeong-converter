@@ -20,10 +20,10 @@ sealed class Controller : IDisposable
         public Conversion Reversed => new(After, AfterLayout, Before, BeforeLayout);
     }
 
-    readonly GlobalHooks _hooks;
+    readonly GlobalHooks? _hooks;
     readonly SynchronizationContext _ui;
     readonly Settings _settings;
-    readonly FocusTracker _focus;
+    readonly IDesktop _desktop;
     readonly AutoDetector _detector;
     readonly AutoDetector _contextDetector;
     readonly System.Windows.Forms.Timer _modifierReleaseTimer = new() { Interval = 30 };
@@ -50,19 +50,20 @@ sealed class Controller : IDisposable
 
     public event Action<bool>? AutoModeChanged;
 
-    public Controller(Settings settings, FocusTracker focus)
+    public Controller(Settings settings, IDesktop desktop, bool hooks = true)
     {
         _ui = SynchronizationContext.Current ?? throw new InvalidOperationException("Needs the UI thread.");
         _settings = settings;
-        _focus = focus;
+        _desktop = desktop;
         _detector = new AutoDetector(word => _settings.ExceptionWords.Contains(word));
         _contextDetector = new AutoDetector(word => _settings.ExceptionWords.Contains(word), AutoDetectorOptions.InContext);
-        _hooks = new GlobalHooks { KeyPressed = OnHookKey, MouseClicked = Reset };
+        // The headless tests drive OnHookKey/OnMouseClick themselves.
+        _hooks = hooks ? new GlobalHooks { KeyPressed = OnHookKey, MouseClicked = OnMouseClick } : null;
         _modifierReleaseTimer.Tick += (_, _) => RunPendingWhenModifiersReleased();
         ApplySettings();
 
         // Loading the word tables takes a moment; the auto mode stays idle until they are in memory.
-        Task.Run(() =>
+        Ready = Task.Run(() =>
         {
             _ = WordFrequency.English.Value;
             _ = WordFrequency.Korean.Value;
@@ -72,6 +73,11 @@ sealed class Controller : IDisposable
             Log.Write("dictionaries loaded");
         });
     }
+
+    /// <summary>Completes when the word tables are loaded and the auto mode works.</summary>
+    internal Task Ready { get; }
+
+    internal void OnMouseClick() => Reset();
 
     public Hotkey ConvertKey => _convertKey;
     public Hotkey ToggleKey => _toggleKey;
@@ -100,27 +106,27 @@ sealed class Controller : IDisposable
     // Keys that never change the text: Caps/Num/Scroll Lock, F1–F24, media and browser keys.
     static bool IsIgnorable(int vk) => vk is VK_CAPITAL or 0x90 or 0x91 or >= 0x70 and <= 0x87 or >= 0xA6 and <= 0xB7 or 0xFF;
 
-    AppRule? CurrentRule => _settings.Apps.GetValueOrDefault(_focus.CurrentExe);
+    AppRule? CurrentRule => _settings.Apps.GetValueOrDefault(_desktop.CurrentExe);
 
     /// <returns>true to swallow the key.</returns>
-    bool OnHookKey(KeyEvent e)
+    internal bool OnHookKey(KeyEvent e)
     {
         // Leave our own settings window alone, so the hotkey boxes can record any combination.
-        if (_focus.IsOwnAppForeground)
+        if (_desktop.IsOwnAppForeground)
         {
             Reset();
             return false;
         }
 
-        bool ctrl = IsDown(VK_CONTROL), alt = IsDown(VK_MENU), shift = IsDown(VK_SHIFT);
-        bool win = IsDown(VK_LWIN) || IsDown(VK_RWIN);
+        bool ctrl = _desktop.IsDown(VK_CONTROL), alt = _desktop.IsDown(VK_MENU), shift = _desktop.IsDown(VK_SHIFT);
+        bool win = _desktop.IsDown(VK_LWIN) || _desktop.IsDown(VK_RWIN);
 
         if (e.IsDown)
         {
             // The auto-mode toggle works everywhere; conversion respects per-app rules and password fields.
             bool isToggle = _toggleKey.Matches(e.Vk, ctrl, alt, shift, win);
             bool isConvert = !isToggle && _convertKey.Matches(e.Vk, ctrl, alt, shift, win)
-                && CurrentRule?.Hotkey != false && !_focus.IsPasswordFocused;
+                && CurrentRule?.Hotkey != false && !_desktop.IsPasswordFocused;
             if (isToggle || isConvert)
             {
                 _swallowedKeyUp = e.Vk;
@@ -128,7 +134,7 @@ sealed class Controller : IDisposable
                 {
                     _isModifierUsedByHotkey = true;
                     // An unassigned key between Alt/Win down and up stops the menu bar / Start menu from opening.
-                    new InputSender().Key(VK_UNASSIGNED).Send();
+                    Send(new InputSender().Key(VK_UNASSIGNED));
                 }
                 if (isToggle) _ui.Post(_ => AutoMode = !AutoMode, null);
                 else QueueConvert();
@@ -147,12 +153,12 @@ sealed class Controller : IDisposable
             if (IsAltOrWin(e.Vk))
             {
                 if (!_isModifierUsedByHotkey) Reset();
-                if (!IsDown(VK_MENU) && !IsDown(VK_LWIN) && !IsDown(VK_RWIN)) _isModifierUsedByHotkey = false;
+                if (!_desktop.IsDown(VK_MENU) && !_desktop.IsDown(VK_LWIN) && !_desktop.IsDown(VK_RWIN)) _isModifierUsedByHotkey = false;
             }
             return false;
         }
 
-        if (_focus.IsPasswordFocused)
+        if (_desktop.IsPasswordFocused)
         {
             // Never keep what is typed into a password field.
             Reset();
@@ -160,13 +166,13 @@ sealed class Controller : IDisposable
         }
 
         bool isCombo = (ctrl || alt || win) && !IsModifier(e.Vk);
-        bool capsLock = (GetKeyState(VK_CAPITAL) & 1) != 0;
+        bool capsLock = _desktop.IsCapsLockOn;
         return OnKeyDown(e.Vk, shift, isCombo, capsLock);
     }
 
     bool OnKeyDown(int vk, bool shift, bool isCombo, bool capsLock)
     {
-        IntPtr fg = GetForegroundWindow();
+        IntPtr fg = _desktop.ForegroundWindow;
         if (_segment is not null && fg != _segmentWindow) Reset();
         if (IsModifier(vk) || IsIgnorable(vk)) return false;
 
@@ -191,7 +197,7 @@ sealed class Controller : IDisposable
             }
             if (_segment is null)
             {
-                var layout = Ime.GetLayout();
+                var layout = _desktop.ImeLayout;
                 if (layout is null) Log.Write("IME mode unknown, assuming English");
                 _segment = new TypedSegment(layout ?? Layout.English);
                 _segmentWindow = fg;
@@ -256,7 +262,7 @@ sealed class Controller : IDisposable
         // Shift may still be held from a capital (PTE then Space): our Backspaces would arrive as Shift+Backspace,
         // which some apps handle differently while a syllable is being composed. Released for the replacement
         // and pressed again afterwards, as the user still holds it.
-        var heldShifts = new[] { VK_LSHIFT, VK_RSHIFT }.Where(k => IsDown(k)).ToArray();
+        var heldShifts = new[] { VK_LSHIFT, VK_RSHIFT }.Where(k => _desktop.IsDown(k)).ToArray();
         var input = new InputSender();
         foreach (var k in heldShifts) input.Up(k);
         // The ending key has not reached the app, so only the word is deleted.
@@ -298,9 +304,9 @@ sealed class Controller : IDisposable
         _modifierReleaseTimer.Start();
     }
 
-    void RunPendingWhenModifiersReleased()
+    internal void RunPendingWhenModifiersReleased()
     {
-        if (IsDown(VK_CONTROL) || IsDown(VK_MENU) || IsDown(VK_SHIFT) || IsDown(VK_LWIN) || IsDown(VK_RWIN)) return;
+        if (_desktop.IsDown(VK_CONTROL) || _desktop.IsDown(VK_MENU) || _desktop.IsDown(VK_SHIFT) || _desktop.IsDown(VK_LWIN) || _desktop.IsDown(VK_RWIN)) return;
         _modifierReleaseTimer.Stop();
         int count = _pendingConverts;
         _pendingConverts = 0;
@@ -314,7 +320,7 @@ sealed class Controller : IDisposable
         _isBusy = true;
         try
         {
-            IntPtr fg = GetForegroundWindow();
+            IntPtr fg = _desktop.ForegroundWindow;
             if (_segment is not null && fg == _segmentWindow)
             {
                 if (_last is { } last)
@@ -348,7 +354,7 @@ sealed class Controller : IDisposable
 
     async Task ConvertSelectionAsync(IntPtr window)
     {
-        string? text = await SelectionReader.ReadAsync();
+        string? text = await _desktop.ReadSelectionAsync();
         if (string.IsNullOrEmpty(text)) return;
 
         Layout from = LayoutConverter.Detect(text);
@@ -357,7 +363,7 @@ sealed class Controller : IDisposable
 
         // Typing over the selection replaces it.
         Send(new InputSender().Text(converted));
-        _segment = new TypedSegment(Ime.GetLayout() ?? Layout.English);
+        _segment = new TypedSegment(_desktop.ImeLayout ?? Layout.English);
         _segmentWindow = window;
         _last = new Conversion(text, from, converted, to);
         Log.Write($"convert selection {from}->{to} len={text.Length}");
@@ -375,9 +381,9 @@ sealed class Controller : IDisposable
         _segment = new TypedSegment(imeLayout);
     }
 
-    static void Send(InputSender input)
+    void Send(InputSender input)
     {
-        if (!input.Send()) Log.Write("SendInput was blocked (elevated window?)");
+        if (!_desktop.Send(input.Strokes)) Log.Write("SendInput was blocked (elevated window?)");
     }
 
     void Reset()
@@ -390,7 +396,7 @@ sealed class Controller : IDisposable
 
     public void Dispose()
     {
-        _hooks.Dispose();
+        _hooks?.Dispose();
         _modifierReleaseTimer.Dispose();
     }
 }

@@ -5,6 +5,10 @@
   </ItemGroup>
 
   <ItemGroup>
+    <InternalsVisibleTo Include="HanYeong.Tests" />
+  </ItemGroup>
+
+  <ItemGroup>
     <!-- Only for System.Windows.Automation (password-field detection); UseWPF would change implicit usings. -->
     <FrameworkReference Include="Microsoft.WindowsDesktop.App.WPF" />
   </ItemGroup>

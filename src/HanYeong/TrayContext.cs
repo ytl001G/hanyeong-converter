@@ -20,7 +20,7 @@ sealed class TrayContext : ApplicationContext
     public TrayContext(bool isStartupLaunch)
     {
         _ui = SynchronizationContext.Current!;
-        _controller = new Controller(_settings, _focus);
+        _controller = new Controller(_settings, new WindowsDesktop(_focus));
 
         _autoItem = new ToolStripMenuItem { CheckOnClick = true };
         _autoItem.Click += (_, _) => _controller.AutoMode = _autoItem.Checked;

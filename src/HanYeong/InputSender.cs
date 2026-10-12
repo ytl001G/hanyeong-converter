@@ -12,35 +12,37 @@ sealed class InputSender
     // Marks our own events so the hook can tell them apart from other injected input.
     public static readonly IntPtr Signature = 0x48594E47; // "HYNG"
 
-    readonly List<INPUT> _inputs = new();
+    readonly List<Keystroke> _strokes = new();
+
+    public IReadOnlyList<Keystroke> Strokes => _strokes;
 
     public InputSender Key(ushort vk, int times = 1)
     {
         for (int i = 0; i < times; i++)
         {
-            _inputs.Add(Keyboard(vk, (char)0, 0));
-            _inputs.Add(Keyboard(vk, (char)0, KEYEVENTF_KEYUP));
+            _strokes.Add(new Keystroke(vk, '\0', false));
+            _strokes.Add(new Keystroke(vk, '\0', true));
         }
         return this;
     }
 
     public InputSender Down(ushort vk)
     {
-        _inputs.Add(Keyboard(vk, (char)0, 0));
+        _strokes.Add(new Keystroke(vk, '\0', false));
         return this;
     }
 
     public InputSender Up(ushort vk)
     {
-        _inputs.Add(Keyboard(vk, (char)0, KEYEVENTF_KEYUP));
+        _strokes.Add(new Keystroke(vk, '\0', true));
         return this;
     }
 
     public InputSender Chord(ushort modifier, ushort vk)
     {
-        _inputs.Add(Keyboard(modifier, (char)0, 0));
+        _strokes.Add(new Keystroke(modifier, '\0', false));
         Key(vk);
-        _inputs.Add(Keyboard(modifier, (char)0, KEYEVENTF_KEYUP));
+        _strokes.Add(new Keystroke(modifier, '\0', true));
         return this;
     }
 
@@ -56,17 +58,25 @@ sealed class InputSender
                 Key(VK_RETURN);
                 continue;
             }
-            _inputs.Add(Keyboard(0, c, KEYEVENTF_UNICODE));
-            _inputs.Add(Keyboard(0, c, KEYEVENTF_UNICODE | KEYEVENTF_KEYUP));
+            _strokes.Add(new Keystroke(0, c, false));
+            _strokes.Add(new Keystroke(0, c, true));
         }
         return this;
     }
 
     public bool Send()
     {
-        if (_inputs.Count == 0) return true;
-        var array = _inputs.ToArray();
-        _inputs.Clear();
+        bool ok = SendNow(_strokes);
+        _strokes.Clear();
+        return ok;
+    }
+
+    public static bool SendNow(IReadOnlyList<Keystroke> strokes)
+    {
+        if (strokes.Count == 0) return true;
+        var array = strokes.Select(k => k.Vk != 0
+            ? Keyboard(k.Vk, '\0', k.IsUp ? KEYEVENTF_KEYUP : 0)
+            : Keyboard(0, k.Char, KEYEVENTF_UNICODE | (k.IsUp ? KEYEVENTF_KEYUP : 0))).ToArray();
         return SendInput((uint)array.Length, array, Marshal.SizeOf<INPUT>()) == array.Length;
     }
 
