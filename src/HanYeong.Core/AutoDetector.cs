@@ -166,7 +166,10 @@ public sealed class AutoDetector
         bool isDoubtful = typedIn == Layout.English && whole.All(Jamo.IsSyllable) && _korean(whole) <= 0;
         if (!isDoubtful || CheckMixed(keys, typedIn) is not { } mixed) return whole;
         int latin = mixed.TakeWhile(char.IsAsciiLetter).Count();
-        bool isClearSplit = latin >= 4 && _english(mixed[..latin]) >= 4.0f && IsParticleChain(mixed[latin..]);
+        string particles = mixed[latin..];
+        // A rarer English word too before a particle English words seldom end in (gyrus에 2.9, not 효견에).
+        bool isRareEnding = particles.Length >= 2 || particles is "이" or "에" or "도" or "로";
+        bool isClearSplit = latin >= 4 && IsParticleChain(particles) && _english(mixed[..latin]) >= (isRareEnding ? 2.5f : 4.0f);
         return isClearSplit ? mixed : whole;
     }
 
