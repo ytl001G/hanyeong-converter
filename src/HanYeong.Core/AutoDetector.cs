@@ -150,7 +150,9 @@ public sealed class AutoDetector
         if (typedIn == Layout.Korean && !_isException(word))
         {
             // A name typed in Korean mode shows as broken Hangul; its keys carry the capital (Ndidi → ㅜ댜야).
-            if (IsKnownName(keys) && !IsWellFormed(word)) return LayoutConverter.ToEnglish(word);
+            // Also a longer name that happens to read as syllables that are no Korean word (Endeley → 뚱디됴); four
+            // letters meet Korean too often (Rosl is 깨니).
+            if (IsKnownName(keys) && (!IsWellFormed(word) || (keys.Length >= 5 && !IsKoreanWord(word)))) return LayoutConverter.ToEnglish(word);
             // An acronym even when it happens to read as a syllable: Shift on S, D, N, A ... changes nothing in
             // Korean, so it was pressed for English (SEC → ㄴㄸㅊ, DNA → 움, a lone I → ㅑ).
             if (IsShiftedAcronym(keys)) return LayoutConverter.ToEnglish(word);
@@ -182,7 +184,9 @@ public sealed class AutoDetector
         // The other side too: when that part read as Korean is a Korean word (해소시켜, 처리됩니다, 자녀들로부터:
         // goth, cjfl, wksu), the whole is Korean; gyrus → 효견 is no word.
         bool isKoreanStem = _korean(whole[..^particles.Length]) > 0;
-        bool isClearSplit = latin >= 4 && IsParticleChain(particles) && _english(mixed[..latin]) >= needed && !isKoreanStem;
+        // A listed name counts as well (Endrigo께서, not 뚱갸해께서).
+        bool isEnglishPart = _english(mixed[..latin]) >= needed || (particleKeys >= 2 && IsKnownName(mixed[..latin]));
+        bool isClearSplit = latin >= 4 && IsParticleChain(particles) && isEnglishPart && !isKoreanStem;
         return isClearSplit ? mixed : whole;
     }
 
@@ -260,12 +264,14 @@ public sealed class AutoDetector
             bool isDotJoined = isKoreanJoin && IsWellFormed(converted);
             // Korean mode: proper Hangul after a number is Korean typed on purpose (4륜, 1녀).
             bool isKoreanAfterNumber = typedIn == Layout.Korean && afterNumber && IsWellFormed(part);
+            // Korean mode: a lone jamo after a number is an English ending (75ㄴ → 75s, 3ㄱㅇ → 3rd).
+            bool isEnglishEnding = typedIn == Layout.Korean && afterNumber && !IsWellFormed(part) && NumberSuffixes.Contains(converted.ToLowerInvariant());
             // Letters right before a digit are a code (ch4가, mp3파일): English as typed. Between numbers they are
             // a Korean unit (1박2일, 7시30분).
             // Korean written before a number on purpose (제2차, 고3) is in Data/number-prefixes.txt.
             bool isCode = typedIn == Layout.English && !afterNumber && part.Length <= 4 && i < word.Length && char.IsAsciiDigit(word[i])
                 && !NumberPrefixes.Contains(converted);
-            bool converts = !isCode && (isSuffix || isDotJoined
+            bool converts = !isCode && (isSuffix || isDotJoined || isEnglishEnding
                 || (!(typedIn == Layout.English && afterNumber) && !isKoreanAfterNumber && CheckPart(part, typedIn) is not null));
             if (converts)
             {
@@ -323,6 +329,8 @@ public sealed class AutoDetector
         int end = i;
         while (end < word.Length && char.IsAsciiLetterUpper(word[end])) end++;
         int length = end - i;
+        // Shifted Korean keys right after a lowercase letter are jamo (dPQmrp is 예쁘게: ㅖ ㅃ), not an acronym.
+        if (i > 0 && char.IsAsciiLetterLower(word[i - 1]) && word[i..end].All(c => KoreanShiftKeys.Contains(c))) return 0;
         if (length >= 2) return length;
         // A single capital: inside a word it is one (비타민C가); at the start of a word followed by lowercase it
         // just capitalizes the word (British, Henry's), alone it is a letter ((A)).
@@ -541,6 +549,8 @@ public sealed class AutoDetector
                     && !IsUnknownSyllablesForEnglish(prefix, prefixKorean, LayoutConverter.ToKorean(rest))) continue;
                 // Letters with digits (ch4 = chapter 4, mp3, h2o) are codes, never Korean typing; no word list has them.
                 // Short only: a long letters+digits run before "rk" is more likely a password-like string.
+                // Korean mode: capitals that are all shifted Korean keys (EO is 떄) are no acronym.
+                if (typedIn == Layout.Korean && prefix.All(char.IsAsciiLetterUpper) && !HasEnglishOnlyShift(prefix)) continue;
                 bool isCode = prefix.Length <= 6 && prefix.Any(char.IsAsciiDigit) && prefix.Any(char.IsAsciiLetter);
                 bool isNumber = prefix.All(char.IsAsciiDigit);
                 if (prefix.Any(char.IsAsciiDigit) && !isCode && !isNumber) continue;
@@ -578,7 +588,7 @@ public sealed class AutoDetector
                 // A listed name takes 이 에 도 로 as well (Dorda도, Amoke에).
                 bool isUnknownEnglish = allowUnknownEnglish && (isLongParticle || (isName && isSafeParticle)) && prefix.Length > 1
                     && prefix[1..].All(char.IsAsciiLetterLower)
-                    && (!IsWellFormed(LayoutConverter.ToKorean(prefix)) || IsEnglishOnlyCapital(prefix[0]));
+                    && (isName || !IsWellFormed(LayoutConverter.ToKorean(prefix)) || IsEnglishOnlyCapital(prefix[0]));
                 if (isLowerLetter && !(isLongParticle || (korean.Length >= 2 && IsWellFormed(korean) && _korean(korean) >= _o.MixedKoreanRest))) continue;
                 bool isVouched = isAcronym || isCode || (isDeliberate && isSafeParticle) || isUnknownEnglish || isLowerLetter;
                 if (!isVouched && _english(prefix) < needed) continue;
