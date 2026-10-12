@@ -49,7 +49,7 @@ sealed class Controller : IDisposable
         "WindowsTerminal.exe", "cmd.exe", "conhost.exe", "OpenConsole.exe", "powershell.exe", "pwsh.exe", "node.exe",
         "claude.exe", "wsl.exe", "bash.exe", "mintty.exe", "alacritty.exe", "wezterm-gui.exe", "ConEmu64.exe", "Tabby.exe",
     };
-    const int TerminalGapMs = 15, TerminalEnterGapMs = 40;
+    const int TerminalGapMs = 15, TerminalEnterGapMs = 40, HanjaModeGapMs = 50;
     // Keys the user typed while a replacement was still going out slowly; they follow it.
     readonly Queue<KeyEvent> _heldKeys = new();
 
@@ -376,17 +376,20 @@ sealed class Controller : IDisposable
         string word = text[(text.LastIndexOfAny(WordEnds) + 1)..];
         if (word.Length == 0 || !word.All(char.IsAsciiLetter) || !AutoDetector.IsWellFormed(LayoutConverter.ToKorean(word))) return false;
 
-        var input = new InputSender().Key(InputSender.VK_BACK, word.Length).Key(VK_HANGUL);
+        var toKorean = new InputSender().Key(InputSender.VK_BACK, word.Length).Key(VK_HANGUL);
+        var retype = new InputSender();
         foreach (char c in word)
         {
             // Shift only where it was typed: ㅃ ㅉ ㄸ ㄲ ㅆ ㅒ ㅖ.
             bool shift = char.IsAsciiLetterUpper(c);
-            if (shift) input.Down(VK_LSHIFT);
-            input.Key((ushort)char.ToUpperInvariant(c));
-            if (shift) input.Up(VK_LSHIFT);
+            if (shift) retype.Down(VK_LSHIFT);
+            retype.Key((ushort)char.ToUpperInvariant(c));
+            if (shift) retype.Up(VK_LSHIFT);
         }
-        input.Key(VK_HANJA);
-        Send(input);
+        retype.Key(VK_HANJA);
+        // The IME takes a moment to switch to Korean (TSF apps such as Notepad); a key sent right after the 한/영
+        // key can get lost, so the word follows a little later.
+        Sending = SendStepsAsync([(toKorean, HanjaModeGapMs), (retype, 0)], []);
         // What the user picks from the Hanja list is not known here.
         Reset();
         Log.Write($"hanja len={word.Length}");

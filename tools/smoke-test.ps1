@@ -1,8 +1,9 @@
 ﻿# End-to-end check of what unit tests cannot cover: the keyboard hook, SendInput and the real IME,
 # in a classic edit box and in Windows Notepad (TSF). Judgement rules are covered by the unit tests.
-# Usage: .\tools\smoke-test.ps1 -Exe <HanYeong.exe>
-# Takes keyboard focus for about 25 seconds and aborts if its window loses focus.
-param([Parameter(Mandatory)][string]$Exe)
+# Usage: .\tools\smoke-test.ps1 -Exe <HanYeong.exe> [-Only <part of a step name>]
+# Takes keyboard focus for about a minute (only the matching steps with -Only) and aborts if its window loses
+# focus. Run everything before a release; -Only to re-check steps that failed.
+param([Parameter(Mandatory)][string]$Exe, [string[]]$Only)
 $ErrorActionPreference = 'Stop'
 Add-Type -AssemblyName System.Windows.Forms
 Add-Type @"
@@ -53,6 +54,9 @@ function Hotkey { Guard; [K]::Key(0x11, $false); Pump 20; [K]::Key(0x20, $false)
 function Mode { if ([K]::IsKorean()) { 'KO' } else { 'EN' } }
 # Real 한/영 key presses, so HanYeong sees the switch like a user's.
 function Set-Mode($m) { if ((Mode) -ne $m) { Tap 0x15; Pump 120 } }
+# A step runs when no -Only is given or its name contains it.
+function Wanted($label) { -not $Only -or @($Only | Where-Object { $label -like "*$_*" }).Count -gt 0 }
+function Step($label, [scriptblock]$body) { if (Wanted $label) { & $body } }
 function Record($label, $expected, $actual) { $script:results += [pscustomobject]@{ where = $script:where; step = $label; expected = $expected; actual = $actual; ok = ($actual -ceq $expected) } }
 
 # ---- start the app with throwaway settings (one exception word) ----
@@ -67,6 +71,10 @@ $savedClip = Get-Clipboard -Raw
 
 try {
   # ================= classic edit box =================
+  $formSteps = 'Ctrl+Space (IME mode untouched)', 'composing syllable erased, capital kept', 'selection converted',
+    'auto on . and Space', 'auto KO->EN + sentence context', 'lone jamo looked back at (ㅑ = I)',
+    'context change undone (good 내 친구)', 'capitals with Shift held into Space', 'auto on arrow, cursor moved', 'exception word left alone'
+  if (@($formSteps | Where-Object { Wanted $_ }).Count -gt 0) {
   $script:where = 'form'; $script:pumpForm = $true
   $form = New-Object Windows.Forms.Form
   $form.Text = 'HanYeong smoke test'; $form.Width = 520; $form.Height = 120; $form.TopMost = $true
@@ -76,24 +84,34 @@ try {
   $script:target = $form.Handle
   function Fresh($m) { $tb.Clear(); Pump 30; Set-Mode $m; Tap 0x23; Pump 40 }   # End = reset point
 
-  Fresh 'EN'; Type-Text 'dkssud'; Hotkey; Record 'Ctrl+Space (IME mode untouched)' '안녕' $tb.Text
-  Hotkey; Record 'Ctrl+Space again reverts' 'dkssud' $tb.Text
-  Fresh 'KO'; Type-Text 'Hello'; Hotkey; Record 'composing syllable erased, capital kept' 'Hello' $tb.Text
-  Set-Clipboard -Value 'CLIP-KEEP'
-  $tb.Text = 'dkssud gktpdy'; Pump 30; Tap 0x23; $tb.SelectAll(); Pump 30
-  Hotkey; Pump 150; Record 'selection converted' '안녕 하세요' $tb.Text
-  Record 'clipboard restored' 'CLIP-KEEP' (Get-Clipboard -Raw).TrimEnd()
-  Fresh 'EN'; Type-Text 'dkssud. gktpdy '; Record 'auto on . and Space' '안녕. 하세요 ' $tb.Text
-  Fresh 'KO'; Type-Text 'want to go '; Record 'auto KO->EN + sentence context' 'want to go ' $tb.Text
-  Fresh 'KO'; Type-Text 'I want to go '; Record 'lone jamo looked back at (ㅑ = I)' 'I want to go ' $tb.Text
-  Fresh 'KO'; Guard; [K]::Key(0x10, $false); foreach ($v in 0x50, 0x54, 0x45) { [K]::Key($v, $false); [K]::Key($v, $true); Pump 20 }
-  Tap 0x20; Pump 100; [K]::Key(0x10, $true); Pump 100
-  Record 'capitals with Shift held into Space' 'PTE ' $tb.Text
-  Fresh 'EN'; Type-Text 'dkssud'; Tap 0x25; Pump 120; Type-Text 'x'; Record 'auto on arrow, cursor moved' '안x녕' $tb.Text
-  Fresh 'EN'; Type-Text 'qkqh '; Record 'exception word left alone' 'qkqh ' $tb.Text
+  # The test window lives in powershell.exe, which the app treats as a terminal: replacements go out one key at a
+  # time, so each step waits a moment before reading the box.
+  Step 'Ctrl+Space (IME mode untouched)' {
+    Fresh 'EN'; Type-Text 'dkssud'; Hotkey; Pump 200; Record 'Ctrl+Space (IME mode untouched)' '안녕' $tb.Text
+    Hotkey; Pump 200; Record 'Ctrl+Space again reverts' 'dkssud' $tb.Text }
+  Step 'composing syllable erased, capital kept' { Fresh 'KO'; Type-Text 'Hello'; Hotkey; Pump 200; Record 'composing syllable erased, capital kept' 'Hello' $tb.Text }
+  Step 'selection converted' {
+    Set-Clipboard -Value 'CLIP-KEEP'
+    $tb.Text = 'dkssud gktpdy'; Pump 30; Tap 0x23; $tb.SelectAll(); Pump 30
+    Hotkey; Pump 150; Record 'selection converted' '안녕 하세요' $tb.Text
+    Record 'clipboard restored' 'CLIP-KEEP' (Get-Clipboard -Raw).TrimEnd() }
+  Step 'auto on . and Space' { Fresh 'EN'; Type-Text 'dkssud. gktpdy '; Pump 300; Record 'auto on . and Space' '안녕. 하세요 ' $tb.Text }
+  Step 'auto KO->EN + sentence context' { Fresh 'KO'; Type-Text 'want to go '; Pump 300; Record 'auto KO->EN + sentence context' 'want to go ' $tb.Text }
+  Step 'lone jamo looked back at (ㅑ = I)' { Fresh 'KO'; Type-Text 'I want to go '; Pump 300; Record 'lone jamo looked back at (ㅑ = I)' 'I want to go ' $tb.Text }
+  Step 'context change undone (good 내 친구)' { Fresh 'KO'; Type-Text 'good so clsrn '; Pump 500; Record 'context change undone (good 내 친구)' 'good 내 친구 ' $tb.Text }
+  Step 'capitals with Shift held into Space' {
+    Fresh 'KO'; Guard; [K]::Key(0x10, $false); foreach ($v in 0x50, 0x54, 0x45) { [K]::Key($v, $false); [K]::Key($v, $true); Pump 20 }
+    Tap 0x20; Pump 100; [K]::Key(0x10, $true); Pump 300
+    Record 'capitals with Shift held into Space' 'PTE ' $tb.Text }
+  Step 'auto on arrow, cursor moved' { Fresh 'EN'; Type-Text 'dkssud'; Tap 0x25; Pump 300; Type-Text 'x'; Pump 300; Record 'auto on arrow, cursor moved' '안x녕' $tb.Text }
+  Step 'exception word left alone' { Fresh 'EN'; Type-Text 'qkqh '; Pump 300; Record 'exception word left alone' 'qkqh ' $tb.Text }
   $form.Close(); $script:pumpForm = $false
+  }
 
   # ================= Windows Notepad (TSF) =================
+  $notepadSteps = 'Ctrl+Space on composing ㅑ (reported bug)', 'auto KO->EN, English + Korean noun', 'auto on Enter after other words',
+    'one word + Enter stays (ID fields)', 'one common word + Enter converts (chat)', 'context change undone (hello 내 친구)', 'Hanja key: rh -> 고 -> Hanja'
+  if (@($notepadSteps | Where-Object { Wanted $_ }).Count -gt 0) {
   $script:where = 'notepad'
   $np = Start-Process notepad -PassThru
   Start-Sleep -Milliseconds 1500
@@ -103,6 +121,7 @@ try {
   function Read-Doc { Guard; [K]::Key(0x11, $false); Tap 0x41; Tap 0x43; [K]::Key(0x11, $true); Pump 200; $t = Get-Clipboard -Raw; Tap 0x23; if ($null -eq $t) { '' } else { $t } }
   function Clear-Doc { Guard; [K]::Key(0x11, $false); Tap 0x41; [K]::Key(0x11, $true); Tap 0x2E; Pump 80 }
   function Case($label, $mode, $keys, $action, $expected) {
+    if (-not (Wanted $label)) { return }
     Clear-Doc; Set-Mode $mode; Tap 0x23; Type-Text $keys; Pump 80
     if ($action) { & $action }
     Record $label $expected (Read-Doc)
@@ -112,14 +131,17 @@ try {
   Case 'auto on Enter after other words' 'EN' ("dkssud gktpdy" + [char]10) $null ("안녕 하세요" + [char]13 + [char]10)
   Case 'one word + Enter stays (ID fields)' 'EN' ("rlaalswn" + [char]10) $null ("rlaalswn" + [char]13 + [char]10)
   Case 'one common word + Enter converts (chat)' 'EN' ("ekdma" + [char]10) $null ("다음" + [char]13 + [char]10)
+  Case 'context change undone (hello 내 친구)' 'KO' 'hello so clsrn ' $null 'hello 내 친구 '
   # Hanja key after English-mode typing: rh is retyped as 고 in Korean mode, the IME list opens, Enter picks the first.
-  Clear-Doc; Set-Mode 'EN'; Tap 0x23; Type-Text 'rh'; Pump 80; Tap 0x19; Pump 700; Tap 0x0D; Pump 200
-  $doc = Read-Doc
-  $isHanja = $doc.Length -eq 1 -and [int][char]$doc -ge 0x4E00 -and [int][char]$doc -le 0x9FFF
-  Record 'Hanja key: rh -> 고 -> Hanja' $(if ($isHanja) { $doc } else { 'one Hanja' }) $doc
+  Step 'Hanja key: rh -> 고 -> Hanja' {
+    Clear-Doc; Set-Mode 'EN'; Tap 0x23; Type-Text 'rh'; Pump 80; Tap 0x19; Pump 800; Tap 0x0D; Pump 200
+    $doc = Read-Doc
+    $isHanja = $doc.Length -eq 1 -and [int][char]$doc -ge 0x4E00 -and [int][char]$doc -le 0x9FFF
+    Record 'Hanja key: rh -> 고 -> Hanja' $(if ($isHanja) { $doc } else { 'one Hanja' }) $doc }
   Clear-Doc
   # Windows 11 Notepad hands its window to another process; close the one that was in front.
   Stop-Process -Id $fgPid -ErrorAction SilentlyContinue
+  }
 } finally {
   if ($null -ne $savedClip) { Set-Clipboard -Value $savedClip }
   Stop-Process -Id $app.Id -ErrorAction SilentlyContinue

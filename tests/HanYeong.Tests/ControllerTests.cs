@@ -126,6 +126,7 @@ public class ControllerTests : IDisposable
     {
         Typed(Layout.English, "rh");
         _desktop.Tap(FakeDesktop.VK_HANJA);
+        _context.RunUntil(() => _controller.Sending.IsCompleted);
         Assert.Equal(Layout.Korean, _desktop.Mode);
         Assert.Equal("고", _desktop.Box.Text);
         Assert.Equal(["고"], _desktop.HanjaRequests);

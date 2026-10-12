@@ -71,7 +71,7 @@
 dotnet test                                  # 단위 테스트 + 화면 없는 앱 테스트(가짜 키보드·입력창·IME), 약 3초
 dotnet run -c Release --project tools/Fuzz   # 자동 테스터: 문장을 만들어 계속 입력해 보고 실패를 모음
 .\tools\smoke-test.ps1 -Exe <HanYeong.exe>   # 실제 키 입력 테스트, 테스트 창 + 메모장 (약 1분간 키보드·마우스 사용 금지).
-                                             # 실제 IME·앱에서만 보이는 문제용이라 키 입력 처리를 바꿨을 때만 돌림
+                                             # 실제 IME·앱에서만 보이는 문제용. 전체는 릴리스 직전에, 실패한 단계만 -Only '단계 이름'으로
 python tools\build_dictionaries.py <폴더>     # 단어 빈도 데이터 다시 만들기
 python tools\build_names.py <폴더>            # 이름 목록 다시 만들기
 ```
