@@ -222,3 +222,8 @@ EN	QnAfh	QnA로
 # 2026-10-13: English mode, a number + a word + ending
 EN	512bytedlrl	512byte이기
 EN	100MBfmf	100MB를
+# 2026-10-13: English mode, a capital + particle over a rare word
+EN	Urk	U가
+EN	Asms	A는
+EN	Udi	Udi
+EN	Leh	L도

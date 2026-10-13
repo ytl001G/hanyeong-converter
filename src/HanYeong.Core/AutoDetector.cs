@@ -708,8 +708,11 @@ public sealed class AutoDetector
         string afterFirst = LayoutConverter.ToKorean(keys[1..]);
         bool isOnlySingleLetter = isRealWord && typedIn == Layout.English
             && ((wholeScore < 2.0f && (char.IsAsciiLetterLower(keys[0]) || (keys.Length >= 4 && IsParticleChain(afterFirst))))
-                // A capital and a group syllable (B조, A급) beat a rare abbreviation (bwh 2.6).
-                || (wholeScore < 3.0f && IsEnglishOnlyCapital(keys[0]) && CapitalSuffixes.Contains(afterFirst)));
+                // A capital and a group syllable (B조, A급) or a case particle (U가, A는) beat a rare word (bwh 2.6,
+                // Urk); not 야, 다, 만 ..., which names end in as well (Idi is not I야). 도 is kept though names end in eh too:
+                // L도 is typed far more often than Leh.
+                || (wholeScore < 3.0f && IsEnglishOnlyCapital(keys[0]) && keys[1..].All(char.IsAsciiLetterLower)
+                    && (CapitalSuffixes.Contains(afterFirst) || afterFirst is "가" or "는" or "를" or "이" or "의" or "에" or "도" or "로" or "와" or "과" or "은" or "을")));
         if (isRealWord && !isOnlySingleLetter) return null;
 
         // Longest English prefix first. A code (mp3, ch4) ends at its last digit, so there the shortest prefix
