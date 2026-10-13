@@ -143,3 +143,9 @@ EN	the sms	the sms
 # 2026-10-13: English mode, 일수록
 EN	signaldlftnfhr	signal일수록
 EN	Leonardo di	Leonardo di
+# Long text: possessives, a quote before a word, two-letter capitalized words (all typed in Korean mode)
+KO	the company's plan	the company's plan
+KO	Edward's car	Edward's car
+KO	"I want	"I want
+KO	So we go	So we go
+KO	(Go home)	(Go home)

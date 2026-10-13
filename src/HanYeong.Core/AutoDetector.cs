@@ -159,6 +159,9 @@ public sealed class AutoDetector
     /// </summary>
     public string? Suggest(string word, string keys, Layout typedIn)
     {
+        // Korean mode, quotes or brackets around a word ("I, (So): the word inside is judged as it is.
+        if (typedIn == Layout.Korean && Wrapped(word) is var (lead, trail) && lead + trail > 0)
+            return Suggest(word[lead..^trail], keys[lead..^trail], typedIn) is { } inner ? word[..lead] + inner + word[^trail..] : null;
         if (typedIn == Layout.Korean && !_isException(word))
         {
             // A name typed in Korean mode shows as broken Hangul; its keys carry the capital (Ndidi → ㅜ댜야).
@@ -169,8 +172,9 @@ public sealed class AutoDetector
             // Korean, so it was pressed for English (SEC → ㄴㄸㅊ, DNA → 움, a lone I → ㅑ).
             if (IsShiftedAcronym(keys)) return LayoutConverter.ToEnglish(word);
             // A capitalized word with Shift on such a key (Anaut → 무몃, Aozmendi → 매크두야): a name or a sentence start.
-            // Not a word + particles (A씨: the T of ㅆ is shifted too).
-            if (keys.Length >= 3 && IsEnglishOnlyCapital(keys[0]) && keys.Skip(1).All(char.IsAsciiLetterLower)
+            // Not a word + particles (A씨: the T of ㅆ is shifted too). Two letters when a common word (So → 내, Go → 해).
+            if ((keys.Length >= 3 || (keys.Length == 2 && _english(keys) >= _o.CommonEnglish))
+                && IsEnglishOnlyCapital(keys[0]) && keys.Skip(1).All(char.IsAsciiLetterLower)
                 && !(CheckMixed(keys, typedIn) is { } split && IsKeptSplit(split)))
                 return LayoutConverter.ToEnglish(word);
         }
@@ -193,6 +197,14 @@ public sealed class AutoDetector
         int latin = mixed.TakeWhile(char.IsAsciiLetter).Count();
         string particles = mixed[latin..];
         return IsEnglishBeforeParticles(mixed[..latin], whole[..^particles.Length], particles) ? mixed : whole;
+    }
+
+    // Opening and closing quotes/brackets around Hangul only, as counts; null when the inside is not plain Hangul.
+    static (int Lead, int Trail)? Wrapped(string word)
+    {
+        int lead = word.TakeWhile(c => "\"'([“‘".Contains(c)).Count();
+        int trail = word[lead..].Reverse().TakeWhile(c => "\"')]”’".Contains(c)).Count();
+        return word.Length - lead - trail > 0 && word[lead..^trail].All(Jamo.IsHangul) ? (lead, trail) : null;
     }
 
     /// <summary>
@@ -241,7 +253,13 @@ public sealed class AutoDetector
         if (typedIn == Layout.Korean && word.IndexOfAny(['\'', '’']) >= 0)
         {
             string english = LayoutConverter.ToEnglish(word);
-            if (Contractions.Contains(english.Replace('’', '\'').ToLowerInvariant())) return english;
+            string plain = english.Replace('’', '\'').ToLowerInvariant();
+            if (Contractions.Contains(plain)) return english;
+            // A possessive: company's shows as 채ㅡㅔ무ㅛ'ㄴ. The word before it reads as broken Hangul, or is common
+            // English; Korean puts no lone ㄴ after a quote.
+            if (plain.EndsWith("'s") && word[..^2] is { Length: > 0 } stem && stem.All(Jamo.IsHangul)
+                && (!IsWellFormed(stem) || _english(plain[..^2]) >= _o.CommonEnglish))
+                return english;
         }
 
         // Only everyday punctuation joins parts; other symbols (@ # $ & * = + < > | _ ...) mean a password-like string.

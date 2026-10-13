@@ -99,7 +99,7 @@ List<(string Text, string Kind)> Sentence(bool korean)
 
 // The keys for text typed in the given mode: Hangul as its keys, everything else as it is.
 static string KeysFor(string text) => string.Concat(text.Select(c => Jamo.IsHangul(c) ? LayoutConverter.ToEnglish(c.ToString()) : c.ToString()));
-static bool IsTypable(string keys) => keys.All(c => char.IsAsciiLetterOrDigit(c) || " .,-+'()\"$%?\n".Contains(c));
+static bool IsTypable(string keys) => keys.All(c => char.IsAsciiLetterOrDigit(c) || " .,-+'()\"$%?!:;/\n".Contains(c));
 
 // Types into a fresh app; with mixed set, each run of Hangul goes in Korean mode and each run of Latin letters in
 // English mode, switching with the 한/영 key as a person does. Other characters stay in the mode before them.
@@ -126,6 +126,68 @@ string Type(Layout mode, string text, bool mixed = false)
     context.RunUntil(() => controller.Sending.IsCompleted && context.IsIdle);
     return desktop.Box.Text;
 }
+
+if (Array.IndexOf(args, "--corpus") is var corpusArg and >= 0) return LongText(args[corpusArg + 1]);
+
+// Long text: real sentences of the evaluation corpora (tools/Evaluation, docs/accuracy-report.md), several joined
+// into a paragraph, typed through the app in the wrong mode (each word should come back as written) and in the
+// right one, switching with the 한/영 key around the other script (nothing should change).
+//   --corpus <folder with the *-sentences.txt files>  [--paragraphs 200] [--per-paragraph 6]
+int LongText(string root)
+{
+    int paragraphCount = Arg("--paragraphs", 200), perParagraph = Arg("--per-paragraph", 6);
+    Console.WriteLine($"long text: {paragraphCount} paragraphs of {perParagraph} sentences per corpus, seed {seed}");
+    foreach (string file in Directory.GetFiles(root, "*-sentences.txt", SearchOption.AllDirectories).Order())
+    {
+        string name = Path.GetFileName(file).Replace("-sentences.txt", "");
+        bool korean = name.StartsWith("kor");
+        var pool = File.ReadLines(file).Select(l => Normalize(l[(l.IndexOf('\t') + 1)..]))
+            .Where(s => s.Length > 0 && IsTypable(KeysFor(s))).ToList();
+        var local = new Random(seed);
+        long words = 0, wrongWords = 0, rightChanged = 0;
+        int wrongParagraphsAllRight = 0, rightParagraphsUntouched = 0;
+        var misses = new Dictionary<string, int>();
+        var falsePositives = new Dictionary<string, int>();
+        for (int p = 0; p < paragraphCount; p++)
+        {
+            string paragraph = string.Join(' ', Enumerable.Range(0, perParagraph).Select(_ => pool[local.Next(pool.Count)])) + " ";
+            var want = paragraph.Split(' ');
+            words += want.Length - 1;
+            int wrongBefore = (int)wrongWords;
+            Count(Type(korean ? Layout.English : Layout.Korean, paragraph), misses, ref wrongWords);
+            if (wrongWords == wrongBefore) wrongParagraphsAllRight++;
+            int rightBefore = (int)rightChanged;
+            var startMode = paragraph.FirstOrDefault(c => Jamo.IsHangul(c) || char.IsAsciiLetter(c)) is var first && Jamo.IsHangul(first) ? Layout.Korean : Layout.English;
+            Count(Type(startMode, paragraph, mixed: true), falsePositives, ref rightChanged);
+            if (rightChanged == rightBefore) rightParagraphsUntouched++;
+
+            void Count(string got, Dictionary<string, int> errors, ref long errorCount)
+            {
+                var have = got.Split(' ');
+                if (have.Length != want.Length) { errorCount += want.Length - 1; errors["(word count changed)"] = errors.GetValueOrDefault("(word count changed)") + 1; return; }
+                for (int i = 0; i < want.Length - 1; i++)
+                {
+                    if (want[i] == have[i]) continue;
+                    errorCount++;
+                    string pair = $"{want[i]} → {have[i]}";
+                    errors[pair] = errors.GetValueOrDefault(pair) + 1;
+                }
+            }
+        }
+        Console.WriteLine($"\n{name} ({pool.Count} typable sentences, {words} words in {paragraphCount} paragraphs)");
+        Console.WriteLine($"  typed in the wrong mode: {100.0 * (words - wrongWords) / words:F2}% of words come back right, " +
+            $"{100.0 * wrongParagraphsAllRight / paragraphCount:F1}% of paragraphs entirely");
+        Console.WriteLine($"  typed right:             {10000.0 * rightChanged / words:F1} words changed per 10,000, " +
+            $"{100.0 * rightParagraphsUntouched / paragraphCount:F1}% of paragraphs untouched");
+        Console.WriteLine("  most missed:  " + string.Join(", ", misses.OrderByDescending(kv => kv.Value).Take(12).Select(kv => $"{kv.Key} ({kv.Value})")));
+        Console.WriteLine("  changed by mistake: " + string.Join(", ", falsePositives.OrderByDescending(kv => kv.Value).Take(12).Select(kv => $"{kv.Key} ({kv.Value})")));
+    }
+    return 0;
+}
+
+// Curly quotes and dashes as a keyboard types them.
+static string Normalize(string s) => string.Join(' ', s.Replace('“', '"').Replace('”', '"').Replace('‘', '\'').Replace('’', '\'')
+    .Replace('–', '-').Replace('—', '-').Replace("…", "...").Split(' ', StringSplitOptions.RemoveEmptyEntries));
 
 // A word both languages have as a common word (내/so, 해/go) cannot be told apart without context.
 var detector = new AutoDetector();
