@@ -81,6 +81,62 @@ public class ControllerTests : IDisposable
     }
 
     [Fact]
+    public void WordErasedRightAfterItsConversionAndTypedAgainStays() // user's idea: sns became 눈, erased, typed again
+    {
+        Assert.Equal("눈 ", Type(Layout.English, "sns "));
+        _desktop.Tap(FakeDesktop.VK_BACK);
+        _desktop.Tap(FakeDesktop.VK_BACK);
+        _desktop.Type("sns ");
+        Assert.Equal("sns ", _desktop.Box.Text);
+        _desktop.Type("sns ");
+        Assert.Equal("sns sns ", _desktop.Box.Text);
+    }
+
+    [Fact]
+    public void KeptWordErasedAndTypedAgainConvertsAgain()
+    {
+        Assert.Equal("눈 ", Type(Layout.English, "sns "));
+        _desktop.Tap(FakeDesktop.VK_BACK);
+        _desktop.Tap(FakeDesktop.VK_BACK);
+        _desktop.Type("sns ");
+        Assert.Equal("sns ", _desktop.Box.Text);
+        for (int i = 0; i < 4; i++) _desktop.Tap(FakeDesktop.VK_BACK);
+        _desktop.Type("sns ");
+        Assert.Equal("눈 ", _desktop.Box.Text);
+    }
+
+    [Fact]
+    public void KeptWordConvertsInAnotherWindow()
+    {
+        Assert.Equal("눈 ", Type(Layout.English, "sns "));
+        _desktop.Tap(FakeDesktop.VK_BACK);
+        _desktop.Tap(FakeDesktop.VK_BACK);
+        _desktop.Type("sns ");
+        _desktop.ForegroundWindow = 2;
+        _desktop.Type("sns ");
+        Assert.Equal("sns 눈 ", _desktop.Box.Text);
+    }
+
+    [Fact]
+    public void WordErasedAndAnotherTypedStillConverts()
+    {
+        Assert.Equal("눈 ", Type(Layout.English, "sns "));
+        _desktop.Tap(FakeDesktop.VK_BACK);
+        _desktop.Tap(FakeDesktop.VK_BACK);
+        _desktop.Type("dkssud ");
+        Assert.Equal("안녕 ", _desktop.Box.Text);
+    }
+
+    [Fact]
+    public void WordWhoseConversionWasUndoneStays()
+    {
+        Typed(Layout.English, "sns ").Hotkey();
+        Assert.Equal("sns ", _desktop.Box.Text);
+        _desktop.Type("sns ");
+        Assert.Equal("sns sns ", _desktop.Box.Text);
+    }
+
+    [Fact]
     public void ShiftEnterStaysANewLine() // reported: Shift+Enter in a chat app converted the word and sent the message
     {
         Typed(Layout.English, "dkssud");

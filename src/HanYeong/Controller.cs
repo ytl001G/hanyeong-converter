@@ -69,6 +69,13 @@ sealed class Controller : IDisposable
     Conversion? _contextOnly;
     // A word was already finished since the last click/reset; the tracked segment itself restarts after conversions.
     bool _hasEarlierWord;
+    // The last automatic conversion and the word as typed. Backspace right after it makes it a candidate: typed again
+    // the same, the user wanted it as typed (sns became 눈, was erased and typed again), and it stays so in this
+    // window, as does a word whose conversion was undone with the hotkey. Erased and typed again once more, it
+    // converts again. Nothing is learned beyond the window.
+    (Conversion Conversion, string Word, Layout Layout)? _lastAuto;
+    (string Word, Layout Layout)? _erasedAuto, _lastKept, _erasedKept;
+    readonly HashSet<(IntPtr Window, string Word, Layout Layout)> _keptByUser = [];
 
     public event Action<bool>? AutoModeChanged;
 
@@ -212,12 +219,16 @@ sealed class Controller : IDisposable
         if (vk == VK_BACK)
         {
             _segment?.Backspace();
+            if (_last is { } l && _lastAuto is { } auto && ReferenceEquals(l, auto.Conversion)) _erasedAuto = (auto.Word, auto.Layout);
+            if (_lastKept is { } kept) _erasedKept = kept;
             _last = null;
+            _lastKept = null;
             return false;
         }
         if (vk == VK_HANJA && TryHanja()) return true;
         if (KeyMap.ToChar(vk, shift, capsLock) is { } c)
         {
+            _lastKept = null;
             if (WordEnds.Contains(c))
             {
                 bool isConverted = TryAutoConvert(c);
@@ -270,6 +281,19 @@ sealed class Controller : IDisposable
             && !(_segment.Layout == Layout.English && AutoDetector.IsParticleAfterSpace(keys));
         var detector = isInContext ? _contextDetector : isStaying ? _stayingDetector : _detector;
         string? replacement = detector.Suggest(word, keys, _segment.Layout);
+        // Erased right after it was converted and typed again the same: meant as typed. Erased right after it was
+        // kept so and typed again: the conversion was wanted after all.
+        var typed = (_segmentWindow, word, _segment.Layout);
+        if (replacement is not null && _erasedAuto == (word, _segment.Layout) && _keptByUser.Add(typed))
+            Log.Write($"kept as typed after erasing its conversion len={word.Length}");
+        else if (_erasedKept == (word, _segment.Layout) && _keptByUser.Remove(typed))
+            Log.Write($"converts again after erasing it len={word.Length}");
+        _erasedAuto = _erasedKept = null;
+        if (replacement is not null && _keptByUser.Contains(typed))
+        {
+            replacement = null;
+            _lastKept = (word, _segment.Layout);
+        }
         // In an English sentence typed in Korean mode, a number with an English ending is English too (75소 → 75th).
         if (replacement is null && isInContext && _segment.Layout == Layout.Korean && NumberWithEnglishEnding(word) is { } number)
             replacement = number;
@@ -305,6 +329,7 @@ sealed class Controller : IDisposable
         // Looking back: the word right before, left alone because it was ambiguous on its own, is fixed along with
         // this one: ㅑ ㅈ무ㅅ → I want, 무 메ㅔㅣㄷ → an apple (see LeadInFix).
         string before = text[..^word.Length];
+        string typedWord = word;
         string? leadIn = !before.EndsWith(' ') ? null
             : _segment.Layout == Layout.Korean ? LeadInFix(before[..^1], word)
             : KoreanLeadIn(before[..^1]);
@@ -324,6 +349,7 @@ sealed class Controller : IDisposable
         SendReplacement(_segment.BackspacesFor(word.Length), conversion.After, endKey, heldShifts);
         _segment = new TypedSegment(conversion.BeforeLayout);
         _last = conversion;
+        _lastAuto = (conversion, typedWord, conversion.BeforeLayout);
         // Changed only because of the context, as one word: it may go back when the next word says so.
         _contextOnly = isInContext && leadIn is null && _detector.Suggest(word, keys, conversion.BeforeLayout) is null ? conversion : null;
         _contextFrom = end is '.' or '?' or '!' ? null : conversion.BeforeLayout;
@@ -461,6 +487,8 @@ sealed class Controller : IDisposable
             {
                 if (_last is { } last)
                 {
+                    // An automatic conversion undone: that word stays as typed from now on.
+                    if (_lastAuto is { } auto && ReferenceEquals(last, auto.Conversion)) _keptByUser.Add((fg, auto.Word, auto.Layout));
                     Replace(last.After.Length, last.Before, _segment.Layout);
                     _last = last.Reversed;
                     Log.Write($"revert {last.AfterLayout}->{last.BeforeLayout} len={last.After.Length}");

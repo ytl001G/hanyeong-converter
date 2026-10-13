@@ -242,3 +242,6 @@ EN	murdereddueh	murdered여도
 # Fuzz: endings of five syllables
 EN	BuggemanngkrpTtmqslek	Buggemann하겠습니다
 EN	AspenleitergkrpTtmqslek	Aspenleiter하겠습니다
+# Fuzz: a listed word stays whole before a common word; a name + 이 goes with the ending
+EN	genro	=
+EN	Freudlfkau	Freu이라며

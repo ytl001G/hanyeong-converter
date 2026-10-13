@@ -635,7 +635,10 @@ public sealed class AutoDetector
         // so CEO들의 is not taken as CEOemf + 의.
         // For a word no list has, the longest particle chain goes first: Chihuahuita + 이던, not Chihuahuitadl + 던.
         // A name on the list before a long particle comes first of all: Dobbek에게서, even though dobb is a word too.
-        string? nameSplit = splits.Where(i => i >= 4 && IsKnownName(keys[..i]))
+        // When a name and the same name + dl both test positive, the 이 goes with the ending (Freu이라며, not
+        // Freudl + 라며): names seldom end in dl.
+        var nameSplits = splits.Where(i => i >= 4 && IsKnownName(keys[..i])).ToList();
+        string? nameSplit = nameSplits.OrderBy(i => keys[..i].EndsWith("dl") && nameSplits.Contains(i - 2) ? 1 : 0)
             .Select(i => TrySplits(allowUnknownEnglish: true, [i], isName: true)).FirstOrDefault(r => r is not null);
         return nameSplit ?? TrySplits(allowUnknownEnglish: false) ?? BestUnknownSplit();
 
@@ -667,6 +670,8 @@ public sealed class AutoDetector
                 // "a" + 가 or 해 alone is too ambiguous. A single digit is a number (6보다).
                 bool isLowerLetter = prefix.Length == 1 && char.IsAsciiLetter(prefix[0]) && !IsEnglishOnlyCapital(prefix[0]);
                 if (isOnlySingleLetter && prefix.Length != 1) continue;
+                // A listed word stays whole before a common word: genro is not g + 두개 (a는 still splits).
+                if (isOnlySingleLetter && char.IsAsciiLetterLower(prefix[0]) && !IsParticleChain(LayoutConverter.ToKorean(rest))) continue;
                 if (isLowerLetter && rest.Length < 3) continue;
                 // Korean mode: a lone jamo before Korean is how news writes anonymous people (ㄱ씨는, ㄴ양); only a
                 // capital on a key without a shifted jamo (A씨) is English.
