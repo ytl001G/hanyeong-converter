@@ -166,6 +166,9 @@ public sealed class AutoDetector
     {
         // A hashtag is judged by the word after # (#맛집). A mention too in Korean mode (@쟈ㅜㅎ is @wing); in English
         // mode it is someone's ID, typed as meant.
+        // So is one symbol written before a word (=가격비, *주의, >인용, →결과, •항목).
+        if (word.Length > 1 && "=*><→•".Contains(word[0]) && IsLetter(word[1]))
+            return Suggest(word[1..], keys[1..], typedIn) is { } marked ? word[0] + marked : null;
         if (word.Length > 1 && (word[0] == '#' || (word[0] == '@' && typedIn == Layout.Korean)) && !"#@".Contains(word[1]))
         {
             if (Suggest(word[1..], keys[1..], typedIn) is { } tagged) return word[0] + tagged;

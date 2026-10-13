@@ -174,6 +174,9 @@ sealed class FakeDesktop : IDesktop
         '(' => ('9', true),
         ')' => ('0', true),
         '\b' => (VK_BACK, false),
+        '=' => (0xBB, false),
+        '*' => ('8', true),
+        '>' => (0xBE, true),
         '@' => ('2', true),
         '#' => ('3', true),
         '^' => ('6', true),
@@ -195,7 +198,7 @@ sealed class FakeDesktop : IDesktop
     static char? CharFor(int vk, bool shift) => vk switch
     {
         VK_SPACE => ' ',
-        0xBE => '.',
+        0xBE => shift ? '>' : '.',
         0xBC => ',',
         0xBD => shift ? '_' : '-',
         0xBB => shift ? '+' : '=',
@@ -206,6 +209,7 @@ sealed class FakeDesktop : IDesktop
         '2' when shift => '@',
         '3' when shift => '#',
         '6' when shift => '^',
+        '8' when shift => '*',
         '4' when shift => '$',
         '5' when shift => '%',
         '1' when shift => '!',
