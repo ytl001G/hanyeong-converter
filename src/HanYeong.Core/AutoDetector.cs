@@ -18,6 +18,8 @@ public sealed record AutoDetectorOptions
         MinKeys = 1,
         // ㄹㄷ (fe), ㄽ (ft): jamo-only words are no chat shorthand in the middle of English.
         CommonEnglish = 1.5f,
+        // Nor is a listed chat abbreviation whose keys are a common word (ㅎㄷㄷ is gee, ㄱㄷ is re); ㅋㅋ still is.
+        ChatAbbreviationEnglish = 4.0f,
     };
 
     /// <summary>
@@ -48,6 +50,8 @@ public sealed record AutoDetectorOptions
     public float MixedKoreanRest { get; init; } = 3.5f;
     /// <summary>Shorter words (in keystrokes) are too ambiguous to judge on their own.</summary>
     public int MinKeys { get; init; } = 2;
+    /// <summary>A listed chat abbreviation (ㅇㅋ, ㅎㄷㄷ) converts only when its keys are English this common.</summary>
+    public float ChatAbbreviationEnglish { get; init; } = float.MaxValue;
 }
 
 /// <summary>
@@ -179,8 +183,11 @@ public sealed class AutoDetector
             // Also a longer name that happens to read as syllables that are no Korean word (Endeley → 뚱디됴); four
             // letters meet Korean too often (Rosl is 깨니).
             if (IsKnownName(keys) && (!IsWellFormed(word) || (keys.Length >= 5 && !IsKoreanWord(word)))) return LayoutConverter.ToEnglish(word);
-            // camelCase (isImmunity → ㅑ냐ㅡㅡㅕㅜㅑ쇼): a capital without a shifted jamo after lowercase, in broken Hangul.
-            if (keys.All(char.IsAsciiLetter) && HasInnerCapital(keys) && !IsWellFormed(word) && !IsKoreanInSyllables(word))
+            // camelCase (isImmunity → ㅑ냐ㅡㅡㅕㅜㅑ쇼, eurosMr → 뎌개늑): a capital without a shifted jamo after
+            // lowercase and before lowercase, when the syllables make no Korean word. Not an acronym inside (fMRI는).
+            bool isCamelCase = keys.All(char.IsAsciiLetter) && HasInnerCapital(keys)
+                && Enumerable.Range(0, keys.Length).All(i => !char.IsAsciiLetterUpper(keys[i]) || (i + 1 < keys.Length && char.IsAsciiLetterLower(keys[i + 1])));
+            if (isCamelCase && !IsKoreanInSyllables(word))
                 return LayoutConverter.ToEnglish(word);
             // An acronym even when it happens to read as a syllable: Shift on S, D, N, A ... changes nothing in
             // Korean, so it was pressed for English (SEC → ㄴㄸㅊ, DNA → 움, a lone I → ㅑ).
@@ -269,12 +276,14 @@ public sealed class AutoDetector
             string english = LayoutConverter.ToEnglish(word);
             string plain = english.Replace('’', '\'').ToLowerInvariant();
             if (Contractions.Contains(plain)) return english;
-            // A possessive: company's shows as 채ㅡㅔ무ㅛ'ㄴ. The word before it reads as broken Hangul, or is common
-            // English; Korean puts no lone ㄴ after a quote.
+            // A possessive: company's shows as 채ㅡㅔ무ㅛ'ㄴ. The word before it reads as broken Hangul, or is listed
+            // English (Ab's → 뮤'ㄴ); Korean puts no lone ㄴ after a quote.
             if (plain.EndsWith("'s") && word[..^2] is { Length: > 0 } stem && stem.All(Jamo.IsHangul)
-                && (!IsWellFormed(stem) || _english(plain[..^2]) >= _o.CommonEnglish))
+                && (!IsWellFormed(stem) || _english(plain[..^2]) >= _o.KnownEnglish))
                 return english;
         }
+        // English mode: a possessive is English as typed (ep's is not 데'ㄴ); Korean keys never end in 's.
+        if (typedIn == Layout.English && word.Replace('’', '\'').EndsWith("'s") && word[..^2].All(char.IsAsciiLetter)) return null;
 
         // Only everyday punctuation joins parts; other symbols (@ # $ & * = + < > | _ ...) mean a password-like string,
         // or in Korean mode an email or code name typed there: all its Hangul broken (ㅕㄴㄷㄱ9@흐먀ㅣ is user9@gmail).
@@ -413,7 +422,8 @@ public sealed class AutoDetector
             // Proper syllables may be English keys too (gb → 휴 in vacuum_gb), but not a Korean word of two syllables or more.
             if (IsWellFormed(run) && run.Length >= 2 && WordFrequency.Korean.Value.Score(run) > 0) return null;
             if (ChatAbbreviations.Contains(run)) return null;
-            if (run.Length <= 3 && (run.All(Jamo.IsConsonant) || run.All(Jamo.IsVowel))) return null;
+            // Chat is consonants (ㅋㅋ, ㄷㄷ) or one vowel repeated (ㅠㅠ); mixed vowels are keys (ㅡㅑㅜ is min).
+            if (run.Length <= 3 && (run.All(Jamo.IsConsonant) || (run.Length >= 2 && Jamo.IsVowel(run[0]) && run.All(c => c == run[0])))) return null;
         }
         return LayoutConverter.ToEnglish(text);
     }
@@ -510,10 +520,9 @@ public sealed class AutoDetector
         bool isRepeatedJamo = word.Length >= 2 && Jamo.IsJamo(word[0]) && word.All(c => c == word[0]);
         // ...except ㅈㅈㅈ, which is www (ㅉㅈㅈ with Shift for a capital: Www at the start of a sentence).
         if (word is "ㅈㅈㅈ" or "ㅉㅈㅈ") return LayoutConverter.ToEnglish(word);
-        if (isRepeatedJamo || ChatAbbreviations.Contains(word) || IsAnonymized(word)) return null;
-
         string english = LayoutConverter.ToEnglish(word);
         float en = _english(english);
+        if (isRepeatedJamo || (ChatAbbreviations.Contains(word) && en < _o.ChatAbbreviationEnglish) || IsAnonymized(word)) return null;
         // A compound no list has (autocompact, keyboardshortcut) is still English when the screen shows broken
         // Hangul and the keys are exactly two common words.
         if (en < _o.KnownEnglish) return !IsWellFormed(word) && IsEnglishCompound(english) ? english : null;

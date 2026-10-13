@@ -178,3 +178,13 @@ KO	@zz	@ㅋㅋ
 KO	I rise at 5 a.m.	I rise at 5 a.m.
 KO	see Nov. 2	see Nov. 2
 KO	한글_파일	한글_파일
+# Fuzz round 3 (Korean mode): chat abbreviations inside English, vowel pieces in snake_case, camelCase in syllables
+KO	shown gee NASA	shown gee NASA
+KO	zz	ㅋㅋ
+KO	gee	ㅎㄷㄷ
+KO	Min_peasants	Min_peasants
+KO	Did else eurosMr	Did else eurosMr
+# Possessives: English mode keeps them, Korean mode restores short ones
+EN	ep's	ep's
+KO	Ab's	Ab's
+KO	Eh's	Eh's

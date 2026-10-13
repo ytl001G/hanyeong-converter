@@ -147,8 +147,10 @@ string? WithTypo(string keys)
 
 // Types into a fresh app; with mixed set, each run of Hangul goes in Korean mode and each run of Latin letters in
 // English mode, switching with the 한/영 key as a person does. Other characters stay in the mode before them.
-// With typo set (English mode only), one wrong letter is typed and erased inside a word.
-string Type(Layout mode, string text, bool mixed = false, bool typo = false)
+// With typo set (English mode only), one wrong letter is typed and erased inside a word. With holdShift set, Shift
+// stays down through each run of capitals and the space after it, as people type acronyms (PTE then Space).
+// With shiftEnter set, a final Enter is Shift+Enter (a new line in chat apps).
+string Type(Layout mode, string text, bool mixed = false, bool typo = false, bool holdShift = false, bool shiftEnter = false)
 {
     var context = new ManualContext();
     SynchronizationContext.SetSynchronizationContext(context);
@@ -156,7 +158,25 @@ string Type(Layout mode, string text, bool mixed = false, bool typo = false)
     using var controller = new Controller(new Settings(), desktop, hooks: false);
     desktop.Attach(controller);
     controller.Ready.Wait();
-    if (!mixed) desktop.Type(typo && WithTypo(KeysFor(text)) is { } withTypo ? withTypo : KeysFor(text));
+    shiftEnter &= text.EndsWith('\n');
+    if (shiftEnter) text = text[..^1];
+    string keys = typo && WithTypo(KeysFor(text)) is { } withTypo ? withTypo : KeysFor(text);
+    if (!mixed && holdShift)
+        for (int i = 0; i < keys.Length;)
+        {
+            int end = i;
+            while (end < keys.Length && char.IsAsciiLetterUpper(keys[end])) end++;
+            if (end - i >= 2 && end < keys.Length && keys[end] == ' ')
+            {
+                desktop.Down(FakeDesktop.VK_LSHIFT);
+                for (; i < end; i++) desktop.Tap(keys[i]);
+                desktop.Tap(FakeDesktop.VK_SPACE);
+                desktop.Up(FakeDesktop.VK_LSHIFT);
+                i++;
+            }
+            else desktop.Type(keys[i++].ToString());
+        }
+    else if (!mixed) desktop.Type(keys);
     else
         foreach (char c in text)
         {
@@ -168,6 +188,12 @@ string Type(Layout mode, string text, bool mixed = false, bool typo = false)
             }
             desktop.Type(KeysFor(c.ToString()));
         }
+    if (shiftEnter)
+    {
+        desktop.Down(FakeDesktop.VK_LSHIFT);
+        desktop.Tap(FakeDesktop.VK_RETURN);
+        desktop.Up(FakeDesktop.VK_LSHIFT);
+    }
     context.RunUntil(() => controller.Sending.IsCompleted && context.IsIdle);
     return desktop.Box.Text;
 }
@@ -289,10 +315,13 @@ while (clock.Elapsed.TotalSeconds < seconds && failureCount < maxFailures && (se
     {
         // Now and then a typo taken back with Backspace on the way (English mode, where one key is one letter).
         bool typo = !mixed && mode == Layout.English && rng.Next(4) == 0;
-        string kind = typo ? checkKind + ", typo fixed with Backspace" : checkKind;
+        // Now and then Shift held through an acronym and the space after it.
+        bool holdShift = !mixed && !typo && System.Text.RegularExpressions.Regex.IsMatch(KeysFor(sentence + ending), "[A-Z]{2,} ") && rng.Next(3) == 0;
+        bool shiftEnter = ending == "\n" && rng.Next(2) == 0;
+        string kind = checkKind + (typo ? ", typo fixed with Backspace" : "") + (holdShift ? ", Shift held through capitals" : "") + (shiftEnter ? ", Shift+Enter" : "");
         checkCounts[kind] = checkCounts.GetValueOrDefault(kind) + 1;
         string expected = sentence + ending;
-        string got = Type(mode, expected, mixed, typo);
+        string got = Type(mode, expected, mixed, typo, holdShift, shiftEnter);
         if (got == expected) continue;
         var want = expected.TrimEnd('\n').Split(' ');
         var have = got.TrimEnd('\n').Split(' ');
