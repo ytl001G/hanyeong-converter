@@ -12,8 +12,15 @@ public class ControllerTests : IDisposable
     static ControllerTests()
     {
         // Settings saves on every change and the controller logs; keep the user's files out of it.
-        Environment.SetEnvironmentVariable("HANYEONG_SETTINGS", Path.Combine(Path.GetTempPath(), $"hanyeong-test-{Environment.ProcessId}.json"));
-        Environment.SetEnvironmentVariable("HANYEONG_LOG", Path.Combine(Path.GetTempPath(), $"hanyeong-test-{Environment.ProcessId}.log"));
+        string settings = Path.Combine(Path.GetTempPath(), $"hanyeong-test-{Environment.ProcessId}.json");
+        string log = Path.Combine(Path.GetTempPath(), $"hanyeong-test-{Environment.ProcessId}.log");
+        Environment.SetEnvironmentVariable("HANYEONG_SETTINGS", settings);
+        Environment.SetEnvironmentVariable("HANYEONG_LOG", log);
+        // Gone after the run, or every test run leaves two files behind.
+        AppDomain.CurrentDomain.ProcessExit += (_, _) =>
+        {
+            try { File.Delete(settings); File.Delete(log); } catch (IOException) { }
+        };
     }
 
     readonly FakeDesktop _desktop = new();

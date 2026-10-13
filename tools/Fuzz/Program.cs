@@ -16,8 +16,15 @@ int examplesPerKind = Arg("--examples", 3), seed = Arg("--seed", Environment.Tic
 int Arg(string name, int fallback) => Array.IndexOf(args, name) is var i and >= 0 ? int.Parse(args[i + 1]) : fallback;
 if (sentenceLimit > 0 && Array.IndexOf(args, "--seconds") < 0) seconds = int.MaxValue;
 
-Environment.SetEnvironmentVariable("HANYEONG_SETTINGS", Path.Combine(Path.GetTempPath(), $"hanyeong-fuzz-{Environment.ProcessId}.json"));
-Environment.SetEnvironmentVariable("HANYEONG_LOG", Path.Combine(Path.GetTempPath(), $"hanyeong-fuzz-{Environment.ProcessId}.log"));
+string settingsPath = Path.Combine(Path.GetTempPath(), $"hanyeong-fuzz-{Environment.ProcessId}.json");
+string logPath = Path.Combine(Path.GetTempPath(), $"hanyeong-fuzz-{Environment.ProcessId}.log");
+Environment.SetEnvironmentVariable("HANYEONG_SETTINGS", settingsPath);
+Environment.SetEnvironmentVariable("HANYEONG_LOG", logPath);
+// Every run would leave its settings and a log of each sentence (hundreds of MB over a day of runs).
+AppDomain.CurrentDomain.ProcessExit += (_, _) =>
+{
+    try { File.Delete(settingsPath); File.Delete(logPath); } catch (IOException) { }
+};
 
 string data = Path.Combine(FindRepo(), "src", "HanYeong.Core", "Data");
 static string FindRepo()

@@ -1,6 +1,6 @@
 {
   "load": {
-    "ms": 418,
+    "ms": 353,
     "managedMB": 16.8,
     "englishWords": 477661,
     "koreanWords": 486868
@@ -10,25 +10,25 @@
       "sentences": 100000,
       "tokens": 2003103,
       "letterTokens": 1846843,
-      "falsePositiveTokens": 100,
-      "falsePositivePerToken": 5.414645424651689E-05,
-      "sentencesWithFalsePositive": 0.00098,
+      "falsePositiveTokens": 98,
+      "falsePositivePerToken": 5.306352516158656E-05,
+      "sentencesWithFalsePositive": 0.00096,
       "wrongModeTokens": 1846843,
-      "wrongModeFixed": 0.9320321218425172,
-      "wrongModeSentencesFullyFixed": 0.32103,
-      "wrongModeAvgShareFixedPerSentence": 0.9334422524256863
+      "wrongModeFixed": 0.9333289294217213,
+      "wrongModeSentencesFullyFixed": 0.32807,
+      "wrongModeAvgShareFixedPerSentence": 0.9349958063432048
     },
     "en_wiki": {
       "sentences": 100000,
       "tokens": 2090860,
       "letterTokens": 1950448,
-      "falsePositiveTokens": 207,
-      "falsePositivePerToken": 0.00010612946358990344,
-      "sentencesWithFalsePositive": 0.0019,
+      "falsePositiveTokens": 204,
+      "falsePositivePerToken": 0.00010459135542193383,
+      "sentencesWithFalsePositive": 0.00187,
       "wrongModeTokens": 1950435,
-      "wrongModeFixed": 0.9378200247637065,
-      "wrongModeSentencesFullyFixed": 0.3383,
-      "wrongModeAvgShareFixedPerSentence": 0.9400998975381075
+      "wrongModeFixed": 0.9387398195787093,
+      "wrongModeSentencesFullyFixed": 0.343,
+      "wrongModeAvgShareFixedPerSentence": 0.9411345918699469
     },
     "ko_web": {
       "sentences": 100000,
@@ -38,9 +38,9 @@
       "falsePositivePerToken": 2.3262320791280765E-05,
       "sentencesWithFalsePositive": 0.00035,
       "wrongModeTokens": 1532437,
-      "wrongModeFixed": 0.9976429699883258,
-      "wrongModeSentencesFullyFixed": 0.96582,
-      "wrongModeAvgShareFixedPerSentence": 0.9976572962811304
+      "wrongModeFixed": 0.9976436225437,
+      "wrongModeSentencesFullyFixed": 0.96583,
+      "wrongModeAvgShareFixedPerSentence": 0.9976576962811304
     },
     "ko_news": {
       "sentences": 100000,
@@ -50,17 +50,17 @@
       "falsePositivePerToken": 2.3505540001664447E-05,
       "sentencesWithFalsePositive": 0.00037,
       "wrongModeTokens": 1567410,
-      "wrongModeFixed": 0.9970231145647916,
-      "wrongModeSentencesFullyFixed": 0.95631,
-      "wrongModeAvgShareFixedPerSentence": 0.9970839827820388
+      "wrongModeFixed": 0.9970256665454476,
+      "wrongModeSentencesFullyFixed": 0.95635,
+      "wrongModeAvgShareFixedPerSentence": 0.9970864024248958
     }
   },
   "staying": {
     "en_news": {
-      "falsePositivePerWordWithout": 5.414645424651689E-05,
-      "falsePositivePerWordWith": 3.898544705749216E-05,
-      "fixedWithout": 0.9320321218425172,
-      "fixedWith": 0.9320310389134323,
+      "falsePositivePerWordWithout": 5.306352516158656E-05,
+      "falsePositivePerWordWith": 3.7902517972561826E-05,
+      "fixedWithout": 0.9333289294217213,
+      "fixedWith": 0.9333278464926363,
       "noLongerChanged": [
         "en(16)",
         "di(3)",
@@ -73,10 +73,10 @@
       ]
     },
     "en_wiki": {
-      "falsePositivePerWordWithout": 0.00010612946358990344,
-      "falsePositivePerWordWith": 5.896081310550191E-05,
-      "fixedWithout": 0.9378200247637065,
-      "fixedWith": 0.9378179739391469,
+      "falsePositivePerWordWithout": 0.00010459135542193383,
+      "falsePositivePerWordWith": 5.74227049375323E-05,
+      "fixedWithout": 0.9387398195787093,
+      "fixedWith": 0.9387387941664296,
       "noLongerChanged": [
         "di(30)",
         "en(28)",
@@ -98,8 +98,8 @@
     "ko_web": {
       "falsePositivePerWordWithout": 2.3262320791280765E-05,
       "falsePositivePerWordWith": 1.1631160395640382E-05,
-      "fixedWithout": 0.9976429699883258,
-      "fixedWith": 0.9976325291023384,
+      "fixedWithout": 0.9976436225437,
+      "fixedWith": 0.9976331816577125,
       "noLongerChanged": [
         "했(5)",
         "걍(2)",
@@ -119,8 +119,8 @@
     "ko_news": {
       "falsePositivePerWordWithout": 2.3505540001664447E-05,
       "falsePositivePerWordWith": 1.3976267028016697E-05,
-      "fixedWithout": 0.9970231145647916,
-      "fixedWith": 0.9970212005792997,
+      "fixedWithout": 0.9970256665454476,
+      "fixedWith": 0.9970237525599556,
       "noLongerChanged": [
         "뜸(5)",
         "밋(2)",
@@ -168,23 +168,23 @@
     },
     "en_news": {
       "sentences": 100000,
-      "fullyFixedWithout": 0.32103,
-      "fullyFixedWith": 0.89993
+      "fullyFixedWithout": 0.32807,
+      "fullyFixedWith": 0.91653
     },
     "en_wiki": {
       "sentences": 100000,
-      "fullyFixedWithout": 0.3383,
-      "fullyFixedWith": 0.87712
+      "fullyFixedWithout": 0.343,
+      "fullyFixedWith": 0.88835
     },
     "ko_web": {
       "sentences": 100000,
-      "fullyFixedWithout": 0.96582,
-      "fullyFixedWith": 0.98792
+      "fullyFixedWithout": 0.96583,
+      "fullyFixedWith": 0.98793
     },
     "ko_news": {
       "sentences": 100000,
-      "fullyFixedWithout": 0.95631,
-      "fullyFixedWith": 0.98213
+      "fullyFixedWithout": 0.95635,
+      "fullyFixedWith": 0.98217
     },
     "mixedWriting_ko_web": {
       "sentencesWithEnglish": 6987,
@@ -655,16 +655,6 @@
         "count": 1474
       },
       {
-        "word": "An",
-        "result": "무",
-        "count": 901
-      },
-      {
-        "word": "So",
-        "result": "내",
-        "count": 734
-      },
-      {
         "word": "pp",
         "result": "ㅔㅔ",
         "count": 628
@@ -675,24 +665,9 @@
         "count": 626
       },
       {
-        "word": "Co",
-        "result": "채",
-        "count": 345
-      },
-      {
-        "word": "Do",
-        "result": "애",
-        "count": 152
-      },
-      {
         "word": "Wed",
         "result": "ㅉㄷㅇ",
         "count": 138
-      },
-      {
-        "word": "De",
-        "result": "ㅇㄷ",
-        "count": 137
       },
       {
         "word": "disk",
@@ -703,11 +678,6 @@
         "word": "fee",
         "result": "ㄹㄷㄷ",
         "count": 109
-      },
-      {
-        "word": "pub",
-        "result": "ㅔㅕㅠ",
-        "count": 102
       },
       {
         "word": "worn",
@@ -738,29 +708,51 @@
         "word": "raw",
         "result": "ㄱㅁㅈ",
         "count": 88
+      },
+      {
+        "word": "god",
+        "result": "행",
+        "count": 73
+      },
+      {
+        "word": "fed",
+        "result": "ㄹㄷㅇ",
+        "count": 69
+      },
+      {
+        "word": "tag",
+        "result": "ㅅㅁㅎ",
+        "count": 61
+      },
+      {
+        "word": "en",
+        "result": "두",
+        "count": 60
+      },
+      {
+        "word": "dish",
+        "result": "야노",
+        "count": 60
+      },
+      {
+        "word": "arc",
+        "result": "ㅁㄱㅊ",
+        "count": 59
       }
     ]
   },
   "mixed": {
-    "allLatinHangulFixedEnglishMode": 0.9138394356734968,
-    "allLatinHangulFixedKoreanMode": 0.8864628820960698,
+    "allLatinHangulFixedEnglishMode": 0.913167618407793,
+    "allLatinHangulFixedKoreanMode": 0.8869667450453477,
     "latinHangulTokens": 11908,
     "distinctWords": 4471,
     "tokens": 7210,
-    "fixedWhenTypedInEnglishMode": 0.9832177531206657,
-    "fixedWhenTypedInKoreanMode": 0.9407766990291262,
+    "fixedWhenTypedInEnglishMode": 0.9837725381414701,
+    "fixedWhenTypedInKoreanMode": 0.9413314840499306,
     "topMisses": [
       {
         "word": "MWC2015에서",
         "count": 2
-      },
-      {
-        "word": "session으로",
-        "count": 1
-      },
-      {
-        "word": "probing해도",
-        "count": 1
       },
       {
         "word": "Iavicoli씨",
@@ -847,7 +839,15 @@
         "count": 1
       },
       {
-        "word": "cabergoline으로",
+        "word": "PhilPHIDA는",
+        "count": 1
+      },
+      {
+        "word": "replacementpolicy로는",
+        "count": 1
+      },
+      {
+        "word": "CES2012에서",
         "count": 1
       }
     ]
@@ -856,35 +856,11 @@
     "english": {
       "distinctWords": 24104,
       "tokens": 51881,
-      "falsePositive": 0.0001349241533509377,
-      "fixedWhenTypedInOtherMode": 0.8935833927642104,
+      "falsePositive": 1.927487905013396E-05,
+      "fixedWhenTypedInOtherMode": 0.9293382934022089,
       "falsePositiveExamples": [
         {
-          "change": "Eufy's→뗘료'ㄴ",
-          "count": 1
-        },
-        {
-          "change": "Tendi's→Ten야'ㄴ",
-          "count": 1
-        },
-        {
-          "change": "Emefiele's→뜯랴딛'ㄴ",
-          "count": 1
-        },
-        {
-          "change": "Tusla's→Tu님'ㄴ",
-          "count": 1
-        },
-        {
           "change": "Kahs-wan→K몬-wan",
-          "count": 1
-        },
-        {
-          "change": "Toghto's→쌔호새'ㄴ",
-          "count": 1
-        },
-        {
-          "change": "Thalen's→쏘미두'ㄴ",
           "count": 1
         }
       ]
@@ -908,9 +884,9 @@
     "koreanTypedInEnglishMode": [
       {
         "shape": "H",
-        "missedTokens": 8383,
-        "shareOfAllWords": 0.0024281813868585653,
-        "missRateInShape": 0.002704219718255338,
+        "missedTokens": 8378,
+        "shareOfAllWords": 0.0024267331097579696,
+        "missRateInShape": 0.0027026067994206397,
         "examples": [
           "내(1975)",
           "해(884)",
@@ -928,9 +904,9 @@
       },
       {
         "shape": "LH",
-        "missedTokens": 858,
-        "shareOfAllWords": 0.00024852435046220317,
-        "missRateInShape": 0.06281572589501427,
+        "missedTokens": 852,
+        "shareOfAllWords": 0.00024678641794148847,
+        "missRateInShape": 0.062376455084559634,
         "examples": [
           "t당(13)",
           "A형(13)",
@@ -1267,26 +1243,6 @@
         ]
       },
       {
-        "shape": "DLH",
-        "missedTokens": 175,
-        "shareOfAllWords": 5.068969852084563E-05,
-        "missRateInShape": 0.14855687606112053,
-        "examples": [
-          "3D프린팅(13)",
-          "10a당(7)",
-          "3D프린터로(5)",
-          "100g당(4)",
-          "1kg당(3)",
-          "1g당(3)",
-          "3D프린터의(3)",
-          "8cm로(2)",
-          "5cm로(2)",
-          "1Kg당(2)",
-          "150Mbps에(2)",
-          "174cm이고(2)"
-        ]
-      },
-      {
         "shape": "○H",
         "missedTokens": 165,
         "shareOfAllWords": 4.7793144319654454E-05,
@@ -1324,6 +1280,26 @@
           "R&D의(3)",
           "S&P는(3)",
           "R&D투자(2)"
+        ]
+      },
+      {
+        "shape": "DLH",
+        "missedTokens": 158,
+        "shareOfAllWords": 4.5765556378820626E-05,
+        "missRateInShape": 0.13412563667232597,
+        "examples": [
+          "3D프린팅(13)",
+          "10a당(7)",
+          "3D프린터로(5)",
+          "100g당(4)",
+          "1kg당(3)",
+          "1g당(3)",
+          "3D프린터의(3)",
+          "8cm로(2)",
+          "5cm로(2)",
+          "1Kg당(2)",
+          "174cm이고(2)",
+          "076m봉에서(1)"
         ]
       },
       {
@@ -1410,9 +1386,9 @@
     "englishTypedInKoreanMode": [
       {
         "shape": "L",
-        "missedTokens": 246804,
-        "shareOfAllWords": 0.06222634592547583,
-        "missRateInShape": 0.06499497798159629,
+        "missedTokens": 242615,
+        "shareOfAllWords": 0.06117017923821866,
+        "missRateInShape": 0.06389181935059798,
         "examples": [
           "to(106053)",
           "a(87057)",
@@ -1424,18 +1400,17 @@
           "p(2261)",
           "end(1869)",
           "go(1468)",
-          "An(901)",
-          "So(732)"
+          "pp(626)",
+          "de(594)"
         ]
       },
       {
         "shape": "L-L",
-        "missedTokens": 3644,
-        "shareOfAllWords": 0.0009187566026175991,
-        "missRateInShape": 0.13338702002269484,
+        "missedTokens": 2436,
+        "shareOfAllWords": 0.0006141852590495256,
+        "missRateInShape": 0.08916871042131849,
         "examples": [
           "so-called(138)",
-          "non-profit(32)",
           "re-elected(30)",
           "co-founder(29)",
           "high-end(24)",
@@ -1443,76 +1418,17 @@
           "re-election(21)",
           "al-Qaeda(18)",
           "co-operation(17)",
-          "non-existent(15)",
-          "non-governmental(13)",
-          "self-sufficiency(13)"
-        ]
-      },
-      {
-        "shape": "DL",
-        "missedTokens": 3420,
-        "shareOfAllWords": 0.0008622797971877576,
-        "missRateInShape": 0.4447334200260078,
-        "examples": [
-          "20th(305)",
-          "19th(266)",
-          "4th(219)",
-          "18th(136)",
-          "15th(135)",
-          "17th(116)",
-          "16th(111)",
-          "5th(106)",
-          "12th(102)",
-          "10th(101)",
-          "6th(91)",
-          "13th(83)"
-        ]
-      },
-      {
-        "shape": "“L",
-        "missedTokens": 1558,
-        "shareOfAllWords": 0.0003928163520522007,
-        "missRateInShape": 0.1400197717264312,
-        "examples": [
-          "“I(1055)",
-          "“A(111)",
-          "“a(87)",
-          "“So(81)",
-          "“to(32)",
-          "“an(26)",
-          "“Do(13)",
-          "“An(9)",
-          "“so(6)",
-          "“go(5)",
-          "“God(4)",
-          "“do(4)"
-        ]
-      },
-      {
-        "shape": "\"L",
-        "missedTokens": 1440,
-        "shareOfAllWords": 0.0003630651777632664,
-        "missRateInShape": 0.12003000750187547,
-        "examples": [
-          "\"I(679)",
-          "\"a(192)",
-          "\"A(125)",
-          "\"to(69)",
-          "\"So(42)",
-          "\"an(29)",
-          "\"God(19)",
-          "\"Do(18)",
-          "\"An(17)",
-          "\"so(12)",
-          "\"Did(7)",
-          "\"Ah(5)"
+          "self-sufficiency(13)",
+          "re-establish(12)",
+          "go-ahead(11)",
+          "ex-wife(11)"
         ]
       },
       {
         "shape": "LD",
-        "missedTokens": 1409,
-        "shareOfAllWords": 0.0003552491912975294,
-        "missRateInShape": 0.7583423035522067,
+        "missedTokens": 1363,
+        "shareOfAllWords": 0.0003436512758967584,
+        "missRateInShape": 0.7335844994617868,
         "examples": [
           "N1(21)",
           "V8(21)",
@@ -1530,9 +1446,9 @@
       },
       {
         "shape": "(L",
-        "missedTokens": 1324,
-        "shareOfAllWords": 0.0003338182606656699,
-        "missRateInShape": 0.13346774193548386,
+        "missedTokens": 1067,
+        "shareOfAllWords": 0.00026902121157875363,
+        "missRateInShape": 0.10756048387096774,
         "examples": [
           "(e(250)",
           "(a(203)",
@@ -1544,95 +1460,55 @@
           "(d(27)",
           "(b(18)",
           "(p(17)",
-          "(I(16)",
-          "(A(14)"
-        ]
-      },
-      {
-        "shape": "(L)",
-        "missedTokens": 1200,
-        "shareOfAllWords": 0.000302554314802722,
-        "missRateInShape": 0.28811524609843936,
-        "examples": [
-          "(SEC)(27)",
-          "(R)(13)",
-          "(A)(8)",
-          "(BJP)(8)",
-          "(KFSN)(8)",
-          "(a)(8)",
-          "(PPP)(7)",
-          "(C)(6)",
-          "(Zh)(6)",
-          "(B)(5)",
-          "(DAC)(5)",
-          "(SAR)(5)"
+          "(so(13)",
+          "(ca(10)"
         ]
       },
       {
         "shape": "'L",
-        "missedTokens": 1083,
-        "shareOfAllWords": 0.0002730552691094566,
-        "missRateInShape": 0.3696245733788396,
+        "missedTokens": 889,
+        "shareOfAllWords": 0.0002241423215496832,
+        "missRateInShape": 0.30341296928327643,
         "examples": [
           "'s(807)",
-          "'I(146)",
           "'a(26)",
-          "'So(8)",
           "'to(7)",
-          "'Do(6)",
           "'em(6)",
-          "'A(5)",
-          "'Go(4)",
           "'t(4)",
-          "'An(3)",
-          "'did(3)"
+          "'did(3)",
+          "'n(3)",
+          "'do(2)",
+          "'work(2)",
+          "'so(2)",
+          "'ava(2)",
+          "'Obby(2)"
         ]
       },
       {
-        "shape": "L'L",
-        "missedTokens": 736,
-        "shareOfAllWords": 0.00018556664641233614,
-        "missRateInShape": 0.03502093642938713,
+        "shape": "DL",
+        "missedTokens": 646,
+        "shareOfAllWords": 0.000162875072802132,
+        "missRateInShape": 0.08400520156046815,
         "examples": [
-          "God's(55)",
-          "II's(11)",
-          "it'll(10)",
-          "IBM's(10)",
-          "Qur'an(9)",
-          "A's(9)",
-          "could've(8)",
-          "Ohm's(8)",
-          "would've(6)",
-          "that'll(5)",
-          "BJP's(5)",
-          "III's(5)"
-        ]
-      },
-      {
-        "shape": "L’L",
-        "missedTokens": 690,
-        "shareOfAllWords": 0.00017396873101156515,
-        "missRateInShape": 0.032985945119036235,
-        "examples": [
-          "God’s(24)",
-          "it’ll(18)",
-          "who’ve(14)",
-          "would’ve(14)",
-          "could’ve(14)",
-          "BJP’s(11)",
-          "LP’s(8)",
-          "should’ve(7)",
-          "Fed’s(6)",
-          "A’s(5)",
-          "pub’s(5)",
-          "that’ll(5)"
+          "13F(68)",
+          "30am(52)",
+          "11am(23)",
+          "10am(22)",
+          "8am(14)",
+          "7am(11)",
+          "6am(10)",
+          "15am(10)",
+          "5am(10)",
+          "00am(10)",
+          "9am(9)",
+          "3A(8)"
         ]
       },
       {
         "shape": "L-L-L",
-        "missedTokens": 649,
-        "shareOfAllWords": 0.0001636314585891388,
-        "missRateInShape": 0.3662528216704289,
+        "missedTokens": 620,
+        "shareOfAllWords": 0.00015631972931473968,
+        "missRateInShape": 0.34988713318284426,
         "examples": [
           "price-to-earnings(61)",
           "debt-to-equity(51)",
@@ -1644,55 +1520,15 @@
           "up-to-date(10)",
           "Port-au-Prince(9)",
           "one-to-one(9)",
-          "non-life-threatening(7)",
-          "end-to-end(6)"
-        ]
-      },
-      {
-        "shape": "L)",
-        "missedTokens": 576,
-        "shareOfAllWords": 0.00014522607110530655,
-        "missRateInShape": 0.07733619763694952,
-        "examples": [
-          "m)(28)",
-          "mm)(15)",
-          "ft)(13)",
-          "n)(11)",
-          "to)(10)",
-          "A)(9)",
-          "work)(8)",
-          "C)(8)",
-          "a)(7)",
-          "mph)(6)",
-          "y)(6)",
-          "B)(6)"
-        ]
-      },
-      {
-        "shape": "L-D",
-        "missedTokens": 467,
-        "shareOfAllWords": 0.00011774405417739264,
-        "missRateInShape": 0.5043196544276458,
-        "examples": [
-          "F-14(13)",
-          "K-12(11)",
-          "F-16(11)",
-          "F-35(10)",
-          "B-52(7)",
-          "U-2(7)",
-          "AK-47(6)",
-          "SG-1(6)",
-          "C-130(5)",
-          "B-2(5)",
-          "B-29(5)",
-          "B-17(5)"
+          "end-to-end(6)",
+          "hand-to-hand(6)"
         ]
       },
       {
         "shape": "“L’L",
-        "missedTokens": 466,
-        "shareOfAllWords": 0.0001174919255817237,
-        "missRateInShape": 0.45419103313840153,
+        "missedTokens": 464,
+        "shareOfAllWords": 0.00011698766839038583,
+        "missRateInShape": 0.4522417153996101,
         "examples": [
           "“I’m(152)",
           "“We’re(108)",
@@ -1709,130 +1545,110 @@
         ]
       },
       {
-        "shape": "LéL",
-        "missedTokens": 462,
-        "shareOfAllWords": 0.00011648341119904796,
-        "missRateInShape": 1,
+        "shape": "L-D",
+        "missedTokens": 448,
+        "shareOfAllWords": 0.00011295361085968288,
+        "missRateInShape": 0.4838012958963283,
         "examples": [
-          "Féin(22)",
-          "Cortés(11)",
-          "cafés(10)",
-          "Musée(8)",
-          "fiancée(8)",
-          "Métis(8)",
-          "Québec(7)",
-          "Cézanne(7)",
-          "Académie(6)",
-          "Montréal(5)",
-          "Prévost(5)",
-          "Régime(5)"
+          "F-14(13)",
+          "K-12(11)",
+          "F-16(11)",
+          "F-35(10)",
+          "B-52(7)",
+          "U-2(7)",
+          "AK-47(6)",
+          "SG-1(6)",
+          "C-130(5)",
+          "B-2(5)",
+          "B-29(5)",
+          "B-17(5)"
         ]
       },
       {
-        "shape": "\"L\"",
-        "missedTokens": 333,
-        "shareOfAllWords": 8.395882235775535E-05,
-        "missRateInShape": 0.11376836351212846,
+        "shape": "\"L",
+        "missedTokens": 412,
+        "shareOfAllWords": 0.00010387698141560122,
+        "missRateInShape": 0.034341918813036595,
         "examples": [
-          "\"C\"(5)",
-          "\"a\"(5)",
-          "\"B\"(5)",
-          "\"X\"(4)",
-          "\"e\"(4)",
-          "\"V\"(4)",
-          "\"I\"(4)",
-          "\"A\"(4)",
-          "\"R\"(3)",
-          "\"ear\"(3)",
-          "\"O\"(3)",
-          "\"h\"(3)"
+          "\"a(192)",
+          "\"to(69)",
+          "\"an(29)",
+          "\"so(12)",
+          "\"do(5)",
+          "\"El(5)",
+          "\"work(5)",
+          "\"go(5)",
+          "\"end(4)",
+          "\"P(4)",
+          "\"E(3)",
+          "\"did(3)"
+        ]
+      },
+      {
+        "shape": "L)",
+        "missedTokens": 296,
+        "shareOfAllWords": 7.463006431800476E-05,
+        "missRateInShape": 0.0397422126745435,
+        "examples": [
+          "m)(28)",
+          "mm)(15)",
+          "ft)(13)",
+          "n)(11)",
+          "to)(10)",
+          "work)(8)",
+          "a)(7)",
+          "y)(6)",
+          "x)(6)",
+          "do)(4)",
+          "b)(4)",
+          "R)(4)"
         ]
       },
       {
         "shape": "L/L",
-        "missedTokens": 314,
-        "shareOfAllWords": 7.916837904004558E-05,
-        "missRateInShape": 0.2434108527131783,
+        "missedTokens": 283,
+        "shareOfAllWords": 7.13523925743086E-05,
+        "missRateInShape": 0.2193798449612403,
         "examples": [
           "P/E(60)",
           "I/O(28)",
           "m/s(7)",
           "PPP/C(6)",
-          "bbl/d(4)",
           "A/S(4)",
           "c/o(4)",
-          "USD/JPY(4)",
-          "PL/I(4)",
           "mg/dL(4)",
           "a/b(4)",
-          "b/d(3)"
+          "b/d(3)",
+          "g/m(3)",
+          "A/B(3)",
+          "z/VSE(3)"
         ]
       },
       {
-        "shape": "Lé",
-        "missedTokens": 294,
-        "shareOfAllWords": 7.412580712666688E-05,
-        "missRateInShape": 1,
+        "shape": "(L)",
+        "missedTokens": 276,
+        "shareOfAllWords": 6.958749240462605E-05,
+        "missRateInShape": 0.06626650660264105,
         "examples": [
-          "José(34)",
-          "Café(19)",
-          "café(15)",
-          "fiancé(14)",
-          "André(12)",
-          "René(11)",
-          "Hergé(11)",
-          "Beyoncé(10)",
-          "Poincaré(9)",
-          "Université(6)",
-          "cliché(5)",
-          "Pelé(5)"
-        ]
-      },
-      {
-        "shape": "L–L",
-        "missedTokens": 281,
-        "shareOfAllWords": 7.084813538297073E-05,
-        "missRateInShape": 1,
-        "examples": [
-          "north–south(5)",
-          "Marxist–Leninist(4)",
-          "I–O(4)",
-          "energy–momentum(4)",
-          "Ziegler–Natta(4)",
-          "Navier–Stokes(4)",
-          "Niger–Congo(4)",
-          "base–emitter(4)",
-          "Tracy–Hepburn(3)",
-          "Bose–Einstein(3)",
-          "Israeli–Palestinian(3)",
-          "east–west(3)"
-        ]
-      },
-      {
-        "shape": "L&L",
-        "missedTokens": 263,
-        "shareOfAllWords": 6.63098206609299E-05,
-        "missRateInShape": 1,
-        "examples": [
-          "S&P(72)",
-          "AT&T(24)",
-          "R&B(15)",
-          "A&M(11)",
-          "A&E(10)",
-          "R&D(9)",
-          "J&K(8)",
-          "Q&A(7)",
-          "M&S(7)",
-          "D&D(7)",
-          "PG&E(6)",
-          "M&A(6)"
+          "(R)(13)",
+          "(a)(8)",
+          "(PPP)(7)",
+          "(Zh)(6)",
+          "(g)(4)",
+          "(n)(4)",
+          "(LLMs)(3)",
+          "(c)(3)",
+          "(T)(3)",
+          "(b)(3)",
+          "(TfW)(2)",
+          "(FIIs)(2)"
         ]
       },
       {
         "shape": "\"L'L",
-        "missedTokens": 210,
-        "shareOfAllWords": 5.2947005090476346E-05,
-        "missRateInShape": 0.35714285714285715,
+        "missedTokens": 209,
+        "shareOfAllWords": 5.269487649480741E-05,
+        "missRateInShape": 0.3554421768707483,
         "examples": [
           "\"I'm(71)",
           "\"We're(35)",
@@ -1849,73 +1665,452 @@
         ]
       },
       {
-        "shape": "LáL",
-        "missedTokens": 204,
-        "shareOfAllWords": 5.1434233516462734E-05,
-        "missRateInShape": 1,
+        "shape": "“L",
+        "missedTokens": 205,
+        "shareOfAllWords": 5.1686362112131675E-05,
+        "missRateInShape": 0.018423654174530422,
         "examples": [
-          "Dáil(12)",
-          "Cádiz(8)",
-          "Hernández(7)",
-          "Fáil(7)",
-          "Sánchez(7)",
-          "Chávez(7)",
-          "Orbán(6)",
-          "González(6)",
-          "Szilárd(6)",
-          "Fernández(5)",
-          "Polgár(5)",
-          "Seán(4)"
+          "“a(87)",
+          "“to(32)",
+          "“an(26)",
+          "“so(6)",
+          "“go(5)",
+          "“do(4)",
+          "“work(4)",
+          "“did(3)",
+          "“end(2)",
+          "“Q(2)",
+          "“El(2)",
+          "“squinty(2)"
+        ]
+      },
+      {
+        "shape": "\"L\"",
+        "missedTokens": 188,
+        "shareOfAllWords": 4.740017598575978E-05,
+        "missRateInShape": 0.0642295866074479,
+        "examples": [
+          "\"a\"(5)",
+          "\"e\"(4)",
+          "\"R\"(3)",
+          "\"ear\"(3)",
+          "\"O\"(3)",
+          "\"h\"(3)",
+          "\"eh\"(2)",
+          "\"b\"(2)",
+          "\"P\"(2)",
+          "\"s\"(2)",
+          "\"t\"(2)",
+          "\"p\"(2)"
+        ]
+      },
+      {
+        "shape": "L'L",
+        "missedTokens": 161,
+        "shareOfAllWords": 4.059270390269853E-05,
+        "missRateInShape": 0.007660829843928436,
+        "examples": [
+          "it'll(10)",
+          "Qur'an(9)",
+          "could've(8)",
+          "would've(6)",
+          "that'll(5)",
+          "It'll(4)",
+          "dell'arte(3)",
+          "Xi'an(3)",
+          "might've(2)",
+          "who've(2)",
+          "That'll(2)",
+          "There'll(2)"
+        ]
+      },
+      {
+        "shape": "L’L",
+        "missedTokens": 150,
+        "shareOfAllWords": 3.781928935034025E-05,
+        "missRateInShape": 0.007170857634573095,
+        "examples": [
+          "it’ll(18)",
+          "who’ve(14)",
+          "would’ve(14)",
+          "could’ve(14)",
+          "should’ve(7)",
+          "that’ll(5)",
+          "It’ll(5)",
+          "there’ll(4)",
+          "who’ll(3)",
+          "Xi’an(2)",
+          "L’Oreal(2)",
+          "D’Arcy(2)"
+        ]
+      },
+      {
+        "shape": "’L",
+        "missedTokens": 122,
+        "shareOfAllWords": 3.075968867161007E-05,
+        "missRateInShape": 0.953125,
+        "examples": [
+          "’s(118)",
+          "’Busola(1)",
+          "’n(1)",
+          "’Guins(1)",
+          "’El(1)"
+        ]
+      },
+      {
+        "shape": "DL-L",
+        "missedTokens": 110,
+        "shareOfAllWords": 2.7734145523582848E-05,
+        "missRateInShape": 0.7534246575342466,
+        "examples": [
+          "19th-century(24)",
+          "20th-century(17)",
+          "18th-century(9)",
+          "16th-century(7)",
+          "17th-century(5)",
+          "15th-century(4)",
+          "12th-century(3)",
+          "13th-century(3)",
+          "4th-century(3)",
+          "14th-century(3)",
+          "6th-century(2)",
+          "7th-century(2)"
         ]
       },
       {
         "shape": "L\"",
-        "missedTokens": 199,
-        "shareOfAllWords": 5.017359053811806E-05,
-        "missRateInShape": 0.03449471312185821,
+        "missedTokens": 106,
+        "shareOfAllWords": 2.6725631140907107E-05,
+        "missRateInShape": 0.018374068296065176,
         "examples": [
-          "God\"(12)",
           "work\"(11)",
           "do\"(9)",
-          "X\"(8)",
-          "II\"(5)",
-          "I\"(5)",
           "end\"(4)",
           "to\"(4)",
-          "A\"(4)",
-          "Al\"(2)",
-          "III\"(2)",
-          "Do\"(2)"
+          "refutable\"(2)",
+          "did\"(2)",
+          "go\"(2)",
+          "P\"(2)",
+          "Tocharian\"(2)",
+          "Wokeness\"(1)",
+          "iPadgate\"(1)",
+          "Tascioni\"(1)"
+        ]
+      },
+      {
+        "shape": "°L",
+        "missedTokens": 98,
+        "shareOfAllWords": 2.470860237555563E-05,
+        "missRateInShape": 0.98989898989899,
+        "examples": [
+          "°C(85)",
+          "°F(13)"
+        ]
+      },
+      {
+        "shape": "L-DL",
+        "missedTokens": 87,
+        "shareOfAllWords": 2.1935187823197343E-05,
+        "missRateInShape": 0.21481481481481482,
+        "examples": [
+          "F-5E(4)",
+          "F-5A(3)",
+          "F-15C(3)",
+          "F-35A(3)",
+          "F-117A(3)",
+          "E-2C(3)",
+          "F-35C(2)",
+          "AH-1F(2)",
+          "F-14A(2)",
+          "E-8C(2)",
+          "F-15EX(1)",
+          "Y-105FM(1)"
         ]
       },
       {
         "shape": "L$D",
-        "missedTokens": 189,
-        "shareOfAllWords": 4.765230458142871E-05,
-        "missRateInShape": 1,
+        "missedTokens": 86,
+        "shareOfAllWords": 2.168305922752841E-05,
+        "missRateInShape": 0.455026455026455,
         "examples": [
           "C$0(13)",
-          "US$1(11)",
-          "US$3(9)",
-          "US$2(6)",
-          "US$5(5)",
-          "US$4(4)",
-          "US$400(3)",
-          "US$0(3)",
           "C$1(3)",
-          "US$20(3)",
-          "US$8(2)",
-          "US$18(2)"
+          "C$27(2)",
+          "C$24(2)",
+          "A$49(2)",
+          "C$89(2)",
+          "C$56(2)",
+          "C$2(2)",
+          "C$10(2)",
+          "C$12(2)",
+          "C$33(1)",
+          "C$45(1)"
+        ]
+      },
+      {
+        "shape": "L&L",
+        "missedTokens": 84,
+        "shareOfAllWords": 2.117880203619054E-05,
+        "missRateInShape": 0.3193916349809886,
+        "examples": [
+          "AT&T(24)",
+          "A&E(10)",
+          "R&D(9)",
+          "Q&A(7)",
+          "D&D(7)",
+          "D&C(4)",
+          "D&RGW(3)",
+          "A&R(2)",
+          "T&T(2)",
+          "C&AG(1)",
+          "C&C(1)",
+          "A&T(1)"
         ]
       }
     ]
   },
+  "sweep": [
+    {
+      "parameter": "EnglishToKoreanMargin",
+      "value": 0,
+      "isDefault": false,
+      "enModeFalsePositive": 0.0012814554233398228,
+      "enModeFixed": 0.998843818753105,
+      "koModeFalsePositive": 1.903311762466692E-05,
+      "koModeFixed": 0.9361932604452102
+    },
+    {
+      "parameter": "EnglishToKoreanMargin",
+      "value": 0.5,
+      "isDefault": false,
+      "enModeFalsePositive": 0.0001301355425827323,
+      "enModeFixed": 0.9980121682914712,
+      "koModeFalsePositive": 1.903311762466692E-05,
+      "koModeFixed": 0.9361932604452102
+    },
+    {
+      "parameter": "EnglishToKoreanMargin",
+      "value": 1,
+      "isDefault": true,
+      "enModeFalsePositive": 8.274211560592235E-05,
+      "enModeFixed": 0.997330524604337,
+      "koModeFalsePositive": 1.903311762466692E-05,
+      "koModeFixed": 0.9361932604452102
+    },
+    {
+      "parameter": "EnglishToKoreanMargin",
+      "value": 1.5,
+      "isDefault": false,
+      "enModeFalsePositive": 4.634605842483625E-05,
+      "enModeFixed": 0.9939700502603344,
+      "koModeFalsePositive": 1.903311762466692E-05,
+      "koModeFixed": 0.9361932604452102
+    },
+    {
+      "parameter": "EnglishToKoreanMargin",
+      "value": 2,
+      "isDefault": false,
+      "enModeFalsePositive": 2.2518423867434563E-05,
+      "enModeFixed": 0.8436916505906719,
+      "koModeFalsePositive": 1.903311762466692E-05,
+      "koModeFixed": 0.9361932604452102
+    },
+    {
+      "parameter": "EnglishToKoreanMargin",
+      "value": 3,
+      "isDefault": false,
+      "enModeFalsePositive": 1.6496054693585784E-05,
+      "enModeFixed": 0.7764789377584794,
+      "koModeFalsePositive": 1.903311762466692E-05,
+      "koModeFixed": 0.9361932604452102
+    },
+    {
+      "parameter": "UnseenKorean",
+      "value": 0.5,
+      "isDefault": false,
+      "enModeFalsePositive": 6.624606091233656E-05,
+      "enModeFixed": 0.8484212190227945,
+      "koModeFalsePositive": 1.903311762466692E-05,
+      "koModeFixed": 0.9361932604452102
+    },
+    {
+      "parameter": "UnseenKorean",
+      "value": 1,
+      "isDefault": false,
+      "enModeFalsePositive": 8.274211560592235E-05,
+      "enModeFixed": 0.997330524604337,
+      "koModeFalsePositive": 1.903311762466692E-05,
+      "koModeFixed": 0.9361932604452102
+    },
+    {
+      "parameter": "UnseenKorean",
+      "value": 1.5,
+      "isDefault": true,
+      "enModeFalsePositive": 8.274211560592235E-05,
+      "enModeFixed": 0.997330524604337,
+      "koModeFalsePositive": 1.903311762466692E-05,
+      "koModeFixed": 0.9361932604452102
+    },
+    {
+      "parameter": "UnseenKorean",
+      "value": 2,
+      "isDefault": false,
+      "enModeFalsePositive": 8.509869484786317E-05,
+      "enModeFixed": 0.997330524604337,
+      "koModeFalsePositive": 1.903311762466692E-05,
+      "koModeFixed": 0.9361932604452102
+    },
+    {
+      "parameter": "UnseenKorean",
+      "value": 2.5,
+      "isDefault": false,
+      "enModeFalsePositive": 9.085922188371853E-05,
+      "enModeFixed": 0.9973369765086165,
+      "koModeFalsePositive": 1.903311762466692E-05,
+      "koModeFixed": 0.9361932604452102
+    },
+    {
+      "parameter": "KoreanToEnglishMargin",
+      "value": 1,
+      "isDefault": false,
+      "enModeFalsePositive": 8.274211560592235E-05,
+      "enModeFixed": 0.997330524604337,
+      "koModeFalsePositive": 6.903537579116477E-05,
+      "koModeFixed": 0.9364629578473435
+    },
+    {
+      "parameter": "KoreanToEnglishMargin",
+      "value": 1.5,
+      "isDefault": false,
+      "enModeFalsePositive": 8.274211560592235E-05,
+      "enModeFixed": 0.997330524604337,
+      "koModeFalsePositive": 5.4841186376158924E-05,
+      "koModeFixed": 0.9364079709983648
+    },
+    {
+      "parameter": "KoreanToEnglishMargin",
+      "value": 2,
+      "isDefault": false,
+      "enModeFalsePositive": 8.274211560592235E-05,
+      "enModeFixed": 0.997330524604337,
+      "koModeFalsePositive": 3.8711425677288654E-05,
+      "koModeFixed": 0.9363359644104166
+    },
+    {
+      "parameter": "KoreanToEnglishMargin",
+      "value": 2.5,
+      "isDefault": false,
+      "enModeFalsePositive": 8.274211560592235E-05,
+      "enModeFixed": 0.997330524604337,
+      "koModeFalsePositive": 2.7743188402056866E-05,
+      "koModeFixed": 0.9362987828268216
+    },
+    {
+      "parameter": "KoreanToEnglishMargin",
+      "value": 3,
+      "isDefault": true,
+      "enModeFalsePositive": 8.274211560592235E-05,
+      "enModeFixed": 0.997330524604337,
+      "koModeFalsePositive": 1.903311762466692E-05,
+      "koModeFixed": 0.9361932604452102
+    },
+    {
+      "parameter": "CommonKorean",
+      "value": 2.5,
+      "isDefault": false,
+      "enModeFalsePositive": 8.274211560592235E-05,
+      "enModeFixed": 0.997330524604337,
+      "koModeFalsePositive": 1.483937984296065E-05,
+      "koModeFixed": 0.9240623760341128
+    },
+    {
+      "parameter": "CommonKorean",
+      "value": 3,
+      "isDefault": false,
+      "enModeFalsePositive": 8.274211560592235E-05,
+      "enModeFixed": 0.997330524604337,
+      "koModeFalsePositive": 1.5161975056938056E-05,
+      "koModeFixed": 0.9255433551666036
+    },
+    {
+      "parameter": "CommonKorean",
+      "value": 3.5,
+      "isDefault": true,
+      "enModeFalsePositive": 8.274211560592235E-05,
+      "enModeFixed": 0.997330524604337,
+      "koModeFalsePositive": 1.903311762466692E-05,
+      "koModeFixed": 0.9361932604452102
+    },
+    {
+      "parameter": "CommonKorean",
+      "value": 4,
+      "isDefault": false,
+      "enModeFalsePositive": 8.274211560592235E-05,
+      "enModeFixed": 0.997330524604337,
+      "koModeFalsePositive": 1.903311762466692E-05,
+      "koModeFixed": 0.9361932604452102
+    },
+    {
+      "parameter": "CommonKorean",
+      "value": 4.5,
+      "isDefault": false,
+      "enModeFalsePositive": 8.274211560592235E-05,
+      "enModeFixed": 0.997330524604337,
+      "koModeFalsePositive": 1.903311762466692E-05,
+      "koModeFixed": 0.9361932604452102
+    },
+    {
+      "parameter": "KnownEnglish",
+      "value": 1,
+      "isDefault": false,
+      "enModeFalsePositive": 7.90763256740144E-05,
+      "enModeFixed": 0.9973214919383456,
+      "koModeFalsePositive": 1.903311762466692E-05,
+      "koModeFixed": 0.93675962498969
+    },
+    {
+      "parameter": "KnownEnglish",
+      "value": 1.5,
+      "isDefault": true,
+      "enModeFalsePositive": 8.274211560592235E-05,
+      "enModeFixed": 0.997330524604337,
+      "koModeFalsePositive": 1.903311762466692E-05,
+      "koModeFixed": 0.9361932604452102
+    },
+    {
+      "parameter": "KnownEnglish",
+      "value": 2,
+      "isDefault": false,
+      "enModeFalsePositive": 9.714343319556072E-05,
+      "enModeFixed": 0.997344396198538,
+      "koModeFalsePositive": 1.838792719671211E-05,
+      "koModeFixed": 0.9346785036769182
+    },
+    {
+      "parameter": "KnownEnglish",
+      "value": 2.5,
+      "isDefault": false,
+      "enModeFalsePositive": 0.00011259211933717282,
+      "enModeFixed": 0.9973508481028176,
+      "koModeFalsePositive": 1.838792719671211E-05,
+      "koModeFixed": 0.9318524414815552
+    },
+    {
+      "parameter": "KnownEnglish",
+      "value": 3,
+      "isDefault": false,
+      "enModeFalsePositive": 0.00014427501803437727,
+      "enModeFixed": 0.9973556870310272,
+      "koModeFalsePositive": 1.7742736768757298E-05,
+      "koModeFixed": 0.925128597220022
+    }
+  ],
   "nonsense": {
-    "randomLowercaseInEnglishMode": 0.02758,
+    "randomLowercaseInEnglishMode": 0.02792,
     "randomLowercaseFormsValidHangul": 0.02649,
-    "randomKeysInKoreanMode": 0.05846,
+    "randomKeysInKoreanMode": 0.06612,
     "idLikeLettersDigits": 0,
-    "passwordLike": 0.00743,
+    "passwordLike": 0.00753,
     "randomSyllablesTypedInEnglish": 0.99953
   },
   "hotkey": {
@@ -1950,415 +2145,6 @@
   },
   "speed": {
     "checks": 200000,
-    "microsecondsPerCheck": 1.802937
-  },
-  "edgeCases": {
-    "sentences": {
-      "eng_news_2023_300K": 299992,
-      "eng_newscrawl-public_2018_100K": 99999,
-      "eng-uk_web_2002_300K": 300000,
-      "kor_news_2020_1M": 999999,
-      "kor_newscrawl_2016_1M": 995805,
-      "kor-kr_web_2015_1M": 992827
-    },
-    "categories": {
-      "en:acronym": {
-        "tokens": 112699,
-        "distinctWords": 23307,
-        "falsePositive": 0,
-        "falsePositiveExamples": [],
-        "fixedWhenTypedInOtherMode": 0.9805499605142903,
-        "missedExamples": [
-          "WWE(147)",
-          "CDs(104)",
-          "WWW(76)",
-          "EVs(61)",
-          "PPP(58)",
-          "TVs(53)",
-          "PO(49)",
-          "DJs(33)",
-          "TT(33)",
-          "WR(23)",
-          "PP(21)",
-          "OPP(20)",
-          "FAQs(20)",
-          "RR(16)",
-          "DMs(15)",
-          "QR(15)",
-          "TDs(14)",
-          "CVs(14)",
-          "TE(13)",
-          "RW(12)"
-        ],
-        "fixedWhenTypedAllInKoreanMode": null,
-        "missedAllInKoreanModeExamples": null
-      },
-      "en:camelCase": {
-        "tokens": 17346,
-        "distinctWords": 8112,
-        "falsePositive": 0.0008071025020177562,
-        "falsePositiveExamples": [
-          "LibDems(3)",
-          "siThe(1)",
-          "VatiLeaks(1)",
-          "downThe(1)",
-          "toThang(1)",
-          "iNTek(1)",
-          "PaySystems(1)",
-          "EuroT(1)",
-          "workThe(1)",
-          "listItems(1)",
-          "NeuroSystems(1)",
-          "ErgoSystems(1)"
-        ],
-        "fixedWhenTypedInOtherMode": 0.7681309812060417,
-        "missedExamples": [
-          "YoY(31)",
-          "DfEE(29)",
-          "dB(23)",
-          "SoFi(16)",
-          "OpEx(12)",
-          "MoU(12)",
-          "OmniaVerse(10)",
-          "VanEck(9)",
-          "BetMGM(9)",
-          "RasMol(9)",
-          "WebCT(8)",
-          "WorldPay(8)",
-          "TeX(7)",
-          "PulteGroup(6)",
-          "TransDigm(6)",
-          "McAllan(6)",
-          "AfD(6)",
-          "DoD(6)",
-          "JioCinema(6)",
-          "dtSearch(6)"
-        ],
-        "fixedWhenTypedAllInKoreanMode": null,
-        "missedAllInKoreanModeExamples": null
-      },
-      "en:code": {
-        "tokens": 1722,
-        "distinctWords": 1407,
-        "falsePositive": 0.0005807200929152149,
-        "falsePositiveExamples": [
-          "forhttps://t(1)"
-        ],
-        "fixedWhenTypedInOtherMode": null,
-        "missedExamples": null,
-        "fixedWhenTypedAllInKoreanMode": null,
-        "missedAllInKoreanModeExamples": null
-      },
-      "en:numberLatin": {
-        "tokens": 26654,
-        "distinctWords": 4809,
-        "falsePositive": 0.0007503564192991671,
-        "falsePositiveExamples": [
-          "8vo(5)",
-          "4ths(2)",
-          "210ths(1)",
-          "4ngo(1)",
-          "3DMark(1)",
-          "9amHealth(1)",
-          "32amWith(1)",
-          "11thth(1)",
-          "000Rp(1)",
-          "8Yahweh(1)",
-          "9Yahweh(1)",
-          "6tbsp(1)",
-          "4tbsp(1)",
-          "30Dark(1)",
-          "13thToday(1)"
-        ],
-        "fixedWhenTypedInOtherMode": null,
-        "missedExamples": null,
-        "fixedWhenTypedAllInKoreanMode": null,
-        "missedAllInKoreanModeExamples": null
-      },
-      "en:unknownName": {
-        "tokens": 105343,
-        "distinctWords": 38645,
-        "falsePositive": 0.0026959551180429646,
-        "falsePositiveExamples": [
-          "Emefiele(16)",
-          "Qorvo(4)",
-          "Enviros(4)",
-          "Primogems(3)",
-          "Magogo(3)",
-          "Eurodisney(3)",
-          "Vango(3)",
-          "Craigowl(3)",
-          "Ekwo(2)",
-          "Arhaus(2)",
-          "Rudoren(2)",
-          "Bakugo(2)",
-          "Tendi(2)",
-          "Eufy(2)",
-          "Halau(2)",
-          "Tostock(2)",
-          "Qualsys(2)",
-          "Mydaus(2)",
-          "Tozo(2)",
-          "Stewy(2)"
-        ],
-        "fixedWhenTypedInOtherMode": 0.9039613453195751,
-        "missedExamples": [
-          "E(738)",
-          "P(604)",
-          "R(576)",
-          "W(522)",
-          "T(495)",
-          "O(280)",
-          "Q(186)",
-          "Oftel(37)",
-          "Ozempic(23)",
-          "Qty(20)",
-          "Empls(17)",
-          "Retrmt(17)",
-          "Emefiele(16)",
-          "Quantumania(13)",
-          "Pastrnak(11)",
-          "Ohanaeze(10)",
-          "Wegovy(10)",
-          "Tilray(7)",
-          "Enphase(6)",
-          "Porzingis(6)"
-        ],
-        "fixedWhenTypedAllInKoreanMode": null,
-        "missedAllInKoreanModeExamples": null
-      },
-      "ko:chatJamo": {
-        "tokens": 9198,
-        "distinctWords": 2882,
-        "falsePositive": 0.017177647314633615,
-        "falsePositiveExamples": [
-          "ㄷ업체는(3)",
-          "ㄷ업체의(2)",
-          "ㄷ아파트(2)",
-          "ㄷ빌딩(2)",
-          "ㅎㄴㄴ께(2)",
-          "ㄱㅎ에서(2)",
-          "ㅡ이(2)",
-          "ㅁ자형을(2)",
-          "ㄷ제조사(1)",
-          "‘ㅇ머시기’(1)",
-          "ㄸㅗ(1)",
-          "ㄷ회사의(1)",
-          "ㄷ이사는(1)",
-          "ㅈ녀들의(1)",
-          "ㅡ경기(1)",
-          "ㄷ교수는(1)",
-          "ㄷ제조사도(1)",
-          "ㄷ기업(1)",
-          "ㅡ그런(1)",
-          "ㄷ재단은(1)"
-        ],
-        "fixedWhenTypedInOtherMode": null,
-        "missedExamples": null,
-        "fixedWhenTypedAllInKoreanMode": null,
-        "missedAllInKoreanModeExamples": null
-      },
-      "ko:code": {
-        "tokens": 5125,
-        "distinctWords": 3611,
-        "falsePositive": 0,
-        "falsePositiveExamples": [],
-        "fixedWhenTypedInOtherMode": null,
-        "missedExamples": null,
-        "fixedWhenTypedAllInKoreanMode": null,
-        "missedAllInKoreanModeExamples": null
-      },
-      "ko:englishInKorean": {
-        "tokens": 259528,
-        "distinctWords": 28603,
-        "falsePositive": 0.0005086156407015813,
-        "falsePositiveExamples": [
-          "en(25)",
-          "di(14)",
-          "xls(13)",
-          "Fwy(10)",
-          "sp(6)",
-          "bbb(6)",
-          "sns(5)",
-          "au(4)",
-          "sk(4)",
-          "dir(2)",
-          "sity(2)",
-          "fdisk(2)",
-          "ep(1)",
-          "FIFPro(1)",
-          "Ruwish(1)",
-          "aido(1)",
-          "tp(1)",
-          "Bluehaus(1)",
-          "CNNgo(1)",
-          "durns(1)"
-        ],
-        "fixedWhenTypedInOtherMode": 0.9543979840325514,
-        "missedExamples": [
-          "Wed(1262)",
-          "Q(1257)",
-          "E(803)",
-          "to(649)",
-          "l(623)",
-          "W(439)",
-          "O(342)",
-          "T(330)",
-          "a(302)",
-          "P(256)",
-          "de(192)",
-          "R(188)",
-          "hwp(159)",
-          "Fl(130)",
-          "x(116)",
-          "PO(99)",
-          "Rd(72)",
-          "KUKINEWS(67)",
-          "QR(59)",
-          "ko(59)"
-        ],
-        "fixedWhenTypedAllInKoreanMode": null,
-        "missedAllInKoreanModeExamples": null
-      },
-      "ko:latinHangul": {
-        "tokens": 206669,
-        "distinctWords": 64852,
-        "falsePositive": null,
-        "falsePositiveExamples": null,
-        "fixedWhenTypedInOtherMode": 0.941970010016016,
-        "missedExamples": [
-          "K리그1(303)",
-          "A군은(220)",
-          "n번방(212)",
-          "K리그2(138)",
-          "A형(125)",
-          "A가(123)",
-          "A군의(101)",
-          "A군(99)",
-          "C가(80)",
-          "C형간염(77)",
-          "A군이(74)",
-          "n차(72)",
-          "A양(70)",
-          "A군을(66)",
-          "E조(64)",
-          "t당(63)",
-          "e편한세상(59)",
-          "B형간염(58)",
-          "B가(55)",
-          "G마켓과(53)"
-        ],
-        "fixedWhenTypedAllInKoreanMode": 0.8672418214633061,
-        "missedAllInKoreanModeExamples": [
-          "K리그1(303)",
-          "A군은(220)",
-          "n번방(212)",
-          "NH투자증권(139)",
-          "K리그2(138)",
-          "A형(125)",
-          "A군의(101)",
-          "A군(99)",
-          "C형간염(77)",
-          "A군이(74)",
-          "A4용지(72)",
-          "n차(72)",
-          "A군을(66)",
-          "E조(64)",
-          "t당(63)",
-          "e편한세상(59)",
-          "MBC에브리원(59)",
-          "B형간염(58)",
-          "SK행복드림구장에서(58)",
-          "G마켓과(53)"
-        ]
-      },
-      "ko:numberHangul": {
-        "tokens": 1746691,
-        "distinctWords": 184165,
-        "falsePositive": 1.7175333244403274E-06,
-        "falsePositiveExamples": [
-          "63몀(1)",
-          "25곘(1)",
-          "50떄(1)"
-        ],
-        "fixedWhenTypedInOtherMode": 0.9987782612952147,
-        "missedExamples": [
-          "1무(104)",
-          "2무(58)",
-          "3무(32)",
-          "2개교(31)",
-          "3자녀(26)",
-          "5개교(26)",
-          "3농(26)",
-          "3개교(25)",
-          "1교(23)",
-          "4륜(23)",
-          "4무(21)",
-          "6렙(21)",
-          "1개교(20)",
-          "5축(18)",
-          "10개교(17)",
-          "1녀(16)",
-          "5무(16)",
-          "25때(16)",
-          "3축(15)",
-          "14개교(14)"
-        ],
-        "fixedWhenTypedAllInKoreanMode": null,
-        "missedAllInKoreanModeExamples": null
-      },
-      "ko:punctHangul": {
-        "tokens": 2748667,
-        "distinctWords": 1221139,
-        "falsePositive": 3.565364593091851E-05,
-        "falsePositiveExamples": [
-          "노딜’(10)",
-          "“얘(7)",
-          "노딜'(4)",
-          "‘뜸’(4)",
-          "‘노딜’(4)",
-          "\"슈(4)",
-          "\"얘(2)",
-          "‘랙(2)",
-          "‘밋(2)",
-          "‘슈(2)",
-          "'밋(2)",
-          "슈’(2)",
-          "'슈'(2)",
-          "쪄”(1)",
-          "쑈\"(1)",
-          "‘뚜(1)",
-          "'노딜'(1)",
-          "\"쫌(1)",
-          "챗’(1)",
-          "밋’(1)"
-        ],
-        "fixedWhenTypedInOtherMode": 0.9846631112462877,
-        "missedExamples": [
-          "“내(810)",
-          "‘내(725)",
-          "\"내(439)",
-          "한-미(376)",
-          "북-미(349)",
-          "'내(330)",
-          "“새(203)",
-          "미-중(190)",
-          "“미(161)",
-          "‘뉴(160)",
-          "‘새(125)",
-          "\"새(104)",
-          "“노(85)",
-          "해\"(83)",
-          "“유(79)",
-          "'뉴(73)",
-          "“양(71)",
-          "\"유(68)",
-          "해’(68)",
-          "꿈’(68)"
-        ],
-        "fixedWhenTypedAllInKoreanMode": null,
-        "missedAllInKoreanModeExamples": null
-      }
-    }
+    "microsecondsPerCheck": 1.957872
   }
 }
