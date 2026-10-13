@@ -2,7 +2,8 @@
 // acronyms, abbreviations, names, quotes) and types them into the whole app without a screen: in the wrong mode,
 // in the right one, and mixed sentences the way they are typed on purpose, switching with the 한/영 key.
 // Failures are grouped by the kind of word that came out wrong, most frequent first.
-// Usage: dotnet run -c Release --project tools/Fuzz -- [--seconds 60] [--sentences N] [--failures 200] [--examples 3] [--seed N]
+// Usage: dotnet run -c Release --project tools/Fuzz -- [--seconds 60] [--sentences N] [--failures 200] [--examples 3] [--seed N] [--threads N]
+//   --threads    how many sentences are typed at once (default: every core)
 //   --sentences  stop after this many sentences: the same seed then gives the same run on any machine
 using System.IO.Compression;
 using System.Text;
@@ -156,10 +157,10 @@ string? WithTypo(string keys)
 
 // Types into a fresh app; with mixed set, each run of Hangul goes in Korean mode and each run of Latin letters in
 // English mode, switching with the 한/영 key as a person does. Other characters stay in the mode before them.
-// With typo set (English mode only), one wrong letter is typed and erased inside a word. With holdShift set, Shift
-// stays down through each run of capitals and the space after it, as people type acronyms (PTE then Space).
-// With shiftEnter set, a final Enter is Shift+Enter (a new line in chat apps).
-string Type(Layout mode, string text, bool mixed = false, bool typo = false, bool holdShift = false, bool shiftEnter = false)
+// With typoKeys (from WithTypo), those keys are typed instead. With holdShift set, Shift stays down through each run
+// of capitals and the space after it, as people type acronyms (PTE then Space).
+// With shiftEnter set, a final Enter is Shift+Enter (a new line in chat apps). Safe to run on several threads at once.
+static string Type(Layout mode, string text, bool mixed = false, string? typoKeys = null, bool holdShift = false, bool shiftEnter = false)
 {
     var context = new ManualContext();
     SynchronizationContext.SetSynchronizationContext(context);
@@ -169,7 +170,7 @@ string Type(Layout mode, string text, bool mixed = false, bool typo = false, boo
     controller.Ready.Wait();
     shiftEnter &= text.EndsWith('\n');
     if (shiftEnter) text = text[..^1];
-    string keys = typo && WithTypo(KeysFor(text)) is { } withTypo ? withTypo : KeysFor(text);
+    string keys = typoKeys ?? KeysFor(text);
     if (!mixed && holdShift)
         for (int i = 0; i < keys.Length;)
         {
@@ -230,17 +231,26 @@ int LongText(string root)
         var falsePositives = new Dictionary<string, int>();
         // The words around the first time each error was seen.
         var contexts = new Dictionary<string, string>();
+        // The paragraphs come from the seed in order; both typings of each run on all cores.
+        var paragraphs = Enumerable.Range(0, paragraphCount)
+            .Select(_ => string.Join(' ', Enumerable.Range(0, perParagraph).Select(_ => pool[local.Next(pool.Count)])) + " ").ToList();
+        var typed = new (string Wrong, string Right)[paragraphCount];
+        Parallel.For(0, paragraphCount, new ParallelOptions { MaxDegreeOfParallelism = Arg("--threads", Environment.ProcessorCount) }, p =>
+        {
+            string paragraph = paragraphs[p];
+            var startMode = paragraph.FirstOrDefault(c => Jamo.IsHangul(c) || char.IsAsciiLetter(c)) is var first && Jamo.IsHangul(first) ? Layout.Korean : Layout.English;
+            typed[p] = (Type(korean ? Layout.English : Layout.Korean, paragraph), Type(startMode, paragraph, mixed: true));
+        });
         for (int p = 0; p < paragraphCount; p++)
         {
-            string paragraph = string.Join(' ', Enumerable.Range(0, perParagraph).Select(_ => pool[local.Next(pool.Count)])) + " ";
+            string paragraph = paragraphs[p];
             var want = paragraph.Split(' ');
             words += want.Length - 1;
             int wrongBefore = (int)wrongWords;
-            Count(Type(korean ? Layout.English : Layout.Korean, paragraph), misses, ref wrongWords);
+            Count(typed[p].Wrong, misses, ref wrongWords);
             if (wrongWords == wrongBefore) wrongParagraphsAllRight++;
             int rightBefore = (int)rightChanged;
-            var startMode = paragraph.FirstOrDefault(c => Jamo.IsHangul(c) || char.IsAsciiLetter(c)) is var first && Jamo.IsHangul(first) ? Layout.Korean : Layout.English;
-            Count(Type(startMode, paragraph, mixed: true), falsePositives, ref rightChanged);
+            Count(typed[p].Right, falsePositives, ref rightChanged);
             if (rightChanged == rightBefore) rightParagraphsUntouched++;
 
             void Count(string got, Dictionary<string, int> errors, ref long errorCount)
@@ -306,32 +316,51 @@ var checkCounts = new Dictionary<string, int>();
 int sentences = 0;
 var clock = System.Diagnostics.Stopwatch.StartNew();
 string[] endings = [" ", " ", " ", ".", "?", "\n"];
+int threads = Arg("--threads", Environment.ProcessorCount);
+// Sentences and how each is typed come from the seed one after another, in batches; the typing runs on all cores
+// and the results are counted in the same order, so a seed gives the same run on any machine.
 while (clock.Elapsed.TotalSeconds < seconds && failureCount < maxFailures && (sentenceLimit == 0 || sentences < sentenceLimit))
 {
-    bool korean = rng.Next(2) == 0;
-    var tokens = Sentence(korean);
-    string sentence = string.Join(' ', tokens.Select(t => t.Text));
-    string ending = Pick(endings);
-    if (!IsTypable(KeysFor(sentence))) continue;
-    sentences++;
-    // Wrong mode: Korean typed in English mode, English typed in Korean mode. Right mode: must stay as typed;
-    // a sentence of both scripts is typed with the 한/영 key in between.
-    var checks = new List<(string Kind, Layout Mode, bool Mixed)> { (korean ? "korean typed in EN mode" : "english typed in KO mode", korean ? Layout.English : Layout.Korean, false) };
-    bool singleScript = korean ? !sentence.Any(char.IsAsciiLetter) : !sentence.Any(Jamo.IsHangul);
-    var rightMode = korean ? Layout.Korean : Layout.English;
-    checks.Add(singleScript ? (korean ? "korean typed right" : "english typed right", rightMode, false)
-        : ("mixed typed right (한/영 key)", sentence.First(c => Jamo.IsHangul(c) || char.IsAsciiLetter(c)) is var first && Jamo.IsHangul(first) ? Layout.Korean : Layout.English, true));
-    foreach (var (checkKind, mode, mixed) in checks)
+    var jobs = new List<(List<(string Text, string Kind)> Tokens, string Kind, Layout Mode, bool Mixed, string Expected, string? TypoKeys, bool HoldShift, bool ShiftEnter)>();
+    int batch = sentenceLimit > 0 ? Math.Min(threads * 50, sentenceLimit - sentences) : threads * 50;
+    while (jobs.Count < batch * 2 && sentences < (sentenceLimit > 0 ? sentenceLimit : int.MaxValue))
     {
-        // Now and then a typo taken back with Backspace on the way (English mode, where one key is one letter).
-        bool typo = !mixed && mode == Layout.English && rng.Next(4) == 0;
-        // Now and then Shift held through an acronym and the space after it.
-        bool holdShift = !mixed && !typo && System.Text.RegularExpressions.Regex.IsMatch(KeysFor(sentence + ending), "[A-Z]{2,} ") && rng.Next(3) == 0;
-        bool shiftEnter = ending == "\n" && rng.Next(2) == 0;
-        string kind = checkKind + (typo ? ", typo fixed with Backspace" : "") + (holdShift ? ", Shift held through capitals" : "") + (shiftEnter ? ", Shift+Enter" : "");
+        bool korean = rng.Next(2) == 0;
+        var tokens = Sentence(korean);
+        string sentence = string.Join(' ', tokens.Select(t => t.Text));
+        string ending = Pick(endings);
+        if (!IsTypable(KeysFor(sentence))) continue;
+        sentences++;
+        // Wrong mode: Korean typed in English mode, English typed in Korean mode. Right mode: must stay as typed;
+        // a sentence of both scripts is typed with the 한/영 key in between.
+        var checks = new List<(string Kind, Layout Mode, bool Mixed)> { (korean ? "korean typed in EN mode" : "english typed in KO mode", korean ? Layout.English : Layout.Korean, false) };
+        bool singleScript = korean ? !sentence.Any(char.IsAsciiLetter) : !sentence.Any(Jamo.IsHangul);
+        var rightMode = korean ? Layout.Korean : Layout.English;
+        checks.Add(singleScript ? (korean ? "korean typed right" : "english typed right", rightMode, false)
+            : ("mixed typed right (한/영 key)", sentence.First(c => Jamo.IsHangul(c) || char.IsAsciiLetter(c)) is var first && Jamo.IsHangul(first) ? Layout.Korean : Layout.English, true));
+        foreach (var (checkKind, mode, mixed) in checks)
+        {
+            // Now and then a typo taken back with Backspace on the way (English mode, where one key is one letter).
+            bool typo = !mixed && mode == Layout.English && rng.Next(4) == 0;
+            // Now and then Shift held through an acronym and the space after it.
+            bool holdShift = !mixed && !typo && System.Text.RegularExpressions.Regex.IsMatch(KeysFor(sentence + ending), "[A-Z]{2,} ") && rng.Next(3) == 0;
+            bool shiftEnter = ending == "\n" && rng.Next(2) == 0;
+            string expected = sentence + ending;
+            string? typoKeys = typo ? WithTypo(KeysFor(shiftEnter ? sentence : expected)) : null;
+            typo &= typoKeys is not null;
+            string kind = checkKind + (typo ? ", typo fixed with Backspace" : "") + (holdShift ? ", Shift held through capitals" : "") + (shiftEnter ? ", Shift+Enter" : "");
+            jobs.Add((tokens, kind, mode, mixed, expected, typoKeys, holdShift, shiftEnter));
+        }
+    }
+    if (jobs.Count == 0) break;
+    var results = new string[jobs.Count];
+    Parallel.For(0, jobs.Count, new ParallelOptions { MaxDegreeOfParallelism = threads },
+        j => results[j] = Type(jobs[j].Mode, jobs[j].Expected, jobs[j].Mixed, jobs[j].TypoKeys, jobs[j].HoldShift, jobs[j].ShiftEnter));
+    for (int j = 0; j < jobs.Count && failureCount < maxFailures; j++)
+    {
+        var (tokens, kind, _, _, expected, _, _, _) = jobs[j];
+        string got = results[j];
         checkCounts[kind] = checkCounts.GetValueOrDefault(kind) + 1;
-        string expected = sentence + ending;
-        string got = Type(mode, expected, mixed, typo, holdShift, shiftEnter);
         if (got == expected) continue;
         var want = expected.TrimEnd('\n').Split(' ');
         var have = got.TrimEnd('\n').Split(' ');

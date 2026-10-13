@@ -16,7 +16,6 @@ KO	bangEn	bangEn
 KO	anResist	anResist
 KO	mePatriarch	mePatriarch
 KO	EwPrograms	EwPrograms
-KO	dialect_andy	dialect_andy
 # English mode, a rarer English word + particle whose keys also read as Korean (모드지, 내오이, 면먕도)
 EN	ahemwl	ahem지
 EN	sodhdl	sodh이
@@ -25,4 +24,3 @@ EN	rushdi	rush야
 EN	chausgkrpTek	chaus하겠다
 EN	lienaufkd	lienau랑
 EN	oseksla	osek님
-EN	Chermydlswl	Chermy인지
