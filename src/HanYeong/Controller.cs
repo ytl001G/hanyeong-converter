@@ -462,11 +462,22 @@ sealed class Controller : IDisposable
     string? KoreanLeadIn(string textBefore)
     {
         string previous = textBefore[(textBefore.LastIndexOfAny(WordEnds) + 1)..];
-        if (previous.Length == 0 || !previous.All(char.IsAsciiLetter) || _settings.ExceptionWords.Contains(previous)) return null;
-        string? korean = _contextDetector.Suggest(previous, previous, Layout.English)
-            ?? (previous == textBefore && previous.All(char.IsAsciiLetterLower) && LayoutConverter.ToKorean(previous) is var reading
-                && Determiners.Contains(reading) ? reading : null);
-        return korean is not null && korean.All(Jamo.IsSyllable) && !_settings.ExceptionWords.Contains(korean) ? korean : null;
+        // A word in quotes or brackets is judged inside them: "dm" "wjfarh"fkejsrk → "으" "젊고"라던가.
+        int lead = previous.TakeWhile(c => "\"'(".Contains(c)).Count();
+        int trail = previous[lead..].Reverse().TakeWhile(c => "\"')".Contains(c)).Count();
+        string inner = previous[lead..^trail];
+        if (inner.Length == 0 || !inner.All(char.IsAsciiLetter) || _settings.ExceptionWords.Contains(inner)) return null;
+        string reading = LayoutConverter.ToKorean(inner);
+        // Quoted before Korean, proper syllables are Korean unless the keys are a common word ("tor" is "색", "hello"
+        // stays); two lowercase letters always, as acronyms are written in capitals ("dm" is "으", not DM 6.5).
+        bool isQuotedKorean = lead > 0 && trail > 0 && AutoDetector.IsWellFormed(reading)
+            && (WordFrequency.English.Value.Score(inner) < AutoDetectorOptions.Default.CommonEnglish
+                || (inner.Length <= 2 && inner.All(char.IsAsciiLetterLower)));
+        string? korean = _contextDetector.Suggest(inner, inner, Layout.English)
+            ?? (isQuotedKorean ? reading : null)
+            ?? (previous == textBefore && inner.All(char.IsAsciiLetterLower) && Determiners.Contains(reading) ? reading : null);
+        return korean is not null && korean.All(Jamo.IsSyllable) && !_settings.ExceptionWords.Contains(korean)
+            ? previous[..lead] + korean + previous[^trail..] : null;
     }
 
     // Korean words that stand only before another word: 새 책, 두 개, 그 사람.
