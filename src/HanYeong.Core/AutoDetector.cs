@@ -795,6 +795,10 @@ public sealed class AutoDetector
                 // Letters with digits (ch4 = chapter 4, mp3, h2o) are codes, never Korean typing; no word list has them.
                 // Short only: a long letters+digits run before "rk" is more likely a password-like string.
                 bool isCode = prefix.Length <= 6 && prefix.Any(char.IsAsciiDigit) && prefix.Any(char.IsAsciiLetter);
+                // A number and a word or unit after it, however long: 512byte이기, 100MB를, 30minutes에.
+                int numberLength = prefix.TakeWhile(char.IsAsciiDigit).Count();
+                isCode |= numberLength > 0 && numberLength < prefix.Length && prefix[numberLength..].All(char.IsAsciiLetter)
+                    && (_english(prefix[numberLength..]) >= _o.KnownEnglish || NumberSuffixes.Contains(prefix[numberLength..].ToLowerInvariant()));
                 bool isNumber = prefix.All(char.IsAsciiDigit);
                 if (prefix.Any(char.IsAsciiDigit) && !isCode && !isNumber) continue;
                 string korean = LayoutConverter.ToKorean(rest);
