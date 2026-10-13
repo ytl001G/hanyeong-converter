@@ -28,13 +28,13 @@
 
 영어·한국어 단어 빈도 데이터(사전, 자막, 위키백과, 뉴스 등 7종 — [tools/DICTIONARIES.md](tools/DICTIONARIES.md))로 그 단어가 각 언어에서 얼마나 흔한지 비교해서, 확실할 때만 바꿈.
 
-정확도: 사전에 쓰지 않은 뉴스·위키백과·웹 40만 문장으로 측정해서 멀쩡한 단어를 잘못 바꾸는 비율 0.001–0.006%, 잘못된 모드로 친 단어 복원 한국어 99.7%·영어 93–94%, 문장 통째 복원 한국어 98%·영어 89–92%(문장 맥락), 숫자+한글 99.8%. 실제 문장 6개짜리 긴 글은 단어 99.2–99.8% 복원, URL·이메일·약어 같은 예외 케이스를 섞은 자동 테스트 3만 문장에서 실패 33번(v0.5.5: 7,689번) — [정확도 분석 보고서](docs/accuracy-report.md)
+정확도: 사전에 쓰지 않은 뉴스·위키백과·웹 40만 문장으로 측정해서 멀쩡한 단어를 잘못 바꾸는 비율 0.001–0.006%, 잘못된 모드로 친 단어 복원 한국어 99.7%·영어 93–94%, 문장 통째 복원 한국어 98%·영어 89–92%(문장 맥락), 숫자+한글 99.8%. 실제 문장 6개짜리 긴 글은 단어 99.2–99.8% 복원, URL·이메일·약어 같은 예외 케이스를 섞은 자동 테스트 3만 문장에서 실패 23번(v0.5.5: 7,689번) — [정확도 분석 보고서](docs/accuracy-report.md)
 
 - `내`(so), `해`(go)처럼 양쪽 다 말이 되는 건 그대로 둠 → 필요하면 Ctrl+Space
 - 같은 문장에서 이미 고친 단어가 있으면 `to`, `a`, `I` 같은 짧은 단어도 같은 방향으로 바꿈 (문장 맥락 모드, 설정에서 끌 수 있음)
-- 앞 단어 하나도 같이 고침: `to anfrjs` → `새 물건`, 한글 모드 `ㅑ ㅈ무ㅅ` → `I want` (단, `go to gkrry`처럼 영어 문장 속 `to`는 그대로)
-- 영어 단어 + 조사·어미는 붙은 채로 고침: `signaldlftnfhr` → `signal일수록`, `stdrk` → `std가`, 띄어 친 조사도 (`std rk` → `std 가`)
-- 숫자·기호 옆: `0.4akszma` → `0.4만큼`, `$5fmf` → `$5를`, `5:22Rkwl` → `5:22까지`, 해시태그 `#aktwlq` → `#맛집`
+- 앞 단어 하나도 같이 고침: `to anfrjs` → `새 물건`, 따옴표 속 짧은 단어도 (`"dm" rufghs` → `"으" 결혼`), 한글 모드 `ㅑ ㅈ무ㅅ` → `I want` (단, `go to gkrry`처럼 영어 문장 속 `to`는 그대로)
+- 영어 단어 + 조사·어미는 붙은 채로 고침: `signaldlftnfhr` → `signal일수록`, `stdrk` → `std가`, 띄어 친 조사도 (`std rk` → `std 가`), 대문자 한 글자 + 조사 (`Urk` → `U가`)
+- 숫자·기호 옆: `0.4akszma` → `0.4만큼`, `$5fmf` → `$5를`, `5:22Rkwl` → `5:22까지`, 해시태그 `#aktwlq` → `#맛집`, 단어 앞 기호 `=rkrurql` → `=가격비`
 - 한글 모드로 친 영어 표기: `company's`, `"I`, `a.m.`·`U.S.`·`Mr.` 같은 약어, 이메일·`www.` 주소, `snake_case`
 - `ㅋㅋ`, `ㅠㅠ`, `ㅇㅋ` 같은 채팅 표현은 절대 안 바꿈
 - 영어 모드에서 친 URL·이메일·@아이디, 기호가 섞인 비밀번호 같은 문자열, 대문자로 친 단어(`Hello`, `API`)는 한글로 안 바꿈
@@ -46,8 +46,8 @@
 
 | 파일 | 크기 | 설명 |
 |---|---|---|
-| `HanYeong-standalone.exe` | 약 75MB | **대부분 이걸 받으면 됨.** 아무것도 설치할 필요 없음 |
-| `HanYeong.exe` | 약 4MB | [.NET 10 Desktop Runtime](https://dotnet.microsoft.com/download/dotnet/10.0)이 이미 깔려 있는 경우 |
+| `HanYeong-standalone.exe` | 약 77MB | **대부분 이걸 받으면 됨.** 아무것도 설치할 필요 없음 |
+| `HanYeong.exe` | 약 6MB | [.NET 10 Desktop Runtime](https://dotnet.microsoft.com/download/dotnet/10.0)이 이미 깔려 있는 경우 |
 
 - Windows 10/11 64비트
 - 처음 실행할 때 "Windows의 PC 보호" 창이 뜨면 **추가 정보 → 실행** (코드 서명이 없는 개인 프로젝트라서 뜨는 경고)
@@ -73,7 +73,7 @@
 
 ```powershell
 dotnet test                                  # tests/words.tsv(단어 판단)·tests/typing.tsv(앱에 치는 것) + 동작 원리 테스트, 약 3초
-dotnet run -c Release --project tools/Fuzz   # 자동 테스터: 문장을 만들어 계속 입력해 보고 실패를 모음
+dotnet run -c Release --project tools/Fuzz   # 자동 테스터: 문장을 만들어 계속 입력해 보고 실패를 모음 (코어를 모두 써서 3만 문장 약 1분)
 .\tools\smoke-test.ps1 -Exe <HanYeong.exe>   # 실제 키 입력 테스트, 테스트 창 + 메모장 (약 1분간 키보드·마우스 사용 금지).
                                              # 실제 IME·앱에서만 보이는 문제용. 전체는 릴리스 직전에, 실패한 단계만 -Only '단계 이름'으로
 python tools\build_dictionaries.py <폴더>     # 단어 빈도 데이터 다시 만들기
