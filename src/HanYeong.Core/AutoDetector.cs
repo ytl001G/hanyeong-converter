@@ -187,7 +187,8 @@ public sealed class AutoDetector
             // lowercase and before lowercase, when the syllables make no Korean word. Not an acronym inside (fMRI는).
             bool isCamelCase = keys.All(char.IsAsciiLetter) && HasInnerCapital(keys)
                 && Enumerable.Range(0, keys.Length).All(i => !char.IsAsciiLetterUpper(keys[i]) || (i + 1 < keys.Length && char.IsAsciiLetterLower(keys[i + 1])));
-            if (isCamelCase && !IsKoreanInSyllables(word))
+            // One syllable among broken jamo makes no word (디 in BelongedSr → ㅠ디ㅐㅜㅎㄷㅇㄴㄱ).
+            if (isCamelCase && !(word.Count(Jamo.IsSyllable) >= 2 && IsKoreanInSyllables(word)))
                 return LayoutConverter.ToEnglish(word);
             // An acronym even when it happens to read as a syllable: Shift on S, D, N, A ... changes nothing in
             // Korean, so it was pressed for English (SEC → ㄴㄸㅊ, DNA → 움, a lone I → ㅑ).
@@ -417,14 +418,17 @@ public sealed class AutoDetector
     {
         var runs = new string(text.Select(c => Jamo.IsHangul(c) ? c : ' ').ToArray()).Split(' ', StringSplitOptions.RemoveEmptyEntries);
         if (runs.Length == 0 || runs.All(IsWellFormed)) return null;
+        // Chat-like: a listed abbreviation or up to three consonants (ㅇㅋ, ㄷㄷ); mixed vowels are keys (ㅡㅑㅜ is min).
+        static bool IsChatLike(string run) => ChatAbbreviations.Contains(run) || (run.Length <= 3 && run.All(Jamo.IsConsonant));
         foreach (string run in runs)
         {
             // Proper syllables may be English keys too (gb → 휴 in vacuum_gb), but not a Korean word of two syllables or more.
             if (IsWellFormed(run) && run.Length >= 2 && WordFrequency.Korean.Value.Score(run) > 0) return null;
-            if (ChatAbbreviations.Contains(run)) return null;
-            // Chat is consonants (ㅋㅋ, ㄷㄷ) or one vowel repeated (ㅠㅠ); mixed vowels are keys (ㅡㅑㅜ is min).
-            if (run.Length <= 3 && (run.All(Jamo.IsConsonant) || (run.Length >= 2 && Jamo.IsVowel(run[0]) && run.All(c => c == run[0])))) return null;
+            // A jamo repeated is chat wherever it is (ㅋㅋ, ㅠㅠ).
+            if (run.Length >= 2 && Jamo.IsJamo(run[0]) && run.All(c => c == run[0])) return null;
         }
+        // Chat-like pieces only (^^ㅋ, ㅇㅋ!) stay; next to a piece of broken English they are keys too (memories_wet).
+        if (runs.All(IsChatLike)) return null;
         return LayoutConverter.ToEnglish(text);
     }
 
@@ -699,6 +703,9 @@ public sealed class AutoDetector
         // One capital followed by lowercase (A씨는, K리그) is a common Korean way of writing and goes first,
         // so A씨는 does not become Atl + 는.
         int lastDigit = keys.LastIndexOfAny("0123456789".ToCharArray());
+        // Where the last camelCase part starts (the N of versusNodejs), or 0.
+        int lastInnerCapital = Enumerable.Range(1, Math.Max(0, keys.Length - 1))
+            .LastOrDefault(i => char.IsAsciiLetterLower(keys[i - 1]) && IsEnglishOnlyCapital(keys[i]));
         bool isCapitalThenLower = IsEnglishOnlyCapital(keys[0]) && char.IsAsciiLetter(keys[1]) && !IsEnglishOnlyCapital(keys[1]);
         var splits = (lastDigit >= 0
             ? Enumerable.Range(lastDigit + 1, keys.Length - lastDigit - 1)
@@ -745,8 +752,13 @@ public sealed class AutoDetector
                 // "a" + 가 or 해 alone is too ambiguous. A single digit is a number (6보다).
                 bool isLowerLetter = prefix.Length == 1 && char.IsAsciiLetter(prefix[0]) && !IsEnglishOnlyCapital(prefix[0]);
                 if (isOnlySingleLetter && prefix.Length != 1) continue;
-                // A listed word stays whole before a common word: genro is not g + 두개 (a는 still splits).
-                if (isOnlySingleLetter && char.IsAsciiLetterLower(prefix[0]) && !IsParticleChain(LayoutConverter.ToKorean(rest))) continue;
+                // A listed word stays whole before a common word: genro is not g + 두개 (a는 still splits). Before a
+                // particle too, unless the letter is a word itself: csms is not c + 는, pehla not p + 됨.
+                if (isOnlySingleLetter && char.IsAsciiLetterLower(prefix[0])
+                    && (!IsParticleChain(LayoutConverter.ToKorean(rest)) || _english(prefix) <= 0)) continue;
+                // Not inside a camelCase part that is a word itself: versusNodejs is not versusNod + 던.
+                if (typedIn == Layout.English && lastInnerCapital > 0 && split > lastInnerCapital + 1
+                    && _english(keys[lastInnerCapital..]) >= _o.KnownEnglish) continue;
                 if (isLowerLetter && rest.Length < 3) continue;
                 // Korean mode: a lone jamo before Korean is how news writes anonymous people (ㄱ씨는, ㄴ양); only a
                 // capital on a key without a shifted jamo (A씨) is English.

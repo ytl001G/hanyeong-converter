@@ -188,3 +188,17 @@ KO	Did else eurosMr	Did else eurosMr
 EN	ep's	ep's
 KO	Ab's	Ab's
 KO	Eh's	Eh's
+# snake_case with a short consonant piece; chat pieces alone stay
+KO	memories_wet	memories_wet
+KO	eta_modification	eta_modification
+KO	Ad_slice	Ad_slice
+KO	dz@	ㅇㅋ@
+KO	zz_zz	ㅋㅋ_ㅋㅋ
+KO	BelongedSr	BelongedSr
+# A number does not end the sentence context (Korean mode, English sentence)
+KO	damaged professional $58,000 65th	damaged professional $58,000 65th
+# Fuzz seeds 21-22: rare listed words stay whole, a camelCase part that is a word is not split
+EN	pehla	pehla
+EN	csms	csms
+EN	versusNodejs	versusNodejs
+EN	useStatefmf	useState를

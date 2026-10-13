@@ -274,7 +274,8 @@ bool IsAmbiguous(string word) => word.Length >= 2 && word.All(c => char.ToLowerI
     : word.TakeWhile(char.IsAsciiLetter).Count() is var latin && latin is > 0 and <= 3 && latin < word.Length && word[latin..].All(Jamo.IsSyllable) ? true
     : IsAmbiguousWord(word);
 bool IsAmbiguousWord(string word) =>
-    word.All(Jamo.IsSyllable) ? detector.IsKnownWord(LayoutConverter.ToEnglish(word), Layout.English) && WordFrequency.Korean.Value.Score(word) > 0
+    word.Length > 1 && word[0] is '#' or '@' ? IsAmbiguousWord(word[1..])
+    : word.All(Jamo.IsSyllable) ? detector.IsKnownWord(LayoutConverter.ToEnglish(word), Layout.English) && WordFrequency.Korean.Value.Score(word) > 0
     : word.All(char.IsAsciiLetter) && detector.IsKnownWord(word, Layout.English) && WordFrequency.Korean.Value.Score(LayoutConverter.ToKorean(word)) > 0;
 
 // Left as typed on purpose: a rarer English word + a two-key particle English words often end in (Gabin지,

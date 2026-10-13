@@ -326,6 +326,8 @@ sealed class Controller : IDisposable
         // The user may list either side: what they typed (rk) or what it would become (and).
         if (replacement is null || _settings.ExceptionWords.Contains(replacement))
         {
+            // A number or other word without letters ($58, 2024) belongs to neither language: the context goes on.
+            if (!word.Any(c => char.IsAsciiLetter(c) || Jamo.IsHangul(c))) return false;
             // A word left as typed means the user writes in this mode on purpose ("hello 친구"): context ends.
             _contextFrom = null;
             // A sure word of this mode, one that even the sentence context leaves (the, not so), says so for the
