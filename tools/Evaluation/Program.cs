@@ -749,7 +749,7 @@ if (edgeRoot is not null)
         {
             if (i < w.Length && !wordEnds.Contains(w[i])) continue;
             string piece = w[start..i];
-            if (piece.Length > 0 && !AutoDetector.IsInAddress(w[..start]) && AppResult(piece, piece, Layout.English) is not null) return true;
+            if (piece.Length > 0 && !AutoDetector.IsInAddress(w[..start], piece) && AppResult(piece, piece, Layout.English) is not null) return true;
             start = i + 1;
         }
         return false;

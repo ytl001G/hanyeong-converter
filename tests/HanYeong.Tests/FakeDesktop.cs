@@ -171,6 +171,7 @@ sealed class FakeDesktop : IDesktop
         '+' => (0xBB, true),
         '(' => ('9', true),
         ')' => ('0', true),
+        '$' => ('4', true),
         '\'' => (0xDE, false),
         _ when char.IsAsciiLetter(c) => (char.ToUpperInvariant(c), char.IsAsciiLetterUpper(c)),
         _ when char.IsAsciiDigit(c) => (c, false),
@@ -188,6 +189,7 @@ sealed class FakeDesktop : IDesktop
         >= 'A' and <= 'Z' => shift ? (char)vk : char.ToLowerInvariant((char)vk),
         '9' when shift => '(',
         '0' when shift => ')',
+        '4' when shift => '$',
         >= '0' and <= '9' => (char)vk,
         _ => null,
     };

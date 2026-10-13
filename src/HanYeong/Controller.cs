@@ -259,7 +259,7 @@ sealed class Controller : IDisposable
         string text = _segment.Text;
         string word = text[(text.LastIndexOfAny(WordEnds) + 1)..];
         if (word.Length == 0) return false;
-        if (AutoDetector.IsInAddress(text[..^word.Length])) return false;
+        if (AutoDetector.IsInAddress(text[..^word.Length], word)) return false;
         bool isInContext = _settings.SentenceContext && _contextFrom == _segment.Layout;
         // The keys carry the typed capitals, which Korean mode does not show (Hello → ㅗ디ㅣㅐ).
         string keys = _segment.Layout == Layout.English ? word : _segment.RestoreCase(LayoutConverter.ToEnglish(word));
@@ -399,14 +399,21 @@ sealed class Controller : IDisposable
     /// <summary>
     /// English mode: the Korean for the word just before (<paramref name="textBefore"/> ends with it) when a
     /// sentence of Korean reads it so: so wlq → 내 집 (so and 내 are equally common). Clearly English stays (the, my).
+    /// The first word typed, read as a Korean word that needs a word after it (새, 두, 그), follows too, however common
+    /// the English: to anfrjs → 새 물건 (in go to gkrry, to stays).
     /// </summary>
     string? KoreanLeadIn(string textBefore)
     {
         string previous = textBefore[(textBefore.LastIndexOfAny(WordEnds) + 1)..];
         if (previous.Length == 0 || !previous.All(char.IsAsciiLetter) || _settings.ExceptionWords.Contains(previous)) return null;
-        string? korean = _contextDetector.Suggest(previous, previous, Layout.English);
+        string? korean = _contextDetector.Suggest(previous, previous, Layout.English)
+            ?? (previous == textBefore && previous.All(char.IsAsciiLetterLower) && LayoutConverter.ToKorean(previous) is var reading
+                && Determiners.Contains(reading) ? reading : null);
         return korean is not null && korean.All(Jamo.IsSyllable) && !_settings.ExceptionWords.Contains(korean) ? korean : null;
     }
+
+    // Korean words that stand only before another word: 새 책, 두 개, 그 사람.
+    static readonly HashSet<string> Determiners = ["새", "헌", "첫", "옛", "온", "각", "몇", "매", "그", "이", "저", "두", "세", "네", "내", "제"];
 
     // Chat messages of one word are everyday words (다음 5.6, 네 6.7, 수고하세요 3.7), or Korean of five syllables
     // and more, or a word + ending (진행상황에, 확인했어). IDs made of names are short and rarer (김민주 2.9, 이지은 3.4).

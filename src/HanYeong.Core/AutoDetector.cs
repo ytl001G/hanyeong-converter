@@ -134,11 +134,21 @@ public sealed class AutoDetector
     /// Whether a word that ends right after <paramref name="textBefore"/> (what was typed before it since the last
     /// reset) belongs to an address: www.kt.com, a@b.com, http://x. A word joined to an earlier one by . @ / : is
     /// left alone; an earlier word that was converted starts the text over, so 안녕.하세요 still converts.
+    /// A decimal point is no address: 0. then <paramref name="word"/> 4akszma is 0.4만큼.
     /// </summary>
-    public static bool IsInAddress(string textBefore)
+    public static bool IsInAddress(string textBefore, string word = "")
     {
         string run = textBefore[(textBefore.LastIndexOfAny([' ', '\n']) + 1)..];
+        if (IsDecimalPoint(run, word)) return false;
         return run.Length > 0 && (".@/:".Contains(run[^1]) || run.Contains("www.") || run.Contains("://") || run.Contains('@'));
+    }
+
+    // A number with one point, a sign or currency in front (0. -1. $3.), and digits after it.
+    static bool IsDecimalPoint(string run, string word)
+    {
+        if (word.Length == 0 || !char.IsAsciiDigit(word[0]) || run.Length < 2 || run[^1] != '.') return false;
+        string number = run[..^1].TrimStart(NumberSigns);
+        return number.Length > 0 && number.All(char.IsAsciiDigit);
     }
 
     /// <summary>
@@ -166,6 +176,10 @@ public sealed class AutoDetector
         }
         string? whole = Check(word, typedIn);
         if (whole is null) return CheckMixed(keys, typedIn);
+        // Korean mode: two words read as a compound no list has (utility + sms) lose to a word + clear ending (utility는).
+        if (typedIn == Layout.Korean && _english(whole) < _o.KnownEnglish && CheckMixed(keys, typedIn) is { } withEnding
+            && IsClearEnding(withEnding.SkipWhile(c => !Jamo.IsHangul(c))))
+            return withEnding;
         // Korean mode, leading capitals with Shift on a key without a shifted jamo (A, KT, ESPN): a rarer English reading of the whole word
         // (atl, ktrk, espndms) loses to capital(s) + Korean (A씨, KT가, ESPN은); a real word (Hello) stays whole.
         int leadingCapitals = keys.TakeWhile(char.IsAsciiLetterUpper).Count();
@@ -340,6 +354,9 @@ public sealed class AutoDetector
 
     // + too: A+와, C++를, +와.
     static readonly HashSet<char> JoinerPunctuation = ['-', '/', '\'', '"', '“', '”', '‘', '’', '`', '(', ')', '[', ']', '·', 'ㆍ', '%', '~', '…', '▲', '△', '—', '+'];
+
+    // Written in front of a number: a sign or a currency.
+    static readonly char[] NumberSigns = ['-', '+', '$', '€', '£', '¥', '₩'];
 
     /// <summary>
     /// Length of an acronym starting at <paramref name="i"/>: two or more capitals, or one capital that is not a
@@ -572,8 +589,8 @@ public sealed class AutoDetector
     /// </summary>
     public string? CheckMixed(string keys, Layout typedIn)
     {
-        // A sign in front of a number stays as it is: -6qhek → -6보다.
-        if (typedIn == Layout.English && keys.Length > 1 && keys[0] is '-' or '+' && char.IsAsciiDigit(keys[1]))
+        // A sign or currency in front of a number stays as it is: -6qhek → -6보다, $5fmf → $5를.
+        if (typedIn == Layout.English && keys.Length > 1 && NumberSigns.Contains(keys[0]) && char.IsAsciiDigit(keys[1]))
             return CheckMixed(keys[1..], typedIn) is { } signed ? keys[0] + signed : null;
         // Digits only in English mode (ch4가, mp3파일, 6보다): in Korean mode 초4가 is real Korean ("4th grader").
         if (keys.Length < 3 || !keys.All(c => char.IsAsciiLetter(c) || (typedIn == Layout.English && char.IsAsciiDigit(c)))) return null;
@@ -687,8 +704,10 @@ public sealed class AutoDetector
                 // A capitalized word before a two-key particle is too often a name (Dikeh, not Dik + 도): it needs a
                 // common word there, as the other particles do.
                 bool isNameLike = typedIn == Layout.English && IsCapitalized(keys) && !isLongParticle;
+                // A long lowercase word of eight letters or more takes any listed word (stereocilia 1.9 + 가).
                 float needed = typedIn == Layout.Korean || (isSafeParticle && !isNameLike) ? _o.KnownEnglish
                     : isNameLike && isSafeParticle ? 3.0f
+                    : korean == "가" && prefix.Length >= 8 && prefix.All(char.IsAsciiLetterLower) ? _o.KnownEnglish
                     : korean == "가" && prefix.Length >= 4 ? 2.5f
                     : _o.MixedEnglishPrefix;
                 // A lowercase word that cannot be read as Korean at all is English even if no list has it
