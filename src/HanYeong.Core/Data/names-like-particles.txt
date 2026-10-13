@@ -1,0 +1,43 @@
+# Names on names.txt.gz that also read as another listed name + two syllables or more of particles
+# (Dobberkau: Dobbe + 가며). They stay as typed; other such words split (Chermydlswl: Chermy + 인지).
+# Kept up to date by NameListTests.NamesLikeParticlesIsComplete; lowercase.
+alhadidi
+averdiek
+bilagody
+blondiau
+bodendiek
+bredendiek
+buddendiek
+castendiek
+dobberkau
+echterdiek
+faltejsek
+gerbaudi
+gildehaus
+grapperhaus
+gribaudi
+haseldiek
+himmeldirk
+jandejsek
+karstendiek
+kastendiek
+kumurkek
+lederhaus
+letterhaus
+mairehau
+oberdiek
+oeverdiek
+offerhaus
+osterhaus
+papendiek
+pelegodi
+reverdiau
+reynaudi
+roubaudi
+stegedirk
+strohdiek
+sunderhaus
+timmerhaus
+ueberdiek
+vahldiek
+westerhaus
