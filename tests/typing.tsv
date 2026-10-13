@@ -232,3 +232,10 @@ EN	=rkrurql	=가격비
 EN	*wndml	*주의
 KO	=hello	=hello
 EN	=sum	=sum
+# Fuzz seed 100: a name on the list + particle is not a shorter word + a longer ending
+EN	Davidekfmf	Davidek를
+EN	Costeksms	Costek는
+EN	radiogoeh	radio해도
+EN	Accordiehla	Accordi됨
+EN	Biekeh	Biek도
+EN	Dairbekovrnsdy	Dairbekov군요

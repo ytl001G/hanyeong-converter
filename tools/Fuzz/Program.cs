@@ -71,6 +71,8 @@ string Particle() => Pick(particles);
 string Number() => rng.Next(1, 300).ToString();
 
 string Capitalized(string w) => char.ToUpperInvariant(w[0]) + w[1..];
+// The English ordinal ending: 1st, 2nd, 3rd, 11th-13th, 21st, the rest th.
+static string Ordinal(int n) => (n % 100) is >= 11 and <= 13 ? "th" : (n % 10) switch { 1 => "st", 2 => "nd", 3 => "rd", _ => "th" };
 string[] chatJamo = ["ㅋㅋ", "ㅋㅋㅋ", "ㅎㅎ", "ㅠㅠ", "ㅜㅜ", "ㅇㅇ", "ㄱㄱ", "ㅇㅋ"];
 string[] urls = ["www.naver.com", "naver.com", "https://youtu.be/abc", "github.com/user", "www.example.com"];
 string[] dotted = ["U.S.", "Mr.", "Dr.", "e.g.", "i.e.", "a.m.", "p.m."];
@@ -107,7 +109,7 @@ string[] timeParticles = ["에", "부터", "까지", "쯤", "에는"];
     (8, "name", () => Pick(names)),
     (4, "acronym", () => Pick(acronyms)),
     (4, "contraction", () => Pick(contractions)),
-    (3, "number + english ending", () => rng.Next(1, 100) + Pick(new[] { "th", "st", "kg", "km", "s" })),
+    (3, "number + english ending", () => rng.Next(1, 100) is var n && rng.Next(2) == 0 ? n + Ordinal(n) : n + Pick(new[] { "kg", "km", "s" })),
     (3, "rarer english word", () => Pick(rareEnglish)),
     (1, "url", () => Pick(urls)),
     (1, "email", () => $"user{rng.Next(1, 100)}@gmail.com"),

@@ -874,7 +874,8 @@ public sealed class AutoDetector
                 bool isPerUnit = korean == "당" && NumberSuffixes.Contains(prefix.ToLowerInvariant());
                 // A one-syllable particle may be the tail of a longer ending after a more common word: radio + 해도,
                 // not radiogo + 도; precision + 야말로, not precisiondiakf + 로. That split comes later in the loop.
-                if (isParticle && korean.Length == 1 && HasBetterShorterSplit(split)) continue;
+                // Not for a name on the list: Davidek를 is not David + 다를.
+                if (isParticle && korean.Length == 1 && !isName && !IsKnownName(prefix) && HasBetterShorterSplit(split)) continue;
                 // A capitalized word read as a short English part + a Korean word is a name (Elsken is not El + 나두).
                 if (isCommonWord && !isParticle && !isAcronym && typedIn == Layout.English && IsCapitalized(keys) && prefix.Length < 4) continue;
                 if (isParticle || isCommonWord || isPerUnit) return prefix + korean;

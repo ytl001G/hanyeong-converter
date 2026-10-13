@@ -1,2 +1,28 @@
 # Cases reported but not fixed yet; not run by the tests. Same format as words.tsv (mode, typed keys, expected).
 # Move a row to words.tsv or typing.tsv once it is fixed.
+# 2026-10-14, fuzz seed 100 (100,000 sentences): Korean mode, a name starting on a shifted-jamo key (E=ㄸ, W=ㅉ) reads as Korean
+KO	Eva	Eva
+KO	Envo	Envo
+KO	Epro	Epro
+KO	Elgi	Elgi
+KO	Wian	Wian
+# Korean mode, a capital + a Korean word or rare syllables that is a name or rare word (H무명, 놈촘걋, J픽)
+KO	Hanaud	Hanaud
+KO	shacharit	shacharit
+KO	Jvlr	Jvlr
+# Korean mode, camelCase on a shifted-jamo key (P=ㅖ, E=ㄸ, R=ㄲ), snake_case with a listed Korean piece (무요)
+KO	jkParishes	jkParishes
+KO	bangEn	bangEn
+KO	anResist	anResist
+KO	mePatriarch	mePatriarch
+KO	EwPrograms	EwPrograms
+KO	dialect_andy	dialect_andy
+# English mode, a rarer English word + particle whose keys also read as Korean (모드지, 내오이, 면먕도)
+EN	ahemwl	ahem지
+EN	sodhdl	sodh이
+EN	ausaideh	ausaid도
+EN	rushdi	rush야
+EN	chausgkrpTek	chaus하겠다
+EN	lienaufkd	lienau랑
+EN	oseksla	osek님
+EN	Chermydlswl	Chermy인지
