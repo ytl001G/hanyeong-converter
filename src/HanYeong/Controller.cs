@@ -514,7 +514,10 @@ sealed class Controller : IDisposable
         _segment = new TypedSegment(imeLayout);
     }
 
-    /// <summary>Backspaces, then the text, then the ending key; with any held Shift released around them.</summary>
+    /// <summary>
+    /// Backspaces, then the text, then the ending key; with any held Shift released around the text. The ending key
+    /// goes with Shift as pressed: Shift+Enter is a new line in chat apps, a plain Enter would send the message.
+    /// </summary>
     void SendReplacement(int backspaces, string text, ushort endKey = 0, ushort[]? heldShifts = null)
     {
         heldShifts ??= [];
@@ -522,14 +525,22 @@ sealed class Controller : IDisposable
         if (!Terminals.Contains(_desktop.CurrentExe))
         {
             var all = new InputSender().Key(InputSender.VK_BACK, backspaces).Text(text);
-            if (endKey != 0) all.Key(endKey);
+            if (endKey != 0) AddEndKey(all);
             steps.Add((all, 0));
         }
         else
         {
             for (int i = 0; i < backspaces; i++) steps.Add((new InputSender().Key(InputSender.VK_BACK), TerminalGapMs));
             steps.Add((new InputSender().Text(text), TerminalEnterGapMs));
-            if (endKey != 0) steps.Add((new InputSender().Key(endKey), 0));
+            if (endKey != 0) steps.Add((AddEndKey(new InputSender()), 0));
+        }
+
+        InputSender AddEndKey(InputSender input)
+        {
+            foreach (var k in heldShifts) input.Down(k);
+            input.Key(endKey);
+            foreach (var k in heldShifts) input.Up(k);
+            return input;
         }
         Sending = SendStepsAsync(steps, heldShifts);
     }

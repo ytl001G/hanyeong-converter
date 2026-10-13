@@ -81,6 +81,18 @@ public class ControllerTests : IDisposable
     }
 
     [Fact]
+    public void ShiftEnterStaysANewLine() // reported: Shift+Enter in a chat app converted the word and sent the message
+    {
+        Typed(Layout.English, "dkssud");
+        _desktop.Down(FakeDesktop.VK_LSHIFT);
+        _desktop.Tap(FakeDesktop.VK_RETURN);
+        Assert.True(_desktop.IsDown(FakeDesktop.VK_SHIFT));
+        _desktop.Up(FakeDesktop.VK_LSHIFT);
+        Assert.Equal("안녕\n", _desktop.Box.Text);
+        Assert.Equal([true], _desktop.EntersWithShift);
+    }
+
+    [Fact]
     public void TerminalGetsBackspacesAndEnterOneByOne() // Claude Code in cmd took a batch as a paste
     {
         _desktop.Exe = "cmd.exe";

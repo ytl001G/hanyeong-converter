@@ -56,6 +56,8 @@ sealed class FakeDesktop : IDesktop
     public Layout Mode { get; set; } = Layout.English;
     public string? Selection { get; set; }
     public List<Keystroke> Injected { get; } = new();
+    /// <summary>For each Enter that reached the box, whether Shift was down (a new line in chat apps, not send).</summary>
+    public List<bool> EntersWithShift { get; } = new();
     /// <summary>The syllable being composed each time the Hanja key reached the IME.</summary>
     public List<string> HanjaRequests { get; } = new();
 
@@ -151,7 +153,7 @@ sealed class FakeDesktop : IDesktop
             case VK_BACK: Box.Backspace(); break;
             case VK_HANGUL: Mode = Mode == Layout.Korean ? Layout.English : Layout.Korean; break;
             case VK_HANJA: if (Mode == Layout.Korean) HanjaRequests.Add(Box.Composing); break;
-            case VK_RETURN: Box.Insert('\n'); break;
+            case VK_RETURN: EntersWithShift.Add(IsDown(VK_SHIFT)); Box.Insert('\n'); break;
             case VK_LEFT: Box.Left(); break;
             case VK_RIGHT: Box.Right(); break;
             case VK_SHIFT or VK_CONTROL or VK_LSHIFT or VK_RSHIFT or VK_LCONTROL or 0xE8: break;
