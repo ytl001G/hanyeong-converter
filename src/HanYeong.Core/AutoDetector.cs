@@ -714,8 +714,11 @@ public sealed class AutoDetector
                 // A capitalized word before a two-key particle is too often a name (Dikeh, not Dik + 도): it needs a
                 // common word there, as the other particles do.
                 bool isNameLike = typedIn == Layout.English && IsCapitalized(keys) && !isLongParticle;
+                // Three lowercase letters or more without a vowel are an abbreviation, never the head of a name: std (3.1)
+                // + 가, dll + 만. Two are too often the start of a longer one (jndi is not jn + 야).
+                bool isAbbreviation = isParticle && prefix.Length >= 3 && prefix.All(c => char.IsAsciiLetterLower(c) && !"aeiouy".Contains(c));
                 // A long lowercase word of eight letters or more takes any listed word (stereocilia 1.9 + 가).
-                float needed = typedIn == Layout.Korean || (isSafeParticle && !isNameLike) ? _o.KnownEnglish
+                float needed = typedIn == Layout.Korean || (isSafeParticle && !isNameLike) || isAbbreviation ? _o.KnownEnglish
                     : isNameLike && isSafeParticle ? 3.0f
                     : korean == "가" && prefix.Length >= 8 && prefix.All(char.IsAsciiLetterLower) ? _o.KnownEnglish
                     : korean == "가" && prefix.Length >= 4 ? 2.5f
@@ -781,6 +784,10 @@ public sealed class AutoDetector
     static bool IsEnglishOnlyCapital(char c) => char.IsAsciiLetterUpper(c) && !KoreanShiftKeys.Contains(c);
 
     static bool HasEnglishOnlyShift(string keys) => keys.Any(c => char.IsAsciiLetterUpper(c) && !KoreanShiftKeys.Contains(c));
+
+    /// <summary>English-mode keys of a particle typed after a space (rk → 가), which as English are rarer (not di, au).</summary>
+    public static bool IsParticleAfterSpace(string keys) =>
+        IsParticleChain(LayoutConverter.ToKorean(keys)) && WordFrequency.English.Value.Score(keys) < 4.0f;
 
     /// <summary>One to three particles/endings in a row: 에서는 = 에서 + 는.</summary>
     public static bool IsParticleChain(string text, int depth = 0)

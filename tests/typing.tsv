@@ -134,3 +134,12 @@ EN	go to gkrry	go to 학교
 EN	3.5mm	=
 EN	192.168.0.1	=
 KO	keyboardshortcut	keyboardshortcut
+# 2026-10-13: English mode, an abbreviation without vowels + 가
+EN	stdrk	std가
+EN	dllaks	dll만
+# 2026-10-13: English mode, a particle typed after a space
+EN	std rk	std 가
+EN	the sms	the sms
+# 2026-10-13: English mode, 일수록
+EN	signaldlftnfhr	signal일수록
+EN	Leonardo di	Leonardo di

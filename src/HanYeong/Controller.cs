@@ -264,7 +264,10 @@ sealed class Controller : IDisposable
         // The keys carry the typed capitals, which Korean mode does not show (Hello → ㅗ디ㅣㅐ).
         string keys = _segment.Layout == Layout.English ? word : _segment.RestoreCase(LayoutConverter.ToEnglish(word));
         // After a sure word left as typed, a short word (en, di) keeps the mode unless the other reading is far more likely.
-        bool isStaying = !isInContext && _settings.SentenceContext && _writingIn == _segment.Layout && keys.Length <= 3;
+        // Not when it reads as a particle and is rarer English: std rk is std 가, the particle typed after a space
+        // (rk 3.1); Leonardo di stays (di 4.7).
+        bool isStaying = !isInContext && _settings.SentenceContext && _writingIn == _segment.Layout && keys.Length <= 3
+            && !(_segment.Layout == Layout.English && AutoDetector.IsParticleAfterSpace(keys));
         var detector = isInContext ? _contextDetector : isStaying ? _stayingDetector : _detector;
         string? replacement = detector.Suggest(word, keys, _segment.Layout);
         // In an English sentence typed in Korean mode, a number with an English ending is English too (75소 → 75th).

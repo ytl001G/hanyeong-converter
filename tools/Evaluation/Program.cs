@@ -305,9 +305,11 @@ object StayingStats(string key, Layout lang)
             bool latin = IsLatin(w);
             string keys = latin ? w : LayoutConverter.ToEnglish(w);
             bool isShort = keys.Length <= 3;
+            // As the app: in English mode a word that reads as a particle (rk → 가) does not stay.
+            bool readsAsParticle = AutoDetector.IsParticleAfterSpace(keys);
             // Typed as meant.
             words++;
-            bool changed = stayCorrect && isShort ? stayingOutcome[w].CorrectChanged : o.CorrectChanged;
+            bool changed = stayCorrect && isShort && !(latin && readsAsParticle) ? stayingOutcome[w].CorrectChanged : o.CorrectChanged;
             if (o.CorrectChanged) fpWithout++;
             if (changed) fpWith++;
             if (o.CorrectChanged && !changed) examples[w] = examples.GetValueOrDefault(w) + 1;
@@ -315,7 +317,7 @@ object StayingStats(string key, Layout lang)
             // Typed in the other mode: only the sentence's own language is mistyped.
             if (latin != (lang == Layout.English)) { stayWrong = false; continue; }
             wrongWords++;
-            bool isFixed = stayWrong && isShort ? stayingOutcome[w].WrongFixed : o.WrongFixed;
+            bool isFixed = stayWrong && isShort && !(!latin && readsAsParticle) ? stayingOutcome[w].WrongFixed : o.WrongFixed;
             if (o.WrongFixed) fixedWithout++;
             if (isFixed) fixedWith++;
             string screen = latin ? LayoutConverter.ToKorean(w) : keys;
