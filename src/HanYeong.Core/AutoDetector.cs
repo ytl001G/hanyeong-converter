@@ -581,6 +581,8 @@ public sealed class AutoDetector
 
     // Particles and endings that get attached straight to an English word (shortage이다, update했다, Github에서는).
     static readonly HashSet<string> Particles = WordList.Load("particles.txt");
+    // 하겠습니다 is five syllables.
+    static readonly int LongestParticle = Particles.Max(p => p.Length);
 
     /// <summary>
     /// A word that mixes an English word with a Korean particle, typed in one mode: "shortagedlek" in English
@@ -647,6 +649,14 @@ public sealed class AutoDetector
             .ThenBy(c => c.Split)
             .Select(c => c.Result)
             .FirstOrDefault();
+
+        // A shorter English word, clearly more common, before a particle chain of the remaining keys.
+        bool HasBetterShorterSplit(int split)
+        {
+            float needed = Math.Max(_o.KnownEnglish, _english(keys[..split]) + 1.0f);
+            return Enumerable.Range(2, Math.Max(0, split - 2)).Any(j => _english(keys[..j]) >= needed
+                && keys[j..].All(char.IsAsciiLetter) && !HasEnglishOnlyShift(keys[j..]) && IsParticleChain(LayoutConverter.ToKorean(keys[j..])));
+        }
 
         string? TrySplits(bool allowUnknownEnglish, List<int>? order = null, bool isName = false)
         {
@@ -740,6 +750,9 @@ public sealed class AutoDetector
                     || (isAcronym && prefix.Length >= 2 && (IsWordAndParticles(korean) || (korean.Length >= 2 && IsWellFormed(korean) && _korean(korean) >= 2.5f)));
                 // Per unit: kg당, km당, t당.
                 bool isPerUnit = korean == "당" && NumberSuffixes.Contains(prefix.ToLowerInvariant());
+                // A one-syllable particle may be the tail of a longer ending after a more common word: radio + 해도,
+                // not radiogo + 도; precision + 야말로, not precisiondiakf + 로. That split comes later in the loop.
+                if (isParticle && korean.Length == 1 && HasBetterShorterSplit(split)) continue;
                 if (isParticle || isCommonWord || isPerUnit) return prefix + korean;
             }
             return null;
@@ -774,7 +787,7 @@ public sealed class AutoDetector
     {
         if (text.Length == 0) return depth > 0;
         if (depth == 3) return false;
-        for (int length = Math.Min(4, text.Length); length >= 1; length--)
+        for (int length = Math.Min(LongestParticle, text.Length); length >= 1; length--)
         {
             if (Particles.Contains(text[..length]) && IsParticleChain(text[length..], depth + 1)) return true;
         }

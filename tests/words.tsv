@@ -231,3 +231,14 @@ KO	그떄는	=
 KO	치명적이므로	=
 KO	스쾃과	=
 KO	네트웤의	=
+# Fuzz: a one-syllable particle after a rarer word loses to a longer ending after a common one (radio + 해도)
+EN	radiogoeh	radio해도
+EN	zonegoeh	zone해도
+EN	greatestamfh	greatest므로
+EN	superdlamfh	super이므로
+EN	precisiondiakffh	precision야말로
+EN	industryeofh	industry대로
+EN	murdereddueh	murdered여도
+# Fuzz: endings of five syllables
+EN	BuggemanngkrpTtmqslek	Buggemann하겠습니다
+EN	AspenleitergkrpTtmqslek	Aspenleiter하겠습니다
