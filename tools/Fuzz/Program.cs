@@ -63,32 +63,66 @@ T Pick<T>(IReadOnlyList<T> items) => items[rng.Next(items.Count)];
 string Particle() => Pick(particles);
 string Number() => rng.Next(1, 300).ToString();
 
-// Each word of a sentence with the kind of word it is, so failures can be grouped by it.
-(string Text, string Kind) KoreanToken() => rng.Next(100) switch
+string Capitalized(string w) => char.ToUpperInvariant(w[0]) + w[1..];
+string[] chatJamo = ["ㅋㅋ", "ㅋㅋㅋ", "ㅎㅎ", "ㅠㅠ", "ㅜㅜ", "ㅇㅇ", "ㄱㄱ", "ㅇㅋ"];
+string[] urls = ["www.naver.com", "naver.com", "https://youtu.be/abc", "github.com/user", "www.example.com"];
+string[] dotted = ["U.S.", "Mr.", "Dr.", "e.g.", "i.e.", "a.m.", "p.m."];
+string[] timeParticles = ["에", "부터", "까지", "쯤", "에는"];
+
+// Each word of a sentence with the kind of word it is, so failures can be grouped by it. Weights add up to 100.
+(int Weight, string Kind, Func<string> Make)[] koreanKinds =
+[
+    (48, "korean word", () => Pick(koreanWords)),
+    (5, "rarer korean word", () => Pick(rareKorean)),
+    (8, "english + particle", () => Pick(englishWords) + Particle()),
+    (4, "rarer english + particle", () => Pick(rareEnglish) + Particle()),
+    (2, "abbreviation + particle", () => Pick(abbreviations) + Particle()),
+    (5, "number + counter", () => Number() + Pick(counters)),
+    (2, "decimal + counter/particle", () => $"{rng.Next(0, 10)}.{rng.Next(1, 10)}" + (rng.Next(2) == 0 ? Pick(counters) : Particle())),
+    (2, "currency + particle", () => Pick(currencies) + Number() + Particle()),
+    (1, "percent + particle", () => rng.Next(1, 100) + "%" + Particle()),
+    (5, "acronym + particle", () => Pick(acronyms) + Particle()),
+    (4, "name + particle", () => Pick(names) + Particle()),
+    (3, "quoted", () => "\"" + Pick(koreanWords) + "\"" + (rng.Next(2) == 0 ? Particle() : "")),
+    (2, "word(acronym)", () => Pick(koreanWords) + "(" + Pick(acronyms) + ")"),
+    (2, "chat jamo", () => Pick(chatJamo)),
+    (1, "number with comma + counter", () => $"{rng.Next(1, 100)},{rng.Next(0, 1000):000}" + Pick(counters)),
+    (1, "time + particle", () => $"{rng.Next(1, 13)}:{rng.Next(0, 60):00}" + Pick(timeParticles)),
+    (1, "url", () => Pick(urls)),
+    (1, "email", () => $"user{rng.Next(1, 100)}@gmail.com"),
+    (1, "hashtag", () => "#" + Pick(koreanWords)),
+    (1, "emoticon", () => Pick(new[] { "^^", "^_^", "ㅎㅎ^^" })),
+    (1, "word + ...", () => Pick(koreanWords) + "..."),
+];
+(int Weight, string Kind, Func<string> Make)[] englishKinds =
+[
+    (68, "english word", () => Pick(englishWords)),
+    (8, "name", () => Pick(names)),
+    (4, "acronym", () => Pick(acronyms)),
+    (4, "contraction", () => Pick(contractions)),
+    (3, "number + english ending", () => rng.Next(1, 100) + Pick(new[] { "th", "st", "kg", "km", "s" })),
+    (3, "rarer english word", () => Pick(rareEnglish)),
+    (1, "url", () => Pick(urls)),
+    (1, "email", () => $"user{rng.Next(1, 100)}@gmail.com"),
+    (1, "mention/hashtag", () => Pick(new[] { "@", "#" }) + Pick(englishWords)),
+    (2, "all caps", () => Pick(englishWords).ToUpperInvariant()),
+    (1, "code name", () => rng.Next(2) == 0 ? Pick(englishWords) + Capitalized(Pick(englishWords)) : Pick(englishWords) + "_" + Pick(englishWords)),
+    (1, "dotted abbreviation", () => Pick(dotted)),
+    (1, "number with comma/time", () => rng.Next(3) switch { 0 => $"{rng.Next(1, 100)},{rng.Next(0, 1000):000}", 1 => $"{rng.Next(1, 13)}:{rng.Next(0, 60):00}", _ => $"${rng.Next(1, 100)},000" }),
+    (2, "possessive", () => Pick(englishWords) + "'s"),
+];
+(string Text, string Kind) Token((int Weight, string Kind, Func<string> Make)[] kinds)
 {
-    < 52 => (Pick(koreanWords), "korean word"),
-    < 57 => (Pick(rareKorean), "rarer korean word"),
-    < 65 => (Pick(englishWords) + Particle(), "english + particle"),
-    < 69 => (Pick(rareEnglish) + Particle(), "rarer english + particle"),
-    < 71 => (Pick(abbreviations) + Particle(), "abbreviation + particle"),
-    < 77 => (Number() + Pick(counters), "number + counter"),
-    < 79 => ($"{rng.Next(0, 10)}.{rng.Next(1, 10)}" + (rng.Next(2) == 0 ? Pick(counters) : Particle()), "decimal + counter/particle"),
-    < 81 => (Pick(currencies) + Number() + Particle(), "currency + particle"),
-    < 82 => (rng.Next(1, 100) + "%" + Particle(), "percent + particle"),
-    < 87 => (Pick(acronyms) + Particle(), "acronym + particle"),
-    < 91 => (Pick(names) + Particle(), "name + particle"),
-    < 95 => ("\"" + Pick(koreanWords) + "\"" + (rng.Next(2) == 0 ? Particle() : ""), "quoted"),
-    _ => (Pick(koreanWords) + "(" + Pick(acronyms) + ")", "word(acronym)"),
-};
-(string Text, string Kind) EnglishToken() => rng.Next(100) switch
-{
-    < 75 => (Pick(englishWords), "english word"),
-    < 83 => (Pick(names), "name"),
-    < 88 => (Pick(acronyms), "acronym"),
-    < 93 => (Pick(contractions), "contraction"),
-    < 97 => (rng.Next(1, 100) + Pick(new[] { "th", "st", "kg", "km", "s" }), "number + english ending"),
-    _ => (Pick(rareEnglish), "rarer english word"),
-};
+    int roll = rng.Next(kinds.Sum(k => k.Weight));
+    foreach (var (weight, kind, make) in kinds)
+    {
+        if (roll < weight) return (make(), kind);
+        roll -= weight;
+    }
+    throw new InvalidOperationException();
+}
+(string Text, string Kind) KoreanToken() => Token(koreanKinds);
+(string Text, string Kind) EnglishToken() => Token(englishKinds);
 List<(string Text, string Kind)> Sentence(bool korean)
 {
     var words = Enumerable.Range(0, rng.Next(3, 9)).Select(_ => korean ? KoreanToken() : EnglishToken()).ToList();
@@ -99,11 +133,22 @@ List<(string Text, string Kind)> Sentence(bool korean)
 
 // The keys for text typed in the given mode: Hangul as its keys, everything else as it is.
 static string KeysFor(string text) => string.Concat(text.Select(c => Jamo.IsHangul(c) ? LayoutConverter.ToEnglish(c.ToString()) : c.ToString()));
-static bool IsTypable(string keys) => keys.All(c => char.IsAsciiLetterOrDigit(c) || " .,-+'()\"$%?!:;/\n".Contains(c));
+static bool IsTypable(string keys) => keys.All(c => char.IsAsciiLetterOrDigit(c) || " .,-+'()\"$%?!:;/@#^_\n".Contains(c));
+
+// English mode: a wrong letter typed inside a word and taken back with Backspace (keybaord → keyb + a + ⌫ + oard).
+// Null when the keys have no place for one.
+string? WithTypo(string keys)
+{
+    var spots = Enumerable.Range(1, Math.Max(0, keys.Length - 1)).Where(i => char.IsAsciiLetter(keys[i - 1]) && char.IsAsciiLetter(keys[i])).ToList();
+    if (spots.Count == 0) return null;
+    int at = Pick(spots);
+    return keys[..at] + (char)('a' + rng.Next(26)) + "\b" + keys[at..];
+}
 
 // Types into a fresh app; with mixed set, each run of Hangul goes in Korean mode and each run of Latin letters in
 // English mode, switching with the 한/영 key as a person does. Other characters stay in the mode before them.
-string Type(Layout mode, string text, bool mixed = false)
+// With typo set (English mode only), one wrong letter is typed and erased inside a word.
+string Type(Layout mode, string text, bool mixed = false, bool typo = false)
 {
     var context = new ManualContext();
     SynchronizationContext.SetSynchronizationContext(context);
@@ -111,7 +156,7 @@ string Type(Layout mode, string text, bool mixed = false)
     using var controller = new Controller(new Settings(), desktop, hooks: false);
     desktop.Attach(controller);
     controller.Ready.Wait();
-    if (!mixed) desktop.Type(KeysFor(text));
+    if (!mixed) desktop.Type(typo && WithTypo(KeysFor(text)) is { } withTypo ? withTypo : KeysFor(text));
     else
         foreach (char c in text)
         {
@@ -148,6 +193,8 @@ int LongText(string root)
         int wrongParagraphsAllRight = 0, rightParagraphsUntouched = 0;
         var misses = new Dictionary<string, int>();
         var falsePositives = new Dictionary<string, int>();
+        // The words around the first time each error was seen.
+        var contexts = new Dictionary<string, string>();
         for (int p = 0; p < paragraphCount; p++)
         {
             string paragraph = string.Join(' ', Enumerable.Range(0, perParagraph).Select(_ => pool[local.Next(pool.Count)])) + " ";
@@ -171,6 +218,7 @@ int LongText(string root)
                     errorCount++;
                     string pair = $"{want[i]} → {have[i]}";
                     errors[pair] = errors.GetValueOrDefault(pair) + 1;
+                    contexts.TryAdd(pair, string.Join(' ', want[Math.Max(0, i - 4)..i]) + " [" + have[i] + "] " + string.Join(' ', want[(i + 1)..Math.Min(want.Length, i + 4)]));
                 }
             }
         }
@@ -181,6 +229,8 @@ int LongText(string root)
             $"{100.0 * rightParagraphsUntouched / paragraphCount:F1}% of paragraphs untouched");
         Console.WriteLine("  most missed:  " + string.Join(", ", misses.OrderByDescending(kv => kv.Value).Take(12).Select(kv => $"{kv.Key} ({kv.Value})")));
         Console.WriteLine("  changed by mistake: " + string.Join(", ", falsePositives.OrderByDescending(kv => kv.Value).Take(12).Select(kv => $"{kv.Key} ({kv.Value})")));
+        foreach (var (pair, _) in misses.Concat(falsePositives).OrderByDescending(kv => kv.Value).Take(examplesPerKind * 2))
+            if (contexts.TryGetValue(pair, out var around)) Console.WriteLine($"    {pair}: ...{around}...");
     }
     return 0;
 }
@@ -192,7 +242,9 @@ static string Normalize(string s) => string.Join(' ', s.Replace('“', '"').Repl
 // A word both languages have as a common word (내/so, 해/go) cannot be told apart without context.
 var detector = new AutoDetector();
 // Also a jamo said twice (ㅎㅎ is gg, a laugh), and a word of up to three letters with a particle (go므로 → 해므로).
+// Chat jamo with or without an emoticon (ㅎㅎ^^ is gg^^, ㅇㅋ is dz) is left to the mode too.
 bool IsAmbiguous(string word) => word.Length >= 2 && word.All(c => char.ToLowerInvariant(c) == char.ToLowerInvariant(word[0])) ? true
+    : word.Where(Jamo.IsHangul).ToArray() is { Length: >= 2 and <= 3 } jamo && jamo.All(Jamo.IsJamo) && !word.Any(char.IsAsciiLetter) ? true
     : word.TakeWhile(char.IsAsciiLetter).Count() is var latin && latin is > 0 and <= 3 && latin < word.Length && word[latin..].All(Jamo.IsSyllable) ? true
     : IsAmbiguousWord(word);
 bool IsAmbiguousWord(string word) =>
@@ -232,12 +284,15 @@ while (clock.Elapsed.TotalSeconds < seconds && failureCount < maxFailures && (se
     bool singleScript = korean ? !sentence.Any(char.IsAsciiLetter) : !sentence.Any(Jamo.IsHangul);
     var rightMode = korean ? Layout.Korean : Layout.English;
     checks.Add(singleScript ? (korean ? "korean typed right" : "english typed right", rightMode, false)
-        : ("mixed typed right (한/영 key)", Jamo.IsHangul(sentence[0]) ? Layout.Korean : Layout.English, true));
-    foreach (var (kind, mode, mixed) in checks)
+        : ("mixed typed right (한/영 key)", sentence.First(c => Jamo.IsHangul(c) || char.IsAsciiLetter(c)) is var first && Jamo.IsHangul(first) ? Layout.Korean : Layout.English, true));
+    foreach (var (checkKind, mode, mixed) in checks)
     {
+        // Now and then a typo taken back with Backspace on the way (English mode, where one key is one letter).
+        bool typo = !mixed && mode == Layout.English && rng.Next(4) == 0;
+        string kind = typo ? checkKind + ", typo fixed with Backspace" : checkKind;
         checkCounts[kind] = checkCounts.GetValueOrDefault(kind) + 1;
         string expected = sentence + ending;
-        string got = Type(mode, expected, mixed);
+        string got = Type(mode, expected, mixed, typo);
         if (got == expected) continue;
         var want = expected.TrimEnd('\n').Split(' ');
         var have = got.TrimEnd('\n').Split(' ');

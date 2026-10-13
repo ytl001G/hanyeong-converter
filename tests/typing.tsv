@@ -149,3 +149,32 @@ KO	Edward's car	Edward's car
 KO	"I want	"I want
 KO	So we go	So we go
 KO	(Go home)	(Go home)
+# Fuzz edge cases: hashtags, mentions, times, emails, URLs and code names in the wrong mode
+EN	#aktwlq	#맛집
+KO	#batteries	#batteries
+KO	@wing hi	@wing hi
+EN	@rlaalstn	@rlaalstn
+EN	5:22Rkwl	5:22까지
+KO	user9@gmail.com	user9@gmail.com
+KO	see www.naver.com	see www.naver.com
+KO	crawl_ourselves	crawl_ourselves
+KO	gg^^	ㅎㅎ^^
+KO	zz.zz	ㅋㅋ.ㅋㅋ
+# Long text: to between numbers in Korean mode; a capital + group syllable + particles
+KO	from 3 to 6 times	from 3 to 6 times
+KO	3개 새 상품	3개 새 상품
+EN	Awhdpsms	A조에는
+# Dotted abbreviations typed in Korean mode
+KO	at 5 p.m. today	at 5 p.m. today
+KO	the U.S. army	the U.S. army
+KO	Mr. Kim	Mr. Kim
+KO	fruit, e.g. apples	fruit, e.g. apples
+# Fuzz edge cases, round 2 (Korean mode): Www, camelCase, snake_case with a syllable, mentions, a.m. after context
+KO	Www.naver.com	Www.naver.com
+KO	call isImmunity now	call isImmunity now
+KO	vacuum_gb	vacuum_gb
+KO	thanks @egg	thanks @egg
+KO	@zz	@ㅋㅋ
+KO	I rise at 5 a.m.	I rise at 5 a.m.
+KO	see Nov. 2	see Nov. 2
+KO	한글_파일	한글_파일

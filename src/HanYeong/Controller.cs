@@ -76,6 +76,9 @@ sealed class Controller : IDisposable
     (Conversion Conversion, string Word, Layout Layout)? _lastAuto;
     (string Word, Layout Layout)? _erasedAuto, _lastKept, _erasedKept;
     readonly HashSet<(IntPtr Window, string Word, Layout Layout)> _keptByUser = [];
+    // Korean mode: the last conversion made English and ended on . or :, so what follows right after may be the rest
+    // of an address (gmail. then com).
+    bool _englishAddress;
 
     public event Action<bool>? AutoModeChanged;
 
@@ -270,8 +273,30 @@ sealed class Controller : IDisposable
         string text = _segment.Text;
         string word = text[(text.LastIndexOfAny(WordEnds) + 1)..];
         if (word.Length == 0) return false;
-        if (AutoDetector.IsInAddress(text[..^word.Length], word)) return false;
-        bool isInContext = _settings.SentenceContext && _contextFrom == _segment.Layout;
+        // Korean mode: the next part of an address whose part before was just made English (user9@gmail. then 채ㅡ,
+        // https: then //ㅛㅐㅕ셔) is English too when its Hangul is broken.
+        string? addressPart = _englishAddress && word == text && _segment.Layout == Layout.Korean ? AutoDetector.BrokenHangulAsEnglish(word) : null;
+        _englishAddress = false;
+        // Korean mode: a dotted abbreviation typed there converts as a whole when its last period is typed (ㅁ.ㅡ. is
+        // a.m., ㅡㄱ. is Mr.); its parts would each be too short to judge, and after the first period they look like an address.
+        string run = text[(text.LastIndexOfAny([' ', '\n']) + 1)..];
+        if (_segment.Layout == Layout.Korean && end == '.')
+        {
+            string runKeys = _segment.RestoreCase(LayoutConverter.ToEnglish(run));
+            // The sentence context may already have made the first letter English (ㅁ. → a.); ㅡ. then completes a.m.
+            bool completesLast = run == text && _lastAuto is { } previous && previous.Conversion.After is { Length: <= 4 } after
+                && after.EndsWith('.') && AutoDetector.DottedAbbreviation(run, after + runKeys) is not null;
+            if (completesLast || AutoDetector.DottedAbbreviation(run, runKeys) is not null)
+            {
+                word = run;
+                addressPart = runKeys;
+            }
+        }
+        if (addressPart is null && AutoDetector.IsInAddress(text[..^word.Length], word)) return false;
+        // Korean mode: 새 right after a number is to (3 to 6, $60,000 to $70,000); Korean puts a counter there.
+        bool isToAfterNumber = _segment.Layout == Layout.Korean && word == "새" && text[..^word.Length].TrimEnd() is { Length: > 0 } before0
+            && text[..^word.Length].EndsWith(' ') && char.IsAsciiDigit(before0[^1]);
+        bool isInContext = _settings.SentenceContext && (_contextFrom == _segment.Layout || isToAfterNumber);
         // The keys carry the typed capitals, which Korean mode does not show (Hello → ㅗ디ㅣㅐ).
         string keys = _segment.Layout == Layout.English ? word : _segment.RestoreCase(LayoutConverter.ToEnglish(word));
         // After a sure word left as typed, a short word (en, di) keeps the mode unless the other reading is far more likely.
@@ -280,7 +305,7 @@ sealed class Controller : IDisposable
         bool isStaying = !isInContext && _settings.SentenceContext && _writingIn == _segment.Layout && keys.Length <= 3
             && !(_segment.Layout == Layout.English && AutoDetector.IsParticleAfterSpace(keys));
         var detector = isInContext ? _contextDetector : isStaying ? _stayingDetector : _detector;
-        string? replacement = detector.Suggest(word, keys, _segment.Layout);
+        string? replacement = addressPart ?? detector.Suggest(word, keys, _segment.Layout);
         // Erased right after it was converted and typed again the same: meant as typed. Erased right after it was
         // kept so and typed again: the conversion was wanted after all.
         var typed = (_segmentWindow, word, _segment.Layout);
@@ -354,6 +379,7 @@ sealed class Controller : IDisposable
         _contextOnly = isInContext && leadIn is null && _detector.Suggest(word, keys, conversion.BeforeLayout) is null ? conversion : null;
         _contextFrom = end is '.' or '?' or '!' ? null : conversion.BeforeLayout;
         _writingIn = null;
+        _englishAddress = conversion.BeforeLayout == Layout.Korean && end is '.' or ':';
         Log.Write($"auto {conversion.BeforeLayout}->{conversion.AfterLayout} len={word.Length}->{replacement.Length} end=0x{(endKey == 0 ? end!.Value : endKey):X2}{(heldShifts.Length > 0 ? " shift" : "")}");
         return true;
     }
@@ -620,6 +646,7 @@ sealed class Controller : IDisposable
         _contextFrom = null;
         _writingIn = null;
         _contextOnly = null;
+        _englishAddress = false;
         _hasEarlierWord = false;
     }
 

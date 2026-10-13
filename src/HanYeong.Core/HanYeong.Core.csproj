@@ -17,6 +17,7 @@
     <EmbeddedResource Include="Data\number-suffixes-en.txt" LogicalName="number-suffixes-en.txt" />
     <EmbeddedResource Include="Data\letter-suffixes.txt" LogicalName="letter-suffixes.txt" />
     <EmbeddedResource Include="Data\anonymous-heads.txt" LogicalName="anonymous-heads.txt" />
+    <EmbeddedResource Include="Data\dotted-abbreviations.txt" LogicalName="dotted-abbreviations.txt" />
   </ItemGroup>
 
 </Project>

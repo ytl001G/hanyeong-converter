@@ -280,6 +280,10 @@
 #    기준값 비교(10장)는 --sweep을 붙일 때만 (약 3분 더). 판단 규칙만 바꿨을 때는 --quick (약 30초)
 dotnet run -c Release --project tools/Evaluation -- <데이터 폴더> docs/accuracy-results.json --edge <예외 케이스 폴더> --sweep
 dotnet run -c Release --project tools/Evaluation -- <데이터 폴더> quick.json --quick
-# 3. 자동 테스터 (문장을 만들어 화면 없는 앱에 입력, 실패가 쌓일 때까지)
-dotnet run -c Release --project tools/Fuzz -- --seconds 60 --failures 20
+# 3. 자동 테스터 (문장을 만들어 화면 없는 앱에 입력). 실패는 단어 종류별로 묶어 많은 순으로 보여 줌.
+#    잘못된 모드, 제대로 친 글(섞인 문장은 한/영 키를 눌러 가며), Backspace로 고친 오타, URL·이메일·해시태그·
+#    시간·약어 같은 예외 케이스까지. --sentences를 주면 같은 --seed로 어느 컴퓨터에서나 같은 결과
+dotnet run -c Release --project tools/Fuzz -- --sentences 20000 --seed 3
+# 4. 긴 글: 시험 데이터의 실제 문장 6개를 한 문단으로 묶어 앱 전체로 입력 (잘못된 모드 / 제대로 친 글)
+dotnet run -c Release --project tools/Fuzz -- --corpus <데이터 폴더> --paragraphs 100 --seed 7
 ```

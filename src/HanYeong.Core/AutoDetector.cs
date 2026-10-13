@@ -134,19 +134,20 @@ public sealed class AutoDetector
     /// Whether a word that ends right after <paramref name="textBefore"/> (what was typed before it since the last
     /// reset) belongs to an address: www.kt.com, a@b.com, http://x. A word joined to an earlier one by . @ / : is
     /// left alone; an earlier word that was converted starts the text over, so 안녕.하세요 still converts.
-    /// A decimal point is no address: 0. then <paramref name="word"/> 4akszma is 0.4만큼.
+    /// A decimal point or the colon of a time is no address: 0. then <paramref name="word"/> 4akszma is 0.4만큼, 5: then
+    /// 22Rkwl is 5:22까지.
     /// </summary>
     public static bool IsInAddress(string textBefore, string word = "")
     {
         string run = textBefore[(textBefore.LastIndexOfAny([' ', '\n']) + 1)..];
-        if (IsDecimalPoint(run, word)) return false;
+        if (IsNumberJoin(run, word)) return false;
         return run.Length > 0 && (".@/:".Contains(run[^1]) || run.Contains("www.") || run.Contains("://") || run.Contains('@'));
     }
 
-    // A number with one point, a sign or currency in front (0. -1. $3.), and digits after it.
-    static bool IsDecimalPoint(string run, string word)
+    // A number with one point or colon, a sign or currency in front (0. -1. $3. 10:), and digits after it.
+    static bool IsNumberJoin(string run, string word)
     {
-        if (word.Length == 0 || !char.IsAsciiDigit(word[0]) || run.Length < 2 || run[^1] != '.') return false;
+        if (word.Length == 0 || !char.IsAsciiDigit(word[0]) || run.Length < 2 || run[^1] is not ('.' or ':')) return false;
         string number = run[..^1].TrimStart(NumberSigns);
         return number.Length > 0 && number.All(char.IsAsciiDigit);
     }
@@ -159,6 +160,16 @@ public sealed class AutoDetector
     /// </summary>
     public string? Suggest(string word, string keys, Layout typedIn)
     {
+        // A hashtag is judged by the word after # (#맛집). A mention too in Korean mode (@쟈ㅜㅎ is @wing); in English
+        // mode it is someone's ID, typed as meant.
+        if (word.Length > 1 && (word[0] == '#' || (word[0] == '@' && typedIn == Layout.Korean)) && !"#@".Contains(word[1]))
+        {
+            if (Suggest(word[1..], keys[1..], typedIn) is { } tagged) return word[0] + tagged;
+            // An ID after @ is English: broken jamo there (@ㄷㅎㅎ is @egg) converts even when short, unless chat (@ㅋㅋ).
+            string id = word[1..];
+            bool isChat = (id.Length >= 2 && id.All(c => c == id[0])) || ChatAbbreviations.Contains(id);
+            return word[0] == '@' && id.All(Jamo.IsHangul) && !IsWellFormed(id) && !isChat ? word[0] + LayoutConverter.ToEnglish(id) : null;
+        }
         // Korean mode, quotes or brackets around a word ("I, (So): the word inside is judged as it is.
         if (typedIn == Layout.Korean && Wrapped(word) is var (lead, trail) && lead + trail > 0)
             return Suggest(word[lead..^trail], keys[lead..^trail], typedIn) is { } inner ? word[..lead] + inner + word[^trail..] : null;
@@ -168,6 +179,9 @@ public sealed class AutoDetector
             // Also a longer name that happens to read as syllables that are no Korean word (Endeley → 뚱디됴); four
             // letters meet Korean too often (Rosl is 깨니).
             if (IsKnownName(keys) && (!IsWellFormed(word) || (keys.Length >= 5 && !IsKoreanWord(word)))) return LayoutConverter.ToEnglish(word);
+            // camelCase (isImmunity → ㅑ냐ㅡㅡㅕㅜㅑ쇼): a capital without a shifted jamo after lowercase, in broken Hangul.
+            if (keys.All(char.IsAsciiLetter) && HasInnerCapital(keys) && !IsWellFormed(word) && !IsKoreanInSyllables(word))
+                return LayoutConverter.ToEnglish(word);
             // An acronym even when it happens to read as a syllable: Shift on S, D, N, A ... changes nothing in
             // Korean, so it was pressed for English (SEC → ㄴㄸㅊ, DNA → 움, a lone I → ㅑ).
             if (IsShiftedAcronym(keys)) return LayoutConverter.ToEnglish(word);
@@ -262,8 +276,10 @@ public sealed class AutoDetector
                 return english;
         }
 
-        // Only everyday punctuation joins parts; other symbols (@ # $ & * = + < > | _ ...) mean a password-like string.
-        if (word.Any(c => !IsLetter(c) && !char.IsAsciiDigit(c) && !JoinerPunctuation.Contains(c))) return null;
+        // Only everyday punctuation joins parts; other symbols (@ # $ & * = + < > | _ ...) mean a password-like string,
+        // or in Korean mode an email or code name typed there: all its Hangul broken (ㅕㄴㄷㄱ9@흐먀ㅣ is user9@gmail).
+        if (word.Any(c => !IsLetter(c) && !char.IsAsciiDigit(c) && !JoinerPunctuation.Contains(c)))
+            return typedIn == Layout.Korean ? BrokenHangulAsEnglish(word) : null;
         // % only after a number (5%로).
         if (Enumerable.Range(0, word.Length).Any(i => word[i] == '%' && (i == 0 || !char.IsAsciiDigit(word[i - 1])))) return null;
 
@@ -370,6 +386,38 @@ public sealed class AutoDetector
         return anyConverts ? result.ToString() : null;
     }
 
+    static readonly HashSet<string> DottedAbbreviations = WordList.Load("dotted-abbreviations.txt");
+
+    /// <summary>
+    /// Korean mode, a period just typed after <paramref name="run"/> (what was typed since the last space): the
+    /// English when the run is a dotted abbreviation typed there (ㅁ.ㅡ → a.m, ㅡㄱ → mr), each part broken Hangul.
+    /// <paramref name="keys"/> are its keys as typed, capitals included (ㅕ.ㄴ is U.S).
+    /// </summary>
+    public static string? DottedAbbreviation(string run, string keys)
+    {
+        if (run.Length == 0 || !run.Split('.').All(p => p.Length > 0 && p.All(Jamo.IsHangul) && !IsWellFormed(p))) return null;
+        return DottedAbbreviations.Contains(keys.ToLowerInvariant()) ? keys : null;
+    }
+
+    /// <summary>
+    /// Korean mode: the English keys of text whose every run of Hangul is broken (ㅕㄴㄷㄱ, 흐먀ㅣ, ㅊㄱㅁ지), as English
+    /// typed there shows; null when a run reads as Korean or as chat (ㅋㅋ, ㅠㅠ, ㅇㅋ, or up to three consonants or
+    /// vowels alone, as in ^^ㅋ).
+    /// </summary>
+    public static string? BrokenHangulAsEnglish(string text)
+    {
+        var runs = new string(text.Select(c => Jamo.IsHangul(c) ? c : ' ').ToArray()).Split(' ', StringSplitOptions.RemoveEmptyEntries);
+        if (runs.Length == 0 || runs.All(IsWellFormed)) return null;
+        foreach (string run in runs)
+        {
+            // Proper syllables may be English keys too (gb → 휴 in vacuum_gb), but not a Korean word of two syllables or more.
+            if (IsWellFormed(run) && run.Length >= 2 && WordFrequency.Korean.Value.Score(run) > 0) return null;
+            if (ChatAbbreviations.Contains(run)) return null;
+            if (run.Length <= 3 && (run.All(Jamo.IsConsonant) || run.All(Jamo.IsVowel))) return null;
+        }
+        return LayoutConverter.ToEnglish(text);
+    }
+
     // + too: A+와, C++를, +와.
     static readonly HashSet<char> JoinerPunctuation = ['-', '/', '\'', '"', '“', '”', '‘', '’', '`', '(', ')', '[', ']', '·', 'ㆍ', '%', '~', '…', '▲', '△', '—', '+'];
 
@@ -460,8 +508,8 @@ public sealed class AutoDetector
         if (!word.All(Jamo.IsHangul)) return null;
         // ㅋㅋㅋ, ㅠㅠ, ㅇㅋ, ㄱㅅ: chat expressions, not typos.
         bool isRepeatedJamo = word.Length >= 2 && Jamo.IsJamo(word[0]) && word.All(c => c == word[0]);
-        // ...except ㅈㅈㅈ, which is www.
-        if (word == "ㅈㅈㅈ") return "www";
+        // ...except ㅈㅈㅈ, which is www (ㅉㅈㅈ with Shift for a capital: Www at the start of a sentence).
+        if (word is "ㅈㅈㅈ" or "ㅉㅈㅈ") return LayoutConverter.ToEnglish(word);
         if (isRepeatedJamo || ChatAbbreviations.Contains(word) || IsAnonymized(word)) return null;
 
         string english = LayoutConverter.ToEnglish(word);
@@ -773,7 +821,9 @@ public sealed class AutoDetector
                         // after a single capital only a full syllable of three keys (B형, B팀), not Gwo → G재
                         : isAcronym && (prefix.Length >= 2 || rest.Length >= 3 || CapitalSuffixes.Contains(korean)) && _korean(korean) >= 3.0f)
                     // After an acronym also a rarer word + particle: SK텔레콤은, LG유플러스는 (텔레콤 2.6).
-                    || (isAcronym && prefix.Length >= 2 && (IsWordAndParticles(korean) || (korean.Length >= 2 && IsWellFormed(korean) && _korean(korean) >= 2.5f)));
+                    || (isAcronym && prefix.Length >= 2 && (IsWordAndParticles(korean) || (korean.Length >= 2 && IsWellFormed(korean) && _korean(korean) >= 2.5f)))
+                    // A capital and a group syllable + particles: A조에는, B팀이.
+                    || (isAcronym && korean.Length >= 2 && IsWellFormed(korean) && CapitalSuffixes.Contains(korean[..1]) && IsParticleChain(korean[1..]));
                 // Per unit: kg당, km당, t당.
                 bool isPerUnit = korean == "당" && NumberSuffixes.Contains(prefix.ToLowerInvariant());
                 // A one-syllable particle may be the tail of a longer ending after a more common word: radio + 해도,
