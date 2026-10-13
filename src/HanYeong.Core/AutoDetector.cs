@@ -104,7 +104,7 @@ public sealed class AutoDetector
     public string? Check(string word, Layout typedIn)
     {
         if (_isException(word)) return null;
-        if (typedIn == Layout.English && IsKnownName(word) && !IsKoreanWithShift(word) && !IsNameAndParticles(word)) return null;
+        if (typedIn == Layout.English && IsKnownName(word) && !IsKoreanWithShift(word)) return null;
         if (!word.All(IsLetter)) return CheckJoined(word, typedIn);
         // All letters, but with an acronym inside (삼성SDS가, 비타민C가): judged in parts like a joined word.
         string? result = CheckPart(word, typedIn)
@@ -667,12 +667,6 @@ public sealed class AutoDetector
     static bool IsShiftedAcronym(string keys) =>
         keys.Length is >= 1 and <= 6 && keys.All(char.IsAsciiLetterUpper) && HasEnglishOnlyShift(keys);
 
-    // A listed name and particles of two syllables or more (Chermy + 인지): the name list, a Bloom filter, also says yes
-    // to about 1 in 2,000 other strings, and Chermydlswl was one. Not one syllable: Beckhaus is not Beckh + 면.
-    bool IsNameAndParticles(string keys) => Enumerable.Range(4, Math.Max(0, keys.Length - 6))
-        .Any(i => IsKnownName(keys[..i]) && keys[i..].All(char.IsAsciiLetterLower)
-            && LayoutConverter.ToKorean(keys[i..]) is { Length: >= 2 } particles && IsParticleChain(particles));
-
     /// <summary>A capitalized word of four letters or more on the name list (Ndidi, Kowalczyk).</summary>
     bool IsKnownName(string word) =>
         word.Length >= 4 && char.IsAsciiLetterUpper(word[0]) && word.Skip(1).All(char.IsAsciiLetterLower) && _isName(word);
@@ -698,7 +692,7 @@ public sealed class AutoDetector
             return CheckMixed(keys[1..], typedIn) is { } signed ? keys[0] + signed : null;
         // Digits only in English mode (ch4가, mp3파일, 6보다): in Korean mode 초4가 is real Korean ("4th grader").
         if (keys.Length < 3 || !keys.All(c => char.IsAsciiLetter(c) || (typedIn == Layout.English && char.IsAsciiDigit(c)))) return null;
-        if (typedIn == Layout.English && IsKnownName(keys) && !IsKoreanWithShift(keys) && !IsNameAndParticles(keys)) return null;
+        if (typedIn == Layout.English && IsKnownName(keys) && !IsKoreanWithShift(keys)) return null;
         string display = typedIn == Layout.English ? keys : LayoutConverter.ToKorean(keys);
         if (_isException(display)) return null;
         // Korean mode: Shift on a key without a shifted jamo (S, N, ...) changes nothing in Korean, so it is
