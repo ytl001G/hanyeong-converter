@@ -202,3 +202,20 @@ EN	pehla	pehla
 EN	csms	csms
 EN	versusNodejs	versusNodejs
 EN	useStatefmf	useState를
+# Fuzz round 5 (Korean mode): an ordinal th at the start of a sentence; a common word over a capital + Korean
+KO	17th place	17th place
+KO	12th	12th
+KO	22th	22소
+KO	3소	3소
+KO	Saudi	Saudi
+KO	ATlsms	A씨는
+KO	Bgud	B형
+# Fuzz seeds 23-24: a word typed with Shift for ㄲ stays Korean; camelCase right after the capital; mixed vowels are keys
+EN	Rnwnsgks	꾸준한
+EN	bundesligaGdp	bundesligaGdp
+KO	hook	hook
+KO	liu	liu
+KO	bb	ㅠㅠ
+KO	mm	ㅡㅡ
+EN	pHrk	pH가
+EN	QnAfh	QnA로

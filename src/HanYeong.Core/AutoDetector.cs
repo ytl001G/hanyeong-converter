@@ -195,9 +195,11 @@ public sealed class AutoDetector
             if (IsShiftedAcronym(keys)) return LayoutConverter.ToEnglish(word);
             // A capitalized word with Shift on such a key (Anaut → 무몃, Aozmendi → 매크두야): a name or a sentence start.
             // Not a word + particles (A씨: the T of ㅆ is shifted too). Two letters when a common word (So → 내, Go → 해).
+            // A common English word of five letters or more beats a capital + Korean (Saudi 4.4 is not S + 며야); a
+            // shorter one does not (G에, not Gdp 4.0).
             if ((keys.Length >= 3 || (keys.Length == 2 && _english(keys) >= _o.CommonEnglish))
                 && IsEnglishOnlyCapital(keys[0]) && keys.Skip(1).All(char.IsAsciiLetterLower)
-                && !(CheckMixed(keys, typedIn) is { } split && IsKeptSplit(split)))
+                && ((keys.Length >= 5 && _english(keys) >= 4.0f) || !(CheckMixed(keys, typedIn) is { } split && IsKeptSplit(split))))
                 return LayoutConverter.ToEnglish(word);
         }
         string? whole = Check(word, typedIn);
@@ -335,6 +337,8 @@ public sealed class AutoDetector
             bool isKoreanAfterNumber = typedIn == Layout.Korean && afterNumber && IsWellFormed(part);
             // Korean mode: a lone jamo after a number is an English ending (75ㄴ → 75s, 3ㄱㅇ → 3rd).
             bool isEnglishEnding = typedIn == Layout.Korean && afterNumber && !IsWellFormed(part) && NumberSuffixes.Contains(converted.ToLowerInvariant());
+            // ...and 소 at the end of a number that takes th (17소 → 17th, 80소, 12소; not 1소, 22소): Korean puts no 소 there.
+            isEnglishEnding |= typedIn == Layout.Korean && afterNumber && part == "소" && i == word.Length && TakesTh(word[..start]);
             // Letters right before a digit are a code (ch4가, mp3파일): English as typed. Between numbers they are
             // a Korean unit (1박2일, 7시30분).
             // Korean written before a number on purpose (제2차, 고3) is in Data/number-prefixes.txt.
@@ -430,6 +434,14 @@ public sealed class AutoDetector
         // Chat-like pieces only (^^ㅋ, ㅇㅋ!) stay; next to a piece of broken English they are keys too (memories_wet).
         if (runs.All(IsChatLike)) return null;
         return LayoutConverter.ToEnglish(text);
+    }
+
+    // A number whose English ordinal ends in th: last digit 0 or 4-9, or 11-13.
+    static bool TakesTh(string before)
+    {
+        string digits = new(before.Reverse().TakeWhile(char.IsAsciiDigit).Reverse().ToArray());
+        if (digits.Length == 0) return false;
+        return (digits.Length >= 2 && digits[^2] == '1') || digits[^1] is '0' or >= '4';
     }
 
     // + too: A+와, C++를, +와.
@@ -533,7 +545,9 @@ public sealed class AutoDetector
         // Other consonant-only/vowel-only strings could still be chat shorthand; only very common
         // English (ㅈㄷ → we, ㅛㅐㅕ → you) is worth converting.
         // Chat shorthand is short (ㅇㅋ, ㄱㅅ, ㅎㄷㄷ); four jamo and more are a word typed in the wrong mode (feat → ㄹㄷㅁㅅ).
-        if (word.Length <= 3 && (word.All(Jamo.IsConsonant) || word.All(Jamo.IsVowel)) && en < _o.CommonEnglish) return null;
+        // Vowels only are chat when one repeats (ㅠㅠ, ㅡㅡ) or listed (ㅠㅜ); mixed ones are English keys (ㅙㅐㅏ is hook).
+        bool isChatVowels = word.All(Jamo.IsVowel) && (word.All(c => c == word[0]) || ChatAbbreviations.Contains(word));
+        if (word.Length <= 3 && (word.All(Jamo.IsConsonant) || isChatVowels) && en < _o.CommonEnglish) return null;
 
         if (!IsWellFormed(word)) return english;
 
@@ -756,9 +770,10 @@ public sealed class AutoDetector
                 // particle too, unless the letter is a word itself: csms is not c + 는, pehla not p + 됨.
                 if (isOnlySingleLetter && char.IsAsciiLetterLower(prefix[0])
                     && (!IsParticleChain(LayoutConverter.ToKorean(rest)) || _english(prefix) <= 0)) continue;
-                // Not inside a camelCase part that is a word itself: versusNodejs is not versusNod + 던.
-                if (typedIn == Layout.English && lastInnerCapital > 0 && split > lastInnerCapital + 1
-                    && _english(keys[lastInnerCapital..]) >= _o.KnownEnglish) continue;
+                // Not inside a camelCase part that is a common word itself: versusNodejs is not versusNod + 던 (Nodejs
+                // 6.5); pH가, QnA로 still split (Hrk 2.0, Afh 1.5).
+                if (typedIn == Layout.English && lastInnerCapital > 0 && split > lastInnerCapital
+                    && _english(keys[lastInnerCapital..]) >= _o.MixedEnglishPrefix) continue;
                 if (isLowerLetter && rest.Length < 3) continue;
                 // Korean mode: a lone jamo before Korean is how news writes anonymous people (ㄱ씨는, ㄴ양); only a
                 // capital on a key without a shifted jamo (A씨) is English.
@@ -850,6 +865,8 @@ public sealed class AutoDetector
                 // A one-syllable particle may be the tail of a longer ending after a more common word: radio + 해도,
                 // not radiogo + 도; precision + 야말로, not precisiondiakf + 로. That split comes later in the loop.
                 if (isParticle && korean.Length == 1 && HasBetterShorterSplit(split)) continue;
+                // A capitalized word read as a short English part + a Korean word is a name (Elsken is not El + 나두).
+                if (isCommonWord && !isParticle && !isAcronym && typedIn == Layout.English && IsCapitalized(keys) && prefix.Length < 4) continue;
                 if (isParticle || isCommonWord || isPerUnit) return prefix + korean;
             }
             return null;
