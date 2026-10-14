@@ -565,8 +565,8 @@ public sealed class AutoDetector
     /// <summary>A Korean word + particles or endings (진행상황에, 확인했어): a sentence word, not a name.</summary>
     public bool IsWordWithEnding(string korean) => IsWordAndParticles(korean);
 
-    bool IsWordAndParticles(string korean) => IsWellFormed(korean) && Enumerable.Range(2, Math.Max(0, korean.Length - 2))
-        .Any(i => _korean(korean[..i]) >= 2.5f && IsParticleChain(korean[i..]));
+    bool IsWordAndParticles(string korean, float minScore = 2.5f) => IsWellFormed(korean) && Enumerable.Range(2, Math.Max(0, korean.Length - 2))
+        .Any(i => _korean(korean[..i]) >= minScore && IsParticleChain(korean[i..]));
 
     // How Korean writes an anonymous person or thing: a lone consonant, then 씨/양/군/사... and particles
     // (ㄱ씨는, ㄴ양, ㄷ사의) or particles alone (ㄱ이). A letter before a real word (e스포츠) is not this.
@@ -883,7 +883,10 @@ public sealed class AutoDetector
                     // After an acronym also a rarer word + particle: SK텔레콤은, LG유플러스는 (텔레콤 2.6).
                     || (isAcronym && prefix.Length >= 2 && (IsWordAndParticles(korean) || (korean.Length >= 2 && IsWellFormed(korean) && _korean(korean) >= 2.5f)))
                     // A capital and a group syllable + particles: A조에는, B팀이.
-                    || (isAcronym && korean.Length >= 2 && IsWellFormed(korean) && CapitalSuffixes.Contains(korean[..1]) && IsParticleChain(korean[1..]));
+                    || (isAcronym && korean.Length >= 2 && IsWellFormed(korean) && CapitalSuffixes.Contains(korean[..1]) && IsParticleChain(korean[1..]))
+                    // A single capital and a common word of two syllables or more + particles: A파트부터 (파트 3.7), not
+                    // Avkxm + 부터.
+                    || (isAcronym && prefix.Length == 1 && IsWordAndParticles(korean, _o.MixedKoreanRest));
                 // Per unit: kg당, km당, t당.
                 bool isPerUnit = korean == "당" && NumberSuffixes.Contains(prefix.ToLowerInvariant());
                 // A one-syllable particle may be the tail of a longer ending after a more common word: radio + 해도,

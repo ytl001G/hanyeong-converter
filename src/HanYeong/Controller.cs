@@ -79,6 +79,9 @@ sealed class Controller : IDisposable
     // Korean mode: the last conversion made English and ended on . or :, so what follows right after may be the rest
     // of an address (gmail. then com).
     bool _englishAddress;
+    // English mode: the last conversion ended on a closing bracket, so a particle typed right after it belongs to the
+    // word before (업무협약식(MOU) then dmf is 을).
+    bool _closedBracket;
 
     public event Action<bool>? AutoModeChanged;
 
@@ -222,6 +225,7 @@ sealed class Controller : IDisposable
         if (vk == VK_BACK)
         {
             _segment?.Backspace();
+            _closedBracket = false;
             if (_last is { } l && _lastAuto is { } auto && ReferenceEquals(l, auto.Conversion)) _erasedAuto = (auto.Word, auto.Layout);
             if (_lastKept is { } kept) _erasedKept = kept;
             _last = null;
@@ -232,10 +236,10 @@ sealed class Controller : IDisposable
         if (KeyMap.ToChar(vk, shift, capsLock) is { } c)
         {
             _lastKept = null;
-            if (WordEnds.Contains(c))
+            if (WordEnds.Contains(c) || ClosingBrackets.Contains(c))
             {
                 bool isConverted = TryAutoConvert(c);
-                _hasEarlierWord = true;
+                if (WordEnds.Contains(c)) _hasEarlierWord = true;
                 if (isConverted) return true;
             }
             if (_segment is null)
@@ -261,6 +265,9 @@ sealed class Controller : IDisposable
 
     // Characters that end a word and trigger the auto mode (Enter and arrow keys do too).
     static readonly char[] WordEnds = [' ', '.', ',', '?', '!', ';', ':'];
+    // A closing bracket triggers too, without ending the word: it is judged with the bracket, as if a space followed
+    // ((dkssud) is (안녕) at once), and a word left as typed goes on (부장판사)는 is judged whole at the space).
+    static readonly char[] ClosingBrackets = [')', ']'];
 
     /// <summary>
     /// When a word ends, replaces it if it was typed in the wrong mode. The ending key is swallowed and replayed
@@ -268,7 +275,10 @@ sealed class Controller : IDisposable
     /// </summary>
     bool TryAutoConvert(char? end, ushort endKey = 0)
     {
+        bool afterBracket = _closedBracket;
+        _closedBracket = false;
         if (!AutoMode || !_isDictionaryReady || _segment is null || CurrentRule?.AutoMode == false) return false;
+        bool isClosing = end is { } bracket && ClosingBrackets.Contains(bracket);
 
         string text = _segment.Text;
         string word = text[(text.LastIndexOfAny(WordEnds) + 1)..];
@@ -305,7 +315,14 @@ sealed class Controller : IDisposable
         bool isStaying = !isInContext && _settings.SentenceContext && _writingIn == _segment.Layout && keys.Length <= 3
             && !(_segment.Layout == Layout.English && AutoDetector.IsParticleAfterSpace(keys));
         var detector = isInContext ? _contextDetector : isStaying ? _stayingDetector : _detector;
-        string? replacement = addressPart ?? detector.Suggest(word, keys, _segment.Layout);
+        string? replacement = addressPart ?? (isClosing
+            ? detector.Suggest(word + end, keys + end, _segment.Layout) is { } closed && closed.EndsWith(end!.Value) ? closed[..^1] : null
+            : detector.Suggest(word, keys, _segment.Layout));
+        // English mode, a particle right after a closing bracket that was just converted belongs to the word before
+        // it: 업무협약식(MOU) then dmf is 을, as 업무협약식(MOU)을 typed in one go.
+        if (replacement is null && afterBracket && word == text && _segment.Layout == Layout.English
+            && word.All(char.IsAsciiLetterLower) && AutoDetector.IsParticleChain(LayoutConverter.ToKorean(word)))
+            replacement = LayoutConverter.ToKorean(word);
         // Erased right after it was converted and typed again the same: meant as typed. Erased right after it was
         // kept so and typed again: the conversion was wanted after all.
         var typed = (_segmentWindow, word, _segment.Layout);
@@ -327,6 +344,8 @@ sealed class Controller : IDisposable
         // The user may list either side: what they typed (rk) or what it would become (and).
         if (replacement is null || _settings.ExceptionWords.Contains(replacement))
         {
+            // Left as typed at a closing bracket, the word goes on and is judged again where it ends.
+            if (isClosing) return false;
             // A number or other word without letters ($58, 2024) belongs to neither language: the context goes on.
             if (!word.Any(c => char.IsAsciiLetter(c) || Jamo.IsHangul(c))) return false;
             // A word left as typed means the user writes in this mode on purpose ("hello 친구"): context ends.
@@ -383,6 +402,7 @@ sealed class Controller : IDisposable
         _contextFrom = end is '.' or '?' or '!' ? null : conversion.BeforeLayout;
         _writingIn = null;
         _englishAddress = conversion.BeforeLayout == Layout.Korean && end is '.' or ':';
+        _closedBracket = conversion.BeforeLayout == Layout.English && isClosing;
         Log.Write($"auto {conversion.BeforeLayout}->{conversion.AfterLayout} len={word.Length}->{replacement.Length} end=0x{(endKey == 0 ? end!.Value : endKey):X2}{(heldShifts.Length > 0 ? " shift" : "")}");
         return true;
     }
@@ -668,6 +688,7 @@ sealed class Controller : IDisposable
         _writingIn = null;
         _contextOnly = null;
         _englishAddress = false;
+        _closedBracket = false;
         _hasEarlierWord = false;
     }
 

@@ -3,7 +3,7 @@
 # mode <TAB> typed <TAB> expected
 #   mode      EN or KO, the IME mode while typing
 #   typed     the keys, words separated by spaces; Hangul stands for the keys that type it (KO 내 = so).
-#             A space is typed at the end, or Enter when it ends in ⏎, or nothing more when it ends in .
+#             A space is typed at the end, or Enter when it ends in ⏎, or nothing more when it ends in . or )
 #   expected  what the text box shows, without that last space or Enter, or = for exactly what was typed
 EN	shortagedlek	shortage이다
 KO	shortagedlek	shortage이다
@@ -250,3 +250,11 @@ EN	Beckhaus	Beckhaus
 EN	Dobberkau	Dobberkau
 EN	Chermydlswl	Chermy인지
 EN	Gildehaus	Gildehaus
+# 2026-10-14: a closing bracket converts at once, without a space; a particle right after it joins the word before
+EN	(dkssud)	(안녕)
+KO	(Hello)	(Hello)
+EN	qnwkdvkstk)sms	부장판사)는
+EN	(hello)	(hello)
+EN	f(x)	f(x)
+# 2026-10-14: a capital + a Korean word and particles (A파트부터)
+EN	Avkxmqnxj	A파트부터

@@ -16,9 +16,9 @@ public class TypingCasesTests
     public void Typed(string mode, string typed, string expected)
     {
         var layout = mode == "KO" ? Layout.Korean : Layout.English;
-        // Hangul stands for the keys that type it; the line ends with Space, or Enter (⏎), or its own period.
+        // Hangul stands for the keys that type it; the line ends with Space, or Enter (⏎), or its own period or bracket.
         string keys = string.Concat(typed.Select(c => Jamo.IsHangul(c) ? LayoutConverter.ToEnglish(c.ToString()) : c.ToString()));
-        string end = keys.EndsWith('⏎') ? "\n" : keys.EndsWith('.') ? "" : " ";
+        string end = keys.EndsWith('⏎') ? "\n" : keys[^1] is '.' or ')' ? "" : " ";
         keys = keys.TrimEnd('⏎') + end;
         if (expected == "=")
         {
