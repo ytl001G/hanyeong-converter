@@ -309,7 +309,8 @@ sealed class Controller : IDisposable
         // Erased right after it was converted and typed again the same: meant as typed. Erased right after it was
         // kept so and typed again: the conversion was wanted after all.
         var typed = (_segmentWindow, word, _segment.Layout);
-        if (replacement is not null && _erasedAuto == (word, _segment.Layout) && _keptByUser.Add(typed))
+        if (replacement is not null && _erasedAuto == (word, _segment.Layout) && MayBeMeantAsTyped(word, replacement, _segment.Layout)
+            && _keptByUser.Add(typed))
             Log.Write($"kept as typed after erasing its conversion len={word.Length}");
         else if (_erasedKept == (word, _segment.Layout) && _keptByUser.Remove(typed))
             Log.Write($"converts again after erasing it len={word.Length}");
@@ -385,6 +386,13 @@ sealed class Controller : IDisposable
         Log.Write($"auto {conversion.BeforeLayout}->{conversion.AfterLayout} len={word.Length}->{replacement.Length} end=0x{(endKey == 0 ? end!.Value : endKey):X2}{(heldShifts.Length > 0 ? " shift" : "")}");
         return true;
     }
+
+    // Erased and typed again, a word of its mode (sns) or one that becomes something rare (rlaalswn → 김민주, an ID)
+    // may be meant as typed. Nothing that becomes an everyday word (ahffk → 몰라): erased to be typed again, it stayed
+    // ahffk in that window from then on, also with Shift+Enter.
+    bool MayBeMeantAsTyped(string word, string replacement, Layout typedIn) =>
+        _detector.IsKnownWord(word, typedIn)
+        || (typedIn == Layout.English ? WordFrequency.Korean : WordFrequency.English).Value.Score(replacement) < 3.5f;
 
     // 20소 → 20th, 1980ㄴ → 1980s: a number and an English ending that reads as Hangul.
     static string? NumberWithEnglishEnding(string word)

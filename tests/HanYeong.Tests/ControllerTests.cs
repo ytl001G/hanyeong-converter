@@ -100,6 +100,20 @@ public class ControllerTests : IDisposable
     }
 
     [Fact]
+    public void EverydayWordErasedAndTypedAgainStillConverts() // reported: ahffk stayed ahffk with Space and Shift+Enter
+    {
+        Assert.Equal("몰라 ", Type(Layout.English, "ahffk "));
+        for (int i = 0; i < 3; i++) _desktop.Tap(FakeDesktop.VK_BACK);
+        _desktop.Type("ahffk ");
+        Assert.Equal("몰라 ", _desktop.Box.Text);
+        _desktop.Type("ahffk");
+        _desktop.Down(FakeDesktop.VK_LSHIFT);
+        _desktop.Tap(FakeDesktop.VK_RETURN);
+        _desktop.Up(FakeDesktop.VK_LSHIFT);
+        Assert.Equal("몰라 몰라\n", _desktop.Box.Text);
+    }
+
+    [Fact]
     public void KeptWordErasedAndTypedAgainConvertsAgain()
     {
         Assert.Equal("눈 ", Type(Layout.English, "sns "));
