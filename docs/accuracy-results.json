@@ -1,6 +1,6 @@
 {
   "load": {
-    "ms": 360,
+    "ms": 364,
     "managedMB": 16.8,
     "englishWords": 477661,
     "koreanWords": 486868
@@ -904,9 +904,9 @@
       },
       {
         "shape": "LH",
-        "missedTokens": 809,
-        "shareOfAllWords": 0.00023433123487636638,
-        "missRateInShape": 0.05922834760963467,
+        "missedTokens": 762,
+        "shareOfAllWords": 0.00022071743013076783,
+        "missRateInShape": 0.05578739292773995,
         "examples": [
           "t당(13)",
           "A형(13)",
@@ -2145,6 +2145,6 @@
   },
   "speed": {
     "checks": 200000,
-    "microsecondsPerCheck": 1.103928
+    "microsecondsPerCheck": 2.1201145
   }
 }
